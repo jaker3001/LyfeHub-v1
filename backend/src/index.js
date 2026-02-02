@@ -14,6 +14,7 @@ const taskItemsRoutes = require('./routes/taskItems');
 const taskListsRoutes = require('./routes/taskLists');
 const usersRoutes = require('./routes/users');
 const basesRoutes = require('./routes/bases');
+const calendarsRoutes = require('./routes/calendars');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,7 @@ app.use('/api/task-items', taskItemsRoutes);
 app.use('/api/task-lists', taskListsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/bases', basesRoutes);
+app.use('/api/calendars', calendarsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

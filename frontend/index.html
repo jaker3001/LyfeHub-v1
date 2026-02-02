@@ -396,19 +396,10 @@
             <!-- Calendar Sidebar -->
             <aside class="calendar-sidebar">
                 <!-- Calendars Section -->
-                <div class="calendar-sidebar-group">
-                    <button class="calendar-sidebar-toggle" data-group="calendars">
-                        <svg class="toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                        <span>Calendars</span>
-                    </button>
+                <div class="calendar-sidebar-group calendars-group">
+                    <button id="new-calendar-btn" class="sidebar-new-calendar-btn">+ New Calendar</button>
                     <div class="calendar-sidebar-group-content" id="calendars-list">
-                        <div class="calendar-list-item active" data-calendar="default">
-                            <span class="calendar-color" style="background: var(--neon-blue);"></span>
-                            <span class="calendar-name">My Calendar</span>
-                        </div>
-                        <!-- Additional calendars will be added here -->
+                        <!-- Populated by JS -->
                     </div>
                 </div>
 
@@ -622,6 +613,47 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
                 <button type="button" id="save-edit-base-btn" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Calendar Modal -->
+    <div id="new-calendar-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>New Calendar</h2>
+                <button class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-calendar-name">Calendar name</label>
+                    <input type="text" id="new-calendar-name" placeholder="Work, Personal, etc." />
+                </div>
+                <div class="form-group">
+                    <label for="new-calendar-color">Color</label>
+                    <div class="color-picker-row">
+                        <input type="color" id="new-calendar-color" value="#00aaff" class="color-input" />
+                        <div class="color-presets" id="calendar-color-presets">
+                            <button type="button" class="color-preset" data-color="#00aaff" style="background: #00aaff;" title="Blue"></button>
+                            <button type="button" class="color-preset" data-color="#a855f7" style="background: #a855f7;" title="Purple"></button>
+                            <button type="button" class="color-preset" data-color="#22c55e" style="background: #22c55e;" title="Green"></button>
+                            <button type="button" class="color-preset" data-color="#eab308" style="background: #eab308;" title="Yellow"></button>
+                            <button type="button" class="color-preset" data-color="#f97316" style="background: #f97316;" title="Orange"></button>
+                            <button type="button" class="color-preset" data-color="#ef4444" style="background: #ef4444;" title="Red"></button>
+                            <button type="button" class="color-preset" data-color="#ec4899" style="background: #ec4899;" title="Pink"></button>
+                            <button type="button" class="color-preset" data-color="#06b6d4" style="background: #06b6d4;" title="Cyan"></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-calendar-description">Description (optional)</label>
+                    <textarea id="new-calendar-description" placeholder="What is this calendar for?" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" id="create-calendar-btn" class="btn btn-primary">Create Calendar</button>
             </div>
         </div>
     </div>

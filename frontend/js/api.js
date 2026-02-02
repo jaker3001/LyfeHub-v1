@@ -309,6 +309,53 @@ const api = {
             method: 'PATCH',
         });
     },
+
+    // ========================================
+    // CALENDARS
+    // ========================================
+
+    /**
+     * Calendars: Get all calendars
+     */
+    async getCalendars() {
+        return this.request('/calendars');
+    },
+
+    /**
+     * Calendars: Get single calendar by ID
+     */
+    async getCalendar(id) {
+        return this.request(`/calendars/${id}`);
+    },
+
+    /**
+     * Calendars: Create new calendar
+     */
+    async createCalendar(data) {
+        return this.request('/calendars', {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Calendars: Update existing calendar
+     */
+    async updateCalendar(id, data) {
+        return this.request(`/calendars/${id}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
+
+    /**
+     * Calendars: Delete calendar
+     */
+    async deleteCalendar(id) {
+        return this.request(`/calendars/${id}`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // Make available globally

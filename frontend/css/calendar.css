@@ -30,6 +30,63 @@
     border-bottom: 1px solid var(--glass-border);
 }
 
+.calendar-sidebar-group.calendars-group {
+    padding: 0.5rem 0;
+}
+
+/* New Calendar Button (matches Bases sidebar button) */
+.sidebar-new-calendar-btn {
+    width: calc(100% - 1.5rem);
+    margin: 0.5rem 0.75rem;
+    padding: 0.6rem 1rem;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.sidebar-new-calendar-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 0 15px rgba(255, 42, 109, 0.3);
+}
+
+/* Color Picker Row */
+.color-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.color-presets {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.color-preset {
+    width: 28px;
+    height: 28px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.color-preset:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px currentColor;
+}
+
+.color-preset.active {
+    border-color: white;
+    box-shadow: 0 0 10px currentColor;
+}
+
 .calendar-sidebar-toggle {
     display: flex;
     align-items: center;

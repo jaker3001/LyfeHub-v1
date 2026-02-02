@@ -218,6 +218,28 @@ try {
   // Column already exists, ignore
 }
 
+// ============================================
+// CALENDARS TABLE
+// ============================================
+const calendarsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='calendars'").get();
+if (!calendarsTable) {
+  console.log('Creating calendars table...');
+  db.exec(`
+    CREATE TABLE calendars (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      color TEXT DEFAULT '#00aaff',
+      user_id TEXT REFERENCES users(id),
+      is_default INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_calendars_user_id ON calendars(user_id)`);
+  console.log('Calendars table created');
+}
+
 console.log('Database initialized at', dbPath);
 
 module.exports = db;

@@ -9,6 +9,7 @@ const calendar = {
     currentView: 'month',
     scheduledTasks: [],
     unscheduledTasks: [],
+    calendars: [],
     isInitialized: false,
 
     // Drag state for time range selection
@@ -30,6 +31,7 @@ const calendar = {
         this.isInitialized = true;
 
         this.bindEvents();
+        this.bindCalendarModalEvents();
         // Don't load data on init - wait for tab switch
     },
 
@@ -72,11 +74,137 @@ const calendar = {
      */
     async load() {
         await Promise.all([
+            this.loadCalendars(),
             this.loadScheduledTasks(),
             this.loadUnscheduledTasks()
         ]);
         this.updateTotalTasksCount();
         this.render();
+    },
+
+    /**
+     * Load user's calendars
+     */
+    async loadCalendars() {
+        try {
+            const response = await api.getCalendars();
+            this.calendars = response.calendars || [];
+            this.renderCalendarsList();
+        } catch (err) {
+            console.error('Failed to load calendars:', err);
+        }
+    },
+
+    /**
+     * Render calendars in sidebar
+     */
+    renderCalendarsList() {
+        const container = document.getElementById('calendars-list');
+        if (!container) return;
+
+        if (this.calendars.length === 0) {
+            container.innerHTML = '<div class="calendar-task-empty">No calendars</div>';
+            return;
+        }
+
+        container.innerHTML = this.calendars.map(cal => `
+            <div class="calendar-list-item${cal.is_default ? ' active' : ''}" data-calendar-id="${cal.id}">
+                <span class="calendar-color" style="background: ${cal.color};"></span>
+                <span class="calendar-name">${this.escapeHtml(cal.name)}</span>
+            </div>
+        `).join('');
+    },
+
+    /**
+     * Bind events for new calendar modal
+     */
+    bindCalendarModalEvents() {
+        // Open modal button
+        document.getElementById('new-calendar-btn')?.addEventListener('click', () => {
+            this.openNewCalendarModal();
+        });
+
+        // Modal close/cancel
+        const modal = document.getElementById('new-calendar-modal');
+        if (modal) {
+            modal.querySelector('.modal-close')?.addEventListener('click', () => this.closeNewCalendarModal());
+            modal.querySelector('.modal-cancel')?.addEventListener('click', () => this.closeNewCalendarModal());
+            modal.querySelector('.modal-backdrop')?.addEventListener('click', () => this.closeNewCalendarModal());
+        }
+
+        // Color presets
+        document.querySelectorAll('#calendar-color-presets .color-preset').forEach(preset => {
+            preset.addEventListener('click', () => {
+                const color = preset.dataset.color;
+                document.getElementById('new-calendar-color').value = color;
+                // Update active state
+                document.querySelectorAll('#calendar-color-presets .color-preset').forEach(p => p.classList.remove('active'));
+                preset.classList.add('active');
+            });
+        });
+
+        // Create button
+        document.getElementById('create-calendar-btn')?.addEventListener('click', () => {
+            this.createCalendar();
+        });
+
+        // Enter key to submit
+        document.getElementById('new-calendar-name')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.createCalendar();
+            }
+        });
+    },
+
+    /**
+     * Open new calendar modal
+     */
+    openNewCalendarModal() {
+        const modal = document.getElementById('new-calendar-modal');
+        if (!modal) return;
+
+        // Reset form
+        document.getElementById('new-calendar-name').value = '';
+        document.getElementById('new-calendar-color').value = '#00aaff';
+        document.getElementById('new-calendar-description').value = '';
+        document.querySelectorAll('#calendar-color-presets .color-preset').forEach(p => p.classList.remove('active'));
+        document.querySelector('#calendar-color-presets .color-preset[data-color="#00aaff"]')?.classList.add('active');
+
+        modal.classList.add('active');
+        document.getElementById('new-calendar-name').focus();
+    },
+
+    /**
+     * Close new calendar modal
+     */
+    closeNewCalendarModal() {
+        const modal = document.getElementById('new-calendar-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    },
+
+    /**
+     * Create new calendar
+     */
+    async createCalendar() {
+        const name = document.getElementById('new-calendar-name').value.trim();
+        if (!name) {
+            document.getElementById('new-calendar-name').focus();
+            return;
+        }
+
+        const color = document.getElementById('new-calendar-color').value;
+        const description = document.getElementById('new-calendar-description').value.trim();
+
+        try {
+            await api.createCalendar({ name, color, description });
+            this.closeNewCalendarModal();
+            await this.loadCalendars();
+        } catch (err) {
+            console.error('Failed to create calendar:', err);
+            alert('Failed to create calendar: ' + err.message);
+        }
     },
 
     /**
