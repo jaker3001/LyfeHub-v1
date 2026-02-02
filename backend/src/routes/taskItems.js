@@ -7,7 +7,13 @@ const {
   updateTaskItem,
   deleteTaskItem,
   toggleTaskItemComplete,
-  getTaskItemCounts
+  getTaskItemCounts,
+  // Calendar functions
+  getTaskItemsForCalendar,
+  getScheduledTaskItems,
+  getUnscheduledTaskItems,
+  scheduleTaskItem,
+  unscheduleTaskItem
 } = require('../db/taskItems');
 
 const router = express.Router();
@@ -48,6 +54,111 @@ router.get('/counts', (req, res) => {
   } catch (err) {
     console.error('Error fetching counts:', err);
     res.status(500).json({ error: 'Failed to fetch counts' });
+  }
+});
+
+// ========================================
+// CALENDAR ENDPOINTS
+// ========================================
+
+/**
+ * GET /api/task-items/calendar
+ * Get task items scheduled within a date range
+ * Query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+ */
+router.get('/calendar', (req, res) => {
+  try {
+    const { start, end } = req.query;
+    const userId = req.user.id;
+
+    if (!start || !end) {
+      return res.status(400).json({
+        error: 'start and end query parameters are required (YYYY-MM-DD format)'
+      });
+    }
+
+    const items = getTaskItemsForCalendar(userId, start, end);
+    res.json({ items });
+  } catch (err) {
+    console.error('Error fetching calendar task items:', err);
+    res.status(500).json({ error: 'Failed to fetch calendar task items' });
+  }
+});
+
+/**
+ * GET /api/task-items/calendar/scheduled
+ * Get all scheduled task items (have due_date)
+ */
+router.get('/calendar/scheduled', (req, res) => {
+  try {
+    const userId = req.user.id;
+    const items = getScheduledTaskItems(userId);
+    res.json({ items });
+  } catch (err) {
+    console.error('Error fetching scheduled task items:', err);
+    res.status(500).json({ error: 'Failed to fetch scheduled task items' });
+  }
+});
+
+/**
+ * GET /api/task-items/calendar/unscheduled
+ * Get all unscheduled task items (no due_date)
+ */
+router.get('/calendar/unscheduled', (req, res) => {
+  try {
+    const userId = req.user.id;
+    const items = getUnscheduledTaskItems(userId);
+    res.json({ items });
+  } catch (err) {
+    console.error('Error fetching unscheduled task items:', err);
+    res.status(500).json({ error: 'Failed to fetch unscheduled task items' });
+  }
+});
+
+/**
+ * PATCH /api/task-items/:id/schedule
+ * Schedule a task item on the calendar
+ * Body: { due_date: "YYYY-MM-DD", due_time?: "HH:MM", due_time_end?: "HH:MM" }
+ */
+router.patch('/:id/schedule', (req, res) => {
+  try {
+    const { due_date, due_time, due_time_end } = req.body;
+    const userId = req.user.id;
+
+    if (!due_date) {
+      return res.status(400).json({ error: 'due_date is required (YYYY-MM-DD format)' });
+    }
+
+    const item = scheduleTaskItem(req.params.id, { due_date, due_time, due_time_end }, userId);
+
+    if (!item) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json({ item });
+  } catch (err) {
+    console.error('Error scheduling task item:', err);
+    res.status(500).json({ error: 'Failed to schedule task item' });
+  }
+});
+
+/**
+ * PATCH /api/task-items/:id/unschedule
+ * Remove a task item from the calendar
+ */
+router.patch('/:id/unschedule', (req, res) => {
+  try {
+    const userId = req.user.id;
+    const item = unscheduleTaskItem(req.params.id, userId);
+
+    if (!item) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json({ item });
+  } catch (err) {
+    console.error('Error unscheduling task item:', err);
+    res.status(500).json({ error: 'Failed to unschedule task item' });
   }
 });
 

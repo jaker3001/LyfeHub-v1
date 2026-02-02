@@ -210,6 +210,14 @@ try {
 // Index for calendar queries
 db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_scheduled_date ON tasks(scheduled_date)`);
 
+// Add due_time_end column to task_items for calendar duration
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN due_time_end TEXT`);
+  console.log('Added due_time_end column to task_items');
+} catch (e) {
+  // Column already exists, ignore
+}
+
 console.log('Database initialized at', dbPath);
 
 module.exports = db;

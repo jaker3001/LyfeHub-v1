@@ -260,6 +260,55 @@ const api = {
             method: 'PATCH',
         });
     },
+
+    // ========================================
+    // TASK ITEMS CALENDAR
+    // ========================================
+
+    /**
+     * Task Items Calendar: Get task items scheduled within a date range
+     * @param {string} start - Start date (YYYY-MM-DD)
+     * @param {string} end - End date (YYYY-MM-DD)
+     */
+    async getTaskItemsForCalendar(start, end) {
+        return this.request(`/task-items/calendar?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+    },
+
+    /**
+     * Task Items Calendar: Get all scheduled task items
+     */
+    async getScheduledTaskItems() {
+        return this.request('/task-items/calendar/scheduled');
+    },
+
+    /**
+     * Task Items Calendar: Get all unscheduled task items
+     */
+    async getUnscheduledTaskItems() {
+        return this.request('/task-items/calendar/unscheduled');
+    },
+
+    /**
+     * Task Items Calendar: Schedule a task item
+     * @param {string} id - Task Item ID
+     * @param {object} scheduleData - { due_date, due_time?, due_time_end? }
+     */
+    async scheduleTaskItem(id, scheduleData) {
+        return this.request(`/task-items/${id}/schedule`, {
+            method: 'PATCH',
+            body: scheduleData,
+        });
+    },
+
+    /**
+     * Task Items Calendar: Remove task item from calendar
+     * @param {string} id - Task Item ID
+     */
+    async unscheduleTaskItem(id) {
+        return this.request(`/task-items/${id}/unschedule`, {
+            method: 'PATCH',
+        });
+    },
 };
 
 // Make available globally

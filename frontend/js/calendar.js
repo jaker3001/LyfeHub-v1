@@ -11,6 +11,17 @@ const calendar = {
     unscheduledTasks: [],
     isInitialized: false,
 
+    // Drag state for time range selection
+    dragState: {
+        taskId: null,
+        startHour: null,
+        startMinutes: null,
+        currentHour: null,
+        currentMinutes: null,
+        dateStr: null,
+        previewEl: null
+    },
+
     /**
      * Initialize the calendar
      */
@@ -59,12 +70,12 @@ const calendar = {
     },
 
     /**
-     * Load scheduled tasks
+     * Load scheduled tasks (task items with due_date)
      */
     async loadScheduledTasks() {
         try {
-            const response = await api.getScheduledTasks();
-            this.scheduledTasks = response.tasks || [];
+            const response = await api.getScheduledTaskItems();
+            this.scheduledTasks = response.items || [];
             this.updateSidebarScheduled();
         } catch (err) {
             console.error('Failed to load scheduled tasks:', err);
@@ -72,12 +83,12 @@ const calendar = {
     },
 
     /**
-     * Load unscheduled tasks
+     * Load unscheduled tasks (task items without due_date)
      */
     async loadUnscheduledTasks() {
         try {
-            const response = await api.getUnscheduledTasks();
-            this.unscheduledTasks = response.tasks || [];
+            const response = await api.getUnscheduledTaskItems();
+            this.unscheduledTasks = response.items || [];
             this.updateSidebarUnscheduled();
         } catch (err) {
             console.error('Failed to load unscheduled tasks:', err);
@@ -126,25 +137,27 @@ const calendar = {
      * Render a sidebar task item
      */
     renderSidebarTask(task, isScheduled) {
-        const priority = task.priority || 3;
+        // Task items use 'important' flag instead of priority
+        const isImportant = task.important;
         let timeDisplay = '';
 
-        if (isScheduled && task.scheduled_date) {
-            const date = new Date(task.scheduled_date + 'T00:00:00');
+        if (isScheduled && task.due_date) {
+            const date = new Date(task.due_date + 'T00:00:00');
             const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-            if (task.is_all_day) {
-                timeDisplay = `${dateStr} (All day)`;
-            } else if (task.scheduled_start) {
-                timeDisplay = `${dateStr} ${this.formatTime(task.scheduled_start)}`;
+            if (task.due_time) {
+                const timeStr = task.due_time_end
+                    ? `${this.formatTime(task.due_time)} - ${this.formatTime(task.due_time_end)}`
+                    : this.formatTime(task.due_time);
+                timeDisplay = `${dateStr} ${timeStr}`;
             } else {
                 timeDisplay = dateStr;
             }
         }
 
         return `
-            <div class="calendar-task-item" data-id="${task.id}" draggable="true">
-                <span class="priority-dot priority-${priority}"></span>
+            <div class="calendar-task-item${isImportant ? ' important' : ''}" data-id="${task.id}" draggable="true">
+                ${isImportant ? '<span class="important-star">★</span>' : '<span class="task-bullet"></span>'}
                 <div class="calendar-task-info">
                     <div class="calendar-task-title">${this.escapeHtml(task.title)}</div>
                     ${timeDisplay ? `<div class="calendar-task-time">${timeDisplay}</div>` : ''}
@@ -158,12 +171,12 @@ const calendar = {
      */
     bindSidebarTaskEvents(container) {
         container.querySelectorAll('.calendar-task-item').forEach(item => {
-            // Click to open task modal
+            // Click to open task item modal
             item.addEventListener('click', () => {
                 const taskId = item.dataset.id;
                 const task = this.findTask(taskId);
-                if (task) {
-                    modal.openEdit(task);
+                if (task && typeof taskModal !== 'undefined') {
+                    taskModal.openTask(task);
                 }
             });
 
@@ -356,8 +369,8 @@ const calendar = {
         if (isToday) classes += ' today';
 
         const eventsHtml = dayTasks.slice(0, 3).map(task => {
-            const priority = task.priority || 3;
-            return `<div class="month-event priority-${priority}" data-id="${task.id}" title="${this.escapeHtml(task.title)}">${this.escapeHtml(task.title)}</div>`;
+            const importantClass = task.important ? ' important' : '';
+            return `<div class="month-event${importantClass}" data-id="${task.id}" title="${this.escapeHtml(task.title)}">${this.escapeHtml(task.title)}</div>`;
         }).join('');
 
         const moreCount = dayTasks.length - 3;
@@ -419,7 +432,9 @@ const calendar = {
                 e.stopPropagation();
                 const taskId = event.dataset.id;
                 const task = this.findTask(taskId);
-                if (task) modal.openEdit(task);
+                if (task && typeof taskModal !== 'undefined') {
+                    taskModal.openTask(task);
+                }
             });
         });
     },
@@ -430,20 +445,24 @@ const calendar = {
     async scheduleTaskOnDate(taskId, date, startTime = null, endTime = null, isAllDay = true) {
         try {
             const scheduleData = {
-                scheduled_date: date,
-                is_all_day: isAllDay
+                due_date: date
             };
 
-            if (startTime) {
-                scheduleData.scheduled_start = startTime;
-                scheduleData.is_all_day = false;
-            }
-            if (endTime) {
-                scheduleData.scheduled_end = endTime;
+            if (startTime && !isAllDay) {
+                scheduleData.due_time = startTime;
+                if (endTime) {
+                    scheduleData.due_time_end = endTime;
+                }
             }
 
-            await api.scheduleTask(taskId, scheduleData);
-            await this.load(); // Reload all data
+            await api.scheduleTaskItem(taskId, scheduleData);
+            await this.load(); // Reload calendar data
+
+            // Also refresh the Tasks section so it shows updated times
+            if (typeof taskManager !== 'undefined' && taskManager.loadTasks) {
+                taskManager.loadTasks();
+                taskManager.loadCounts();
+            }
         } catch (err) {
             console.error('Failed to schedule task:', err);
             alert('Failed to schedule task: ' + err.message);
@@ -542,11 +561,11 @@ const calendar = {
             const allDaySection = column.querySelector('.week-all-day');
 
             dayTasks.forEach(task => {
-                if (task.is_all_day || !task.scheduled_start) {
-                    // All-day or no time specified
+                if (!task.due_time) {
+                    // No time specified - show in all-day section
                     if (allDaySection) {
                         const el = document.createElement('div');
-                        el.className = `all-day-event priority-${task.priority || 3}`;
+                        el.className = `all-day-event${task.important ? ' important' : ''}`;
                         el.dataset.id = task.id;
                         el.textContent = task.title;
                         el.title = task.title;
@@ -564,29 +583,34 @@ const calendar = {
      * Place a timed task on a column
      */
     placeTimedTask(column, task) {
-        if (!task.scheduled_start) return;
+        if (!task.due_time) return;
 
-        const [startHour, startMin] = task.scheduled_start.split(':').map(Number);
+        const [startHour, startMin] = task.due_time.split(':').map(Number);
         const startMinutes = startHour * 60 + startMin;
 
-        let endMinutes = startMinutes + 60; // Default 1 hour
-        if (task.scheduled_end) {
-            const [endHour, endMin] = task.scheduled_end.split(':').map(Number);
+        // Use end time if available, otherwise default 1 hour
+        let endMinutes = startMinutes + 60;
+        if (task.due_time_end) {
+            const [endHour, endMin] = task.due_time_end.split(':').map(Number);
             endMinutes = endHour * 60 + endMin;
         }
 
         const top = (startMinutes / 60) * 60; // 60px per hour
         const height = Math.max(((endMinutes - startMinutes) / 60) * 60, 20);
 
+        const timeDisplay = task.due_time_end
+            ? `${this.formatTime(task.due_time)} - ${this.formatTime(task.due_time_end)}`
+            : this.formatTime(task.due_time);
+
         const block = document.createElement('div');
-        block.className = `time-block priority-${task.priority || 3}`;
+        block.className = `time-block${task.important ? ' important' : ''}`;
         block.dataset.id = task.id;
         block.style.top = `${top + 40}px`; // +40 for all-day section
         block.style.height = `${height}px`;
 
         block.innerHTML = `
             <div class="time-block-title">${this.escapeHtml(task.title)}</div>
-            <div class="time-block-time">${this.formatTime(task.scheduled_start)}${task.scheduled_end ? ' - ' + this.formatTime(task.scheduled_end) : ''}</div>
+            <div class="time-block-time">${timeDisplay}</div>
         `;
 
         column.style.position = 'relative';
@@ -603,32 +627,77 @@ const calendar = {
                 e.stopPropagation();
                 const taskId = el.dataset.id;
                 const task = this.findTask(taskId);
-                if (task) modal.openEdit(task);
+                if (task && typeof taskModal !== 'undefined') {
+                    taskModal.openTask(task);
+                }
             });
         });
 
-        // Drop zones on hour slots
+        // Drag range selection on hour slots
         columnsEl.querySelectorAll('.week-hour-slot').forEach(slot => {
+            slot.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                const taskId = e.dataTransfer.types.includes('text/plain') ? 'pending' : null;
+                if (!taskId) return;
+
+                const column = slot.closest('.week-column');
+                const hour = parseInt(slot.dataset.hour, 10);
+
+                // If this is the first slot entered, set as start
+                if (this.dragState.startHour === null) {
+                    this.dragState.startHour = hour;
+                    this.dragState.dateStr = column.dataset.date;
+                    this.createDragPreview(column, hour);
+                }
+
+                // Update current position
+                this.dragState.currentHour = hour;
+                this.updateDragPreview(column);
+            });
+
             slot.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                slot.classList.add('calendar-drop-target');
-            });
 
-            slot.addEventListener('dragleave', () => {
-                slot.classList.remove('calendar-drop-target');
+                const column = slot.closest('.week-column');
+                const hour = parseInt(slot.dataset.hour, 10);
+
+                // Update current position for smooth preview
+                if (this.dragState.startHour !== null && this.dragState.dateStr === column.dataset.date) {
+                    this.dragState.currentHour = hour;
+                    this.updateDragPreview(column);
+                }
             });
 
             slot.addEventListener('drop', async (e) => {
                 e.preventDefault();
-                slot.classList.remove('calendar-drop-target');
 
                 const taskId = e.dataTransfer.getData('text/plain');
                 const column = slot.closest('.week-column');
                 const date = column.dataset.date;
-                const hour = parseInt(slot.dataset.hour, 10);
-                const startTime = `${hour.toString().padStart(2, '0')}:00`;
-                const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+                const dropHour = parseInt(slot.dataset.hour, 10);
+
+                // Calculate start and end from drag state
+                let startHour = this.dragState.startHour;
+                let endHour = dropHour;
+
+                // If no drag state, use single hour
+                if (startHour === null) {
+                    startHour = dropHour;
+                    endHour = dropHour + 1;
+                } else {
+                    // Ensure start < end
+                    if (startHour > endHour) {
+                        [startHour, endHour] = [endHour, startHour];
+                    }
+                    endHour = endHour + 1; // End is exclusive
+                }
+
+                const startTime = `${startHour.toString().padStart(2, '0')}:00`;
+                const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+
+                // Clear drag state
+                this.clearDragState();
 
                 if (taskId && date) {
                     await this.scheduleTaskOnDate(taskId, date, startTime, endTime, false);
@@ -636,8 +705,20 @@ const calendar = {
             });
         });
 
+        // Clear drag state when leaving the column area
+        columnsEl.addEventListener('dragleave', (e) => {
+            // Only clear if leaving the entire columns area
+            if (!columnsEl.contains(e.relatedTarget)) {
+                this.clearDragState();
+            }
+        });
+
         // Drop zones on all-day sections
         columnsEl.querySelectorAll('.week-all-day').forEach(section => {
+            section.addEventListener('dragenter', () => {
+                this.clearDragState(); // Clear time selection when entering all-day
+            });
+
             section.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
@@ -651,6 +732,7 @@ const calendar = {
             section.addEventListener('drop', async (e) => {
                 e.preventDefault();
                 section.classList.remove('calendar-drop-target');
+                this.clearDragState();
 
                 const taskId = e.dataTransfer.getData('text/plain');
                 const date = section.dataset.date;
@@ -660,6 +742,68 @@ const calendar = {
                 }
             });
         });
+    },
+
+    /**
+     * Create drag preview element
+     */
+    createDragPreview(column, startHour) {
+        this.removeDragPreview();
+
+        const preview = document.createElement('div');
+        preview.className = 'time-selection';
+        preview.id = 'drag-time-preview';
+
+        const top = startHour * 60 + 40; // 60px per hour + all-day offset
+        preview.style.top = `${top}px`;
+        preview.style.height = '60px';
+
+        column.style.position = 'relative';
+        column.appendChild(preview);
+        this.dragState.previewEl = preview;
+    },
+
+    /**
+     * Update drag preview to show time range
+     */
+    updateDragPreview(column) {
+        if (!this.dragState.previewEl || this.dragState.startHour === null) return;
+
+        let startHour = this.dragState.startHour;
+        let endHour = this.dragState.currentHour;
+
+        // Swap if dragging upward
+        if (startHour > endHour) {
+            [startHour, endHour] = [endHour, startHour];
+        }
+
+        const top = startHour * 60 + 40;
+        const height = (endHour - startHour + 1) * 60;
+
+        this.dragState.previewEl.style.top = `${top}px`;
+        this.dragState.previewEl.style.height = `${height}px`;
+    },
+
+    /**
+     * Remove drag preview element
+     */
+    removeDragPreview() {
+        const existing = document.getElementById('drag-time-preview');
+        if (existing) {
+            existing.remove();
+        }
+        this.dragState.previewEl = null;
+    },
+
+    /**
+     * Clear all drag state
+     */
+    clearDragState() {
+        this.removeDragPreview();
+        this.dragState.taskId = null;
+        this.dragState.startHour = null;
+        this.dragState.currentHour = null;
+        this.dragState.dateStr = null;
     },
 
     /**
@@ -704,11 +848,11 @@ const calendar = {
         // Place tasks
         const dayTasks = this.getTasksForDate(dateStr);
         dayTasks.forEach(task => {
-            if (task.is_all_day || !task.scheduled_start) {
-                // All-day event
+            if (!task.due_time) {
+                // No time - show in all-day section
                 if (allDayEventsEl) {
                     const el = document.createElement('div');
-                    el.className = `all-day-event priority-${task.priority || 3}`;
+                    el.className = `all-day-event${task.important ? ' important' : ''}`;
                     el.dataset.id = task.id;
                     el.textContent = task.title;
                     allDayEventsEl.appendChild(el);
@@ -726,14 +870,15 @@ const calendar = {
      * Place a timed task on day view
      */
     placeTimedTaskOnDayView(hourGridEl, task) {
-        if (!task.scheduled_start) return;
+        if (!task.due_time) return;
 
-        const [startHour, startMin] = task.scheduled_start.split(':').map(Number);
+        const [startHour, startMin] = task.due_time.split(':').map(Number);
         const startMinutes = startHour * 60 + startMin;
 
+        // Use end time if available, otherwise default 1 hour
         let endMinutes = startMinutes + 60;
-        if (task.scheduled_end) {
-            const [endHour, endMin] = task.scheduled_end.split(':').map(Number);
+        if (task.due_time_end) {
+            const [endHour, endMin] = task.due_time_end.split(':').map(Number);
             endMinutes = endHour * 60 + endMin;
         }
 
@@ -743,15 +888,19 @@ const calendar = {
         const topOffset = (startMin / 60) * 60; // Position within the hour
         const height = Math.max(((endMinutes - startMinutes) / 60) * 60, 20);
 
+        const timeDisplay = task.due_time_end
+            ? `${this.formatTime(task.due_time)} - ${this.formatTime(task.due_time_end)}`
+            : this.formatTime(task.due_time);
+
         const block = document.createElement('div');
-        block.className = `time-block priority-${task.priority || 3}`;
+        block.className = `time-block${task.important ? ' important' : ''}`;
         block.dataset.id = task.id;
         block.style.top = `${topOffset}px`;
         block.style.height = `${height}px`;
 
         block.innerHTML = `
             <div class="time-block-title">${this.escapeHtml(task.title)}</div>
-            <div class="time-block-time">${this.formatTime(task.scheduled_start)}${task.scheduled_end ? ' - ' + this.formatTime(task.scheduled_end) : ''}</div>
+            <div class="time-block-time">${timeDisplay}</div>
         `;
 
         hourRow.style.position = 'relative';
@@ -768,7 +917,9 @@ const calendar = {
                 e.stopPropagation();
                 const taskId = el.dataset.id;
                 const task = this.findTask(taskId);
-                if (task) modal.openEdit(task);
+                if (task && typeof taskModal !== 'undefined') {
+                    taskModal.openTask(task);
+                }
             });
         });
 
@@ -778,13 +929,19 @@ const calendar = {
                     e.stopPropagation();
                     const taskId = el.dataset.id;
                     const task = this.findTask(taskId);
-                    if (task) modal.openEdit(task);
+                    if (task && typeof taskModal !== 'undefined') {
+                        taskModal.openTask(task);
+                    }
                 });
             });
 
             // Drop zone for all-day
             const allDaySection = allDayEventsEl.closest('.all-day-section');
             if (allDaySection) {
+                allDaySection.addEventListener('dragenter', () => {
+                    this.clearDragState();
+                });
+
                 allDaySection.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
@@ -798,6 +955,7 @@ const calendar = {
                 allDaySection.addEventListener('drop', async (e) => {
                     e.preventDefault();
                     allDaySection.classList.remove('calendar-drop-target');
+                    this.clearDragState();
 
                     const taskId = e.dataTransfer.getData('text/plain');
                     const dateStr = this.formatDateISO(this.currentDate);
@@ -809,33 +967,141 @@ const calendar = {
             }
         }
 
-        // Drop zones on hour content areas
+        // Drag range selection on hour content areas
         hourGridEl.querySelectorAll('.hour-content').forEach(hourContent => {
+            hourContent.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                const taskId = e.dataTransfer.types.includes('text/plain') ? 'pending' : null;
+                if (!taskId) return;
+
+                const hour = parseInt(hourContent.dataset.hour, 10);
+                const dateStr = hourContent.dataset.date;
+
+                // If this is the first slot entered, set as start
+                if (this.dragState.startHour === null) {
+                    this.dragState.startHour = hour;
+                    this.dragState.dateStr = dateStr;
+                    this.createDayDragPreview(hourGridEl, hour);
+                }
+
+                // Update current position
+                this.dragState.currentHour = hour;
+                this.updateDayDragPreview(hourGridEl);
+            });
+
             hourContent.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                hourContent.classList.add('calendar-drop-target');
-            });
 
-            hourContent.addEventListener('dragleave', () => {
-                hourContent.classList.remove('calendar-drop-target');
+                const hour = parseInt(hourContent.dataset.hour, 10);
+
+                // Update current position for smooth preview
+                if (this.dragState.startHour !== null) {
+                    this.dragState.currentHour = hour;
+                    this.updateDayDragPreview(hourGridEl);
+                }
             });
 
             hourContent.addEventListener('drop', async (e) => {
                 e.preventDefault();
-                hourContent.classList.remove('calendar-drop-target');
 
                 const taskId = e.dataTransfer.getData('text/plain');
                 const date = hourContent.dataset.date;
-                const hour = parseInt(hourContent.dataset.hour, 10);
-                const startTime = `${hour.toString().padStart(2, '0')}:00`;
-                const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+                const dropHour = parseInt(hourContent.dataset.hour, 10);
+
+                // Calculate start and end from drag state
+                let startHour = this.dragState.startHour;
+                let endHour = dropHour;
+
+                // If no drag state, use single hour
+                if (startHour === null) {
+                    startHour = dropHour;
+                    endHour = dropHour + 1;
+                } else {
+                    // Ensure start < end
+                    if (startHour > endHour) {
+                        [startHour, endHour] = [endHour, startHour];
+                    }
+                    endHour = endHour + 1; // End is exclusive
+                }
+
+                const startTime = `${startHour.toString().padStart(2, '0')}:00`;
+                const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+
+                // Clear drag state
+                this.clearDragState();
 
                 if (taskId && date) {
                     await this.scheduleTaskOnDate(taskId, date, startTime, endTime, false);
                 }
             });
         });
+
+        // Clear drag state when leaving the hour grid
+        hourGridEl.addEventListener('dragleave', (e) => {
+            if (!hourGridEl.contains(e.relatedTarget)) {
+                this.clearDragState();
+            }
+        });
+    },
+
+    /**
+     * Create drag preview for day view
+     */
+    createDayDragPreview(hourGridEl, startHour) {
+        this.removeDragPreview();
+
+        const preview = document.createElement('div');
+        preview.className = 'time-selection';
+        preview.id = 'drag-time-preview';
+
+        // Position relative to the hour grid
+        const hourRow = hourGridEl.querySelector(`.hour-content[data-hour="${startHour}"]`);
+        if (!hourRow) return;
+
+        const hourRowParent = hourRow.closest('.hour-row');
+        if (!hourRowParent) return;
+
+        // Get offset from top of hour grid
+        const gridRect = hourGridEl.getBoundingClientRect();
+        const rowRect = hourRowParent.getBoundingClientRect();
+        const top = rowRect.top - gridRect.top;
+
+        preview.style.top = `${top}px`;
+        preview.style.height = '60px';
+        preview.style.left = '60px'; // After time label
+        preview.style.right = '0';
+
+        hourGridEl.style.position = 'relative';
+        hourGridEl.appendChild(preview);
+        this.dragState.previewEl = preview;
+    },
+
+    /**
+     * Update drag preview for day view
+     */
+    updateDayDragPreview(hourGridEl) {
+        if (!this.dragState.previewEl || this.dragState.startHour === null) return;
+
+        let startHour = this.dragState.startHour;
+        let endHour = this.dragState.currentHour;
+
+        // Swap if dragging upward
+        if (startHour > endHour) {
+            [startHour, endHour] = [endHour, startHour];
+        }
+
+        // Calculate position
+        const startRow = hourGridEl.querySelector(`.hour-content[data-hour="${startHour}"]`)?.closest('.hour-row');
+        if (!startRow) return;
+
+        const gridRect = hourGridEl.getBoundingClientRect();
+        const rowRect = startRow.getBoundingClientRect();
+        const top = rowRect.top - gridRect.top;
+        const height = (endHour - startHour + 1) * 60;
+
+        this.dragState.previewEl.style.top = `${top}px`;
+        this.dragState.previewEl.style.height = `${height}px`;
     },
 
     // ==================
@@ -846,7 +1112,7 @@ const calendar = {
      * Get tasks for a specific date
      */
     getTasksForDate(dateStr) {
-        return this.scheduledTasks.filter(task => task.scheduled_date === dateStr);
+        return this.scheduledTasks.filter(task => task.due_date === dateStr);
     },
 
     /**

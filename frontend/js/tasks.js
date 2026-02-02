@@ -812,7 +812,9 @@ const taskModal = {
         const renderTaskItem = (task) => {
             const dueClass = task.due_date ? this.getDueClass(task.due_date) : '';
             const dueText = task.due_date ? this.formatDueDate(task.due_date) : '';
-            const timeText = task.due_time ? this.formatTime(task.due_time) : '';
+            const timeText = task.due_time
+                ? (task.due_time_end ? `${this.formatTime(task.due_time)} - ${this.formatTime(task.due_time_end)}` : this.formatTime(task.due_time))
+                : '';
             const hasDue = task.due_date || task.due_time;
             const isToday = dueClass === 'today';
             
@@ -893,7 +895,9 @@ const taskModal = {
             let dateTimeHtml = '';
             if (task.due_date || task.recurring) {
                 const dateStr = task.due_date ? this.formatDueDate(task.due_date) : '';
-                const timeStr = task.due_time ? this.formatTime(task.due_time) : '';
+                const timeStr = task.due_time
+                    ? (task.due_time_end ? `${this.formatTime(task.due_time)} - ${this.formatTime(task.due_time_end)}` : this.formatTime(task.due_time))
+                    : '';
                 const recurStr = task.recurring ? '🔄' : '';
                 dateTimeHtml = `
                     <div class="task-card-datetime ${task.due_date ? this.getDueClass(task.due_date) : ''}">

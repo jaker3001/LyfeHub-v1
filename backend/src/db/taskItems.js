@@ -126,15 +126,16 @@ function createTaskItem(data, userId) {
 function updateTaskItem(id, data, userId) {
   const existing = getTaskItemById(id, userId);
   if (!existing) return null;
-  
+
   const now = new Date().toISOString();
-  
+
   const stmt = db.prepare(`
     UPDATE task_items SET
       title = ?,
       description = ?,
       due_date = ?,
       due_time = ?,
+      due_time_end = ?,
       recurring = ?,
       recurring_days = ?,
       important = ?,
@@ -144,14 +145,15 @@ function updateTaskItem(id, data, userId) {
       updated_at = ?
     WHERE id = ? AND user_id = ?
   `);
-  
+
   const completedAt = data.completed && !existing.completed ? now : (data.completed ? existing.completed_at : null);
-  
+
   stmt.run(
     data.title ?? existing.title,
     data.description ?? existing.description,
     data.due_date ?? existing.due_date,
     data.due_time ?? existing.due_time,
+    data.due_time_end ?? existing.due_time_end,
     data.recurring ?? existing.recurring,
     JSON.stringify(data.recurring_days ?? existing.recurring_days),
     data.important !== undefined ? (data.important ? 1 : 0) : (existing.important ? 1 : 0),
@@ -162,7 +164,7 @@ function updateTaskItem(id, data, userId) {
     id,
     userId
   );
-  
+
   return getTaskItemById(id, userId);
 }
 
@@ -248,6 +250,131 @@ function getTaskItemCounts(userId, userDate = null) {
   return counts;
 }
 
+/**
+ * Get task items for calendar view (within a date range)
+ */
+function getTaskItemsForCalendar(userId, startDate, endDate) {
+  const sql = `
+    SELECT * FROM task_items
+    WHERE user_id = ?
+    AND due_date IS NOT NULL
+    AND due_date >= ?
+    AND due_date <= ?
+    ORDER BY due_date ASC, due_time ASC, created_at DESC
+  `;
+
+  const stmt = db.prepare(sql);
+  const items = stmt.all(userId, startDate, endDate);
+
+  return items.map(item => ({
+    ...item,
+    subtasks: JSON.parse(item.subtasks || '[]'),
+    recurring_days: JSON.parse(item.recurring_days || '[]'),
+    important: !!item.important,
+    completed: !!item.completed
+  }));
+}
+
+/**
+ * Get scheduled task items (have due_date)
+ */
+function getScheduledTaskItems(userId) {
+  const sql = `
+    SELECT * FROM task_items
+    WHERE user_id = ?
+    AND due_date IS NOT NULL
+    AND completed = 0
+    ORDER BY due_date ASC, due_time ASC
+  `;
+
+  const stmt = db.prepare(sql);
+  const items = stmt.all(userId);
+
+  return items.map(item => ({
+    ...item,
+    subtasks: JSON.parse(item.subtasks || '[]'),
+    recurring_days: JSON.parse(item.recurring_days || '[]'),
+    important: !!item.important,
+    completed: !!item.completed
+  }));
+}
+
+/**
+ * Get unscheduled task items (no due_date)
+ */
+function getUnscheduledTaskItems(userId) {
+  const sql = `
+    SELECT * FROM task_items
+    WHERE user_id = ?
+    AND due_date IS NULL
+    AND completed = 0
+    ORDER BY important DESC, created_at DESC
+  `;
+
+  const stmt = db.prepare(sql);
+  const items = stmt.all(userId);
+
+  return items.map(item => ({
+    ...item,
+    subtasks: JSON.parse(item.subtasks || '[]'),
+    recurring_days: JSON.parse(item.recurring_days || '[]'),
+    important: !!item.important,
+    completed: !!item.completed
+  }));
+}
+
+/**
+ * Schedule a task item (set due_date/due_time/due_time_end)
+ */
+function scheduleTaskItem(id, scheduleData, userId) {
+  const existing = getTaskItemById(id, userId);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+
+  const stmt = db.prepare(`
+    UPDATE task_items SET
+      due_date = ?,
+      due_time = ?,
+      due_time_end = ?,
+      updated_at = ?
+    WHERE id = ? AND user_id = ?
+  `);
+
+  stmt.run(
+    scheduleData.due_date,
+    scheduleData.due_time || null,
+    scheduleData.due_time_end || null,
+    now,
+    id,
+    userId
+  );
+
+  return getTaskItemById(id, userId);
+}
+
+/**
+ * Unschedule a task item (clear due_date/due_time)
+ */
+function unscheduleTaskItem(id, userId) {
+  const existing = getTaskItemById(id, userId);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+
+  const stmt = db.prepare(`
+    UPDATE task_items SET
+      due_date = NULL,
+      due_time = NULL,
+      updated_at = ?
+    WHERE id = ? AND user_id = ?
+  `);
+
+  stmt.run(now, id, userId);
+
+  return getTaskItemById(id, userId);
+}
+
 module.exports = {
   getAllTaskItems,
   getTaskItemById,
@@ -255,5 +382,11 @@ module.exports = {
   updateTaskItem,
   deleteTaskItem,
   toggleTaskItemComplete,
-  getTaskItemCounts
+  getTaskItemCounts,
+  // Calendar functions
+  getTaskItemsForCalendar,
+  getScheduledTaskItems,
+  getUnscheduledTaskItems,
+  scheduleTaskItem,
+  unscheduleTaskItem
 };

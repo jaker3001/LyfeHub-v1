@@ -125,9 +125,24 @@
     cursor: grabbing;
 }
 
-.calendar-task-item .priority-dot {
+.calendar-task-item .task-bullet {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
     flex-shrink: 0;
-    margin-top: 0.25rem;
+    margin-top: 0.4rem;
+}
+
+.calendar-task-item .important-star {
+    color: var(--neon-yellow);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.calendar-task-item.important {
+    border-left: 2px solid var(--neon-yellow);
 }
 
 .calendar-task-info {
@@ -370,11 +385,10 @@
     background: rgba(191, 90, 242, 0.3);
 }
 
-.month-event.priority-1 { border-left-color: var(--neon-pink); background: rgba(255, 42, 109, 0.15); }
-.month-event.priority-2 { border-left-color: var(--neon-orange); background: rgba(255, 107, 53, 0.15); }
-.month-event.priority-3 { border-left-color: var(--neon-purple); background: rgba(191, 90, 242, 0.15); }
-.month-event.priority-4 { border-left-color: var(--neon-blue); background: rgba(0, 170, 255, 0.15); }
-.month-event.priority-5 { border-left-color: var(--neon-cyan); background: rgba(0, 245, 212, 0.15); }
+.month-event.important {
+    border-left-color: var(--neon-yellow);
+    background: rgba(255, 230, 109, 0.2);
+}
 
 .month-more {
     font-size: 0.7rem;
@@ -643,11 +657,15 @@
     z-index: 2;
 }
 
-.time-block.priority-1 { border-left-color: var(--neon-pink); background: rgba(255, 42, 109, 0.2); }
-.time-block.priority-2 { border-left-color: var(--neon-orange); background: rgba(255, 107, 53, 0.2); }
-.time-block.priority-3 { border-left-color: var(--neon-purple); background: rgba(191, 90, 242, 0.2); }
-.time-block.priority-4 { border-left-color: var(--neon-blue); background: rgba(0, 170, 255, 0.2); }
-.time-block.priority-5 { border-left-color: var(--neon-cyan); background: rgba(0, 245, 212, 0.2); }
+.time-block.important {
+    border-left-color: var(--neon-yellow);
+    background: rgba(255, 230, 109, 0.25);
+}
+
+.all-day-event.important {
+    border-left-color: var(--neon-yellow);
+    background: rgba(255, 230, 109, 0.25);
+}
 
 .time-block-title {
     font-weight: 500;
