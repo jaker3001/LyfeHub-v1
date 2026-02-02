@@ -1,0 +1,180 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
+
+// Ensure /data directory exists for Docker volume mount
+const dbDir = '/data';
+const dbPath = path.join(dbDir, 'kanban.db');
+
+// Create directory if it doesn't exist (for local dev)
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new Database(dbPath);
+
+// Enable WAL mode for better concurrency
+db.pragma('journal_mode = WAL');
+
+// ============================================
+// USERS TABLE
+// ============================================
+const usersTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
+if (!usersTable) {
+  console.log('Creating users table...');
+  db.exec(`
+    CREATE TABLE users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      settings TEXT DEFAULT '{}',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE UNIQUE INDEX idx_users_email ON users(email)`);
+  console.log('Users table created');
+}
+
+// ============================================
+// TASKS TABLE
+// ============================================
+const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").get();
+
+if (tableInfo && tableInfo.sql.includes("'backlog'")) {
+  // Old schema with 'backlog' - need to migrate to 'planned'
+  console.log('Migrating tasks table: backlog → planned');
+  
+  // Check which columns exist in the old table
+  const columns = db.prepare("PRAGMA table_info(tasks)").all();
+  const columnNames = columns.map(c => c.name);
+  const hasActivityLog = columnNames.includes('activity_log');
+  const hasReviewState = columnNames.includes('review_state');
+  
+  // Create new table with updated schema
+  db.exec(`
+    CREATE TABLE tasks_new (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      acceptance_criteria TEXT DEFAULT '[]',
+      status TEXT DEFAULT 'planned' CHECK(status IN ('planned', 'ready', 'in_progress', 'blocked', 'review', 'done')),
+      priority INTEGER DEFAULT 3 CHECK(priority >= 1 AND priority <= 5),
+      context_links TEXT DEFAULT '[]',
+      notes TEXT DEFAULT '',
+      activity_log TEXT DEFAULT '[]',
+      session_id TEXT,
+      user_id TEXT REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      completed_at TEXT,
+      review_state TEXT DEFAULT '{}'
+    );
+  `);
+  
+  // Build dynamic INSERT based on available columns
+  const activityLogSelect = hasActivityLog ? 'activity_log' : "'[]'";
+  const reviewStateSelect = hasReviewState ? "COALESCE(review_state, '{}')" : "'{}'";
+  
+  db.exec(`
+    INSERT INTO tasks_new SELECT 
+      id, title, description, acceptance_criteria,
+      CASE WHEN status = 'backlog' THEN 'planned' ELSE status END,
+      priority, context_links, notes, ${activityLogSelect}, session_id,
+      NULL,
+      created_at, updated_at, completed_at,
+      ${reviewStateSelect}
+    FROM tasks;
+    
+    DROP TABLE tasks;
+    ALTER TABLE tasks_new RENAME TO tasks;
+  `);
+  
+  console.log('Migration complete: backlog → planned');
+} else if (!tableInfo) {
+  // Fresh install - create with new schema
+  db.exec(`
+    CREATE TABLE tasks (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      acceptance_criteria TEXT DEFAULT '[]',
+      status TEXT DEFAULT 'planned' CHECK(status IN ('planned', 'ready', 'in_progress', 'blocked', 'review', 'done')),
+      priority INTEGER DEFAULT 3 CHECK(priority >= 1 AND priority <= 5),
+      context_links TEXT DEFAULT '[]',
+      notes TEXT DEFAULT '',
+      activity_log TEXT DEFAULT '[]',
+      session_id TEXT,
+      user_id TEXT REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      completed_at TEXT,
+      review_state TEXT DEFAULT '{}'
+    )
+  `);
+}
+
+// Add activity_log column if it doesn't exist (migration for existing DBs)
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN activity_log TEXT DEFAULT '[]'`);
+  console.log('Added activity_log column');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+// Add review_state column for tracking review progress
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN review_state TEXT DEFAULT '{}'`);
+  console.log('Added review_state column');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+// Add user_id column if it doesn't exist (migration for existing DBs)
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN user_id TEXT REFERENCES users(id)`);
+  console.log('Added user_id column to tasks');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+// Create indexes
+db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id)`);
+
+// ============================================
+// TASK ITEMS TABLE (Personal tasks / My Day)
+// ============================================
+const taskItemsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='task_items'").get();
+if (!taskItemsTable) {
+  console.log('Creating task_items table...');
+  db.exec(`
+    CREATE TABLE task_items (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      due_date TEXT,
+      due_time TEXT,
+      recurring TEXT,
+      recurring_days TEXT DEFAULT '[]',
+      important INTEGER DEFAULT 0,
+      completed INTEGER DEFAULT 0,
+      completed_at TEXT,
+      subtasks TEXT DEFAULT '[]',
+      user_id TEXT REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_task_items_user_id ON task_items(user_id)`);
+  db.exec(`CREATE INDEX idx_task_items_due_date ON task_items(due_date)`);
+  db.exec(`CREATE INDEX idx_task_items_important ON task_items(important)`);
+  db.exec(`CREATE INDEX idx_task_items_completed ON task_items(completed)`);
+  console.log('Task items table created');
+}
+
+console.log('Database initialized at', dbPath);
+
+module.exports = db;

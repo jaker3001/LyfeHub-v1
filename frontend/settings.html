@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Kanban Board</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="profile-page">
+    <div class="profile-container">
+        <!-- Header -->
+        <div class="profile-header">
+            <a href="/" class="back-link">
+                ← Back to Board
+            </a>
+            <h1 class="settings-title">Settings</h1>
+        </div>
+        
+        <!-- Account Info -->
+        <div class="profile-card">
+            <h2>Account</h2>
+            <div class="profile-info">
+                <div class="profile-field">
+                    <span class="profile-field-label">Email</span>
+                    <span id="display-email" class="profile-field-value">...</span>
+                </div>
+                <div class="profile-field">
+                    <span class="profile-field-label">Name</span>
+                    <span id="display-name" class="profile-field-value">...</span>
+                </div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <a href="/about.html" class="btn btn-secondary">Edit Profile</a>
+            </div>
+        </div>
+        
+        <!-- Change Password -->
+        <div class="profile-card">
+            <h2>Change Password</h2>
+            
+            <form id="password-form">
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input 
+                        type="password" 
+                        id="current-password" 
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input 
+                        type="password" 
+                        id="new-password" 
+                        placeholder="At least 8 characters"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm New Password</label>
+                    <input 
+                        type="password" 
+                        id="confirm-password" 
+                        autocomplete="new-password"
+                        required
+                    >
+                </div>
+                <div id="password-error" class="auth-error"></div>
+                <div id="password-success" class="auth-success"></div>
+                <button type="submit" class="btn btn-primary">
+                    Update Password
+                </button>
+            </form>
+        </div>
+        
+        <!-- Danger Zone -->
+        <div class="profile-card danger-zone">
+            <h2>Session</h2>
+            <p class="text-muted" style="margin-bottom: 1rem;">Sign out of your account on this device.</p>
+            <button id="logout-btn" class="btn btn-danger">
+                Sign Out
+            </button>
+        </div>
+    </div>
+    
+    <script src="js/particles.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // Load user info
+        async function loadUser() {
+            try {
+                const result = await api.getProfile();
+                document.getElementById('display-email').textContent = result.user.email;
+                document.getElementById('display-name').textContent = result.user.name;
+            } catch (err) {
+                window.location.href = '/login.html';
+            }
+        }
+        
+        // Change password form
+        document.getElementById('password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('password-error');
+            const successEl = document.getElementById('password-success');
+            errorEl.textContent = '';
+            successEl.textContent = '';
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (newPassword !== confirmPassword) {
+                errorEl.textContent = 'New passwords do not match';
+                return;
+            }
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+            
+            try {
+                await api.changePassword(currentPassword, newPassword);
+                successEl.textContent = 'Password changed successfully';
+                e.target.reset();
+            } catch (err) {
+                errorEl.textContent = err.message || 'Failed to change password';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Update Password';
+            }
+        });
+        
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                await api.logout();
+            } catch (e) {}
+            window.location.href = '/login.html';
+        });
+        
+        loadUser();
+    </script>
+</body>
+</html>

@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <nav class="tabs">
+            <button class="tab active" data-tab="projects">Projects</button>
+            <button class="tab" data-tab="tasks">Tasks</button>
+            <button class="tab" data-tab="bases">Bases</button>
+        </nav>
+        <div class="header-right">
+            <span id="refresh-indicator" class="refresh-indicator" title="Auto-refreshes every 30s">⟳</span>
+            <a href="/settings.html" class="btn btn-icon" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </a>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </div>
+    </header>
+
+    <!-- Projects Tab Content -->
+    <main class="tab-content active" data-tab="projects">
+        <!-- View Toggle -->
+        <div class="view-controls">
+            <button id="add-task-btn" class="btn btn-primary">+ Add Project</button>
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="kanban" title="Kanban View">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="5" height="18" rx="1"/>
+                        <rect x="10" y="3" width="5" height="12" rx="1"/>
+                        <rect x="17" y="3" width="5" height="15" rx="1"/>
+                    </svg>
+                    <span>Kanban</span>
+                </button>
+                <button class="view-btn" data-view="list" title="List View">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <circle cx="4" cy="6" r="1.5" fill="currentColor"/>
+                        <circle cx="4" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="4" cy="18" r="1.5" fill="currentColor"/>
+                    </svg>
+                    <span>List</span>
+                </button>
+                <button class="view-btn" data-view="card" title="Card View">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    <span>Cards</span>
+                </button>
+            </div>
+            <div class="view-filters">
+                <select id="filter-status" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="planned">Planned</option>
+                    <option value="ready">Ready</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="review">Review</option>
+                    <option value="done">Done</option>
+                </select>
+                <select id="filter-priority" class="filter-select">
+                    <option value="all">All Priority</option>
+                    <option value="1">Critical</option>
+                    <option value="2">High</option>
+                    <option value="3">Medium</option>
+                    <option value="4">Low</option>
+                    <option value="5">Someday</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Kanban View -->
+        <div class="view-container active" data-view="kanban">
+            <div class="board" id="board">
+                <div class="column" data-status="planned">
+                    <div class="column-header planned">
+                        <h2>Planned</h2>
+                        <span class="task-count" data-count="planned">0</span>
+                    </div>
+                    <div class="column-tasks" data-status="planned"></div>
+                </div>
+                <div class="column" data-status="ready">
+                    <div class="column-header ready">
+                        <h2>Ready</h2>
+                        <span class="task-count" data-count="ready">0</span>
+                    </div>
+                    <div class="column-tasks" data-status="ready"></div>
+                </div>
+                <div class="column" data-status="in_progress">
+                    <div class="column-header in-progress">
+                        <h2>In Progress</h2>
+                        <span class="task-count" data-count="in_progress">0</span>
+                    </div>
+                    <div class="column-tasks" data-status="in_progress"></div>
+                </div>
+                <div class="column" data-status="blocked">
+                    <div class="column-header blocked">
+                        <h2>Blocked</h2>
+                        <span class="task-count" data-count="blocked">0</span>
+                    </div>
+                    <div class="column-tasks" data-status="blocked"></div>
+                </div>
+                <div class="column" data-status="review">
+                    <div class="column-header review">
+                        <h2>Review</h2>
+                        <span class="task-count" data-count="review">0</span>
+                    </div>
+                    <div class="column-tasks" data-status="review"></div>
+                </div>
+                <div class="column" data-status="done">
+                    <div class="column-header done">
+                        <h2>Done</h2>
+                        <span class="task-count" data-count="done">0</span>
+                    </div>
+                    <div class="column-tasks" data-status="done"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div class="view-container" data-view="list">
+            <div class="list-view">
+                <table class="task-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="priority">Pri</th>
+                            <th class="sortable" data-sort="title">Title</th>
+                            <th class="sortable" data-sort="status">Status</th>
+                            <th class="sortable" data-sort="updated_at">Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list-body"></tbody>
+                </table>
+                <p id="list-empty" class="empty-message" style="display: none;">No projects found</p>
+            </div>
+        </div>
+
+        <!-- Card View -->
+        <div class="view-container" data-view="card">
+            <div class="card-grid" id="card-grid"></div>
+            <p id="card-empty" class="empty-message" style="display: none;">No projects found</p>
+        </div>
+    </main>
+
+
+    <!-- Tasks Tab Content -->
+    <main class="tab-content" data-tab="tasks">
+        <!-- View Controls (matching Projects layout) -->
+        <div class="view-controls">
+            <div class="view-toggle tasks-view-toggle">
+                <button class="view-btn active" data-view="my-day" title="My Day">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <span>My Day</span>
+                    <span class="tasks-count" data-count="my-day">0</span>
+                </button>
+                <button class="view-btn" data-view="important" title="Important">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <span>Important</span>
+                    <span class="tasks-count" data-count="important">0</span>
+                </button>
+                <button class="view-btn" data-view="scheduled" title="Scheduled">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span>Scheduled</span>
+                    <span class="tasks-count" data-count="scheduled">0</span>
+                </button>
+                <button class="view-btn" data-view="recurring" title="Recurring">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    <span>Recurring</span>
+                    <span class="tasks-count" data-count="recurring">0</span>
+                </button>
+                <button class="view-btn" data-view="all" title="All Tasks">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/>
+                        <line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                    <span>All Tasks</span>
+                    <span class="tasks-count" data-count="all">0</span>
+                </button>
+                
+                <!-- Pinned Lists (inside view-toggle) -->
+                <div class="pinned-lists-container" id="pinned-lists-container">
+                    <!-- Populated by JS when lists are dragged here -->
+                </div>
+            </div>
+            
+            <!-- My Lists Dropdown -->
+            <div class="my-lists-dropdown">
+                <button class="view-btn my-lists-trigger">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3h7v7H3z"/>
+                        <path d="M14 3h7v7h-7z"/>
+                        <path d="M14 14h7v7h-7z"/>
+                        <path d="M3 14h7v7H3z"/>
+                    </svg>
+                    <span>My Lists</span>
+                    <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div class="my-lists-menu" id="my-lists-menu">
+                    <div class="my-lists-items" id="my-lists-items">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="my-lists-add">
+                        <button id="add-list-btn" class="add-list-btn">+ New List</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tasks Content Area -->
+        <div class="tasks-content">
+            <!-- View Toggle -->
+            <div class="tasks-view-bar">
+                <button id="add-task-btn-tasks" class="btn btn-primary">+ Add Task</button>
+                <div class="tasks-display-toggle">
+                    <button class="tasks-display-btn active" data-display="list" title="List View">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"/>
+                            <line x1="8" y1="12" x2="21" y2="12"/>
+                            <line x1="8" y1="18" x2="21" y2="18"/>
+                            <circle cx="4" cy="6" r="1.5" fill="currentColor"/>
+                            <circle cx="4" cy="12" r="1.5" fill="currentColor"/>
+                            <circle cx="4" cy="18" r="1.5" fill="currentColor"/>
+                        </svg>
+                        <span>List</span>
+                    </button>
+                    <button class="tasks-display-btn" data-display="cards" title="Cards View">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1"/>
+                        </svg>
+                        <span>Cards</span>
+                    </button>
+                </div>
+                
+                <!-- Card Size Control (shown when in cards view) -->
+                <div class="card-size-control" id="card-size-control" style="display: none;">
+                    <span class="card-size-label">Size:</span>
+                    <button class="card-size-btn" data-size="small" title="Small cards">S</button>
+                    <button class="card-size-btn active" data-size="medium" title="Medium cards">M</button>
+                    <button class="card-size-btn" data-size="large" title="Large cards">L</button>
+                </div>
+                
+                <!-- Sort Control -->
+                <div class="sort-control">
+                    <span class="sort-label">Sort:</span>
+                    <div class="sort-buttons">
+                        <button class="sort-btn active" data-sort="due" title="Sort by Due Date">
+                            Due
+                            <span class="sort-arrow">↑</span>
+                        </button>
+                        <button class="sort-btn" data-sort="created" title="Sort by Created Date">
+                            Created
+                            <span class="sort-arrow">↑</span>
+                        </button>
+                        <button class="sort-btn" data-sort="custom" title="Custom Order (drag to reorder)">
+                            Custom
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- List View -->
+            <div id="tasks-list" class="tasks-list tasks-display active" data-display="list"></div>
+            
+            <!-- Cards View -->
+            <div id="tasks-cards" class="tasks-cards tasks-display" data-display="cards"></div>
+            
+            <p id="tasks-empty" class="empty-message" style="display: none;">No tasks yet. Add one above!</p>
+        </div>
+    </main>
+
+    <!-- Bases Tab Content -->
+<main class="tab-content" data-tab="bases">
+        <!-- Bases Layout with Sidebar -->
+        <div id="bases-layout" class="bases-layout">
+            <!-- Sidebar -->
+            <aside id="bases-sidebar" class="bases-sidebar">
+                <button id="sidebar-new-base-btn" class="sidebar-new-base-btn">+ New Base</button>
+                <div class="sidebar-header">
+                    <button id="add-group-btn" class="btn btn-primary sidebar-add-group-btn">+ New Group</button>
+                    <button id="toggle-all-groups-btn" class="sidebar-btn toggle-groups-btn" title="Expand/Collapse All">
+                        <svg class="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 4 18 9"/>
+                            <polyline points="6 15 12 20 18 15"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="sidebar-content" class="sidebar-content">
+                    <!-- Groups and bases populated by JS -->
+                </div>
+            </aside>
+            
+            <!-- Main Content -->
+            <div class="bases-main-content">
+                <!-- List View (shows all bases) -->
+                <div id="bases-list-view" class="bases-list-view">
+                    <div class="bases-view-controls">
+                        <div class="bases-display-toggle">
+                            <button class="bases-display-btn active" data-display="cards">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                                </svg>
+                                Cards
+                            </button>
+                            <button class="bases-display-btn" data-display="list">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+                                    <line x1="3" y1="18" x2="21" y2="18"/>
+                                </svg>
+                                List
+                            </button>
+                        </div>
+                        <div class="bases-card-size-control" id="bases-card-size-control">
+                            <span class="bases-card-size-label">Size:</span>
+                            <button class="bases-card-size-btn" data-size="small" title="Small cards">S</button>
+                            <button class="bases-card-size-btn active" data-size="medium" title="Medium cards">M</button>
+                            <button class="bases-card-size-btn" data-size="large" title="Large cards">L</button>
+                        </div>
+                    </div>
+                    <div id="bases-list" class="bases-list bases-cards-grid size-medium">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                
+                <!-- Table View (shows single base) -->
+                <div id="base-table-view" class="base-table-view" style="display: none;">
+            <div class="base-header">
+                <button id="back-to-bases" class="btn btn-icon" title="Back to bases">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                </button>
+                <h2 id="base-name-display" class="base-name-display"></h2>
+            </div>
+            <div id="base-table-container" class="base-table-container">
+                <!-- Table rendered by JS -->
+            </div>
+        </div>
+            </div><!-- /.bases-main-content -->
+        </div><!-- /.bases-layout -->
+    </main>
+
+    <!-- New Base Modal -->
+    <div id="new-base-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>New Base</h2>
+                <button class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-base-name">Base name</label>
+                    <input type="text" id="new-base-name" placeholder="My Database" />
+                </div>
+                <div class="form-group">
+                    <label for="new-base-description">Description (optional)</label>
+                    <textarea id="new-base-description" placeholder="What is this base for?" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" id="create-base-btn" class="btn btn-primary">Create Base</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Base Modal -->
+    <div id="edit-base-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small edit-base-modal-content">
+            <div class="modal-header">
+                <h2 id="edit-base-modal-title">Edit Base</h2>
+                <button class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-base-icon">Icon</label>
+                    <div class="icon-picker-row">
+                        <input type="text" id="edit-base-icon" value="📊" maxlength="2" />
+                        <span class="icon-picker-hint">Enter any emoji</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-base-name">Name</label>
+                    <input type="text" id="edit-base-name" placeholder="My Database" />
+                </div>
+                <div class="form-group">
+                    <label for="edit-base-description">Description</label>
+                    <textarea id="edit-base-description" placeholder="What is this base for?" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="edit-base-group">Group</label>
+                    <select id="edit-base-group" class="form-input">
+                        <option value="">No group (ungrouped)</option>
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" id="save-edit-base-btn" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Property Modal -->
+    <!-- Add Property Modal -->
+    <div id="add-property-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Add Property</h2>
+                <button class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-property-name">Property name</label>
+                    <input type="text" id="new-property-name" placeholder="Status" />
+                </div>
+                <div class="form-group">
+                    <label for="new-property-type">Type</label>
+                    <select id="new-property-type">
+                        <option value="text">Text</option>
+                        <option value="number">Number</option>
+                        <option value="select">Select</option>
+                        <option value="multi_select">Multi-select</option>
+                        <option value="date">Date</option>
+                        <option value="time">Time</option>
+                        <option value="datetime">Date & Time</option>
+                        <option value="checkbox">Checkbox</option>
+                        <option value="url">URL</option>
+                        <option value="relation">↗ Relation</option>
+                    </select>
+                </div>
+                <div id="property-options-group" class="form-group" style="display: none;">
+                    <label>Options</label>
+                    <div id="property-options-list" class="property-options-list">
+                        <!-- Option inputs added by JS -->
+                    </div>
+                    <button type="button" id="add-property-option-btn" class="btn btn-small">+ Add option</button>
+                </div>
+                <div id="property-relation-group" class="form-group" style="display: none;">
+                    <label for="relation-base-select">Related Base</label>
+                    <select id="relation-base-select">
+                        <option value="">Select a base...</option>
+                        <!-- Options populated by JS -->
+                    </select>
+                    <label class="relation-checkbox-label" style="margin-top: 0.75rem;">
+                        <input type="checkbox" id="relation-allow-multiple" />
+                        <span>Allow linking multiple records</span>
+                    </label>
+                    
+                    <!-- Two-way relation options -->
+                    <div id="relation-reverse-group" class="relation-reverse-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                        <label class="relation-checkbox-label">
+                            <input type="checkbox" id="relation-create-reverse" />
+                            <span id="relation-reverse-label">Create reverse relation on target base</span>
+                        </label>
+                        <div id="relation-reverse-name-group" class="form-group" style="display: none; margin-top: 0.5rem; margin-left: 1.5rem;">
+                            <label for="relation-reverse-name" class="small-label">Reverse property name</label>
+                            <input type="text" id="relation-reverse-name" placeholder="Related Notes" class="form-input" />
+                            <p class="form-hint">This property will be created on the target base and automatically stay in sync.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" id="create-property-btn" class="btn btn-primary">Add Property</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-project">
+            <div class="modal-header">
+                <div class="modal-title-row">
+                    <h2 id="modal-title">New Project</h2>
+                    <input type="text" id="modal-title-input" class="modal-title-input" style="display: none;" />
+                </div>
+                <div class="modal-header-actions">
+                    <button type="button" id="edit-mode-btn" class="edit-mode-btn" title="Edit project" style="display: none;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="modal-close" aria-label="Close">&times;</button>
+                </div>
+            </div>
+            
+            <!-- Reader View -->
+            <div id="reader-view" class="modal-body reader-view">
+                <div class="reader-meta">
+                    <span id="reader-status" class="status-badge"></span>
+                    <span id="reader-priority" class="priority-badge"></span>
+                </div>
+                
+                <div id="reader-description" class="reader-description markdown-body"></div>
+                
+                <div id="reader-criteria-section" class="reader-section">
+                    <h4>Acceptance Criteria</h4>
+                    <ul id="reader-criteria" class="reader-criteria"></ul>
+                </div>
+                
+                <div id="reader-links-section" class="reader-section">
+                    <h4>Links</h4>
+                    <ul id="reader-links" class="reader-links"></ul>
+                </div>
+                
+                <div id="reader-notes-section" class="reader-section">
+                    <h4>Notes</h4>
+                    <div id="reader-notes" class="reader-notes markdown-body"></div>
+                </div>
+                
+                <div id="reader-meta" class="task-meta"></div>
+                
+                <div id="reader-activity-section" class="activity-log-section">
+                    <h4>Activity Log</h4>
+                    <div id="reader-activity-log" class="activity-log"></div>
+                </div>
+                
+                <button type="button" id="submit-review-btn" class="submit-review-btn" style="display: none;">
+                    <span>Submit Review</span>
+                </button>
+            </div>
+
+            <!-- Edit View -->
+            <form id="task-form" style="display: none;">
+                <div class="modal-body">
+                    <div class="form-group" id="title-form-group">
+                        <label for="task-title">Title *</label>
+                        <input type="text" id="task-title" required placeholder="Project title">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="task-status">Status</label>
+                            <select id="task-status">
+                                <option value="planned">Planned</option>
+                                <option value="ready">Ready</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="blocked">Blocked</option>
+                                <option value="review">Review</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-priority">Priority</label>
+                            <select id="task-priority">
+                                <option value="1">1 - Critical</option>
+                                <option value="2">2 - High</option>
+                                <option value="3" selected>3 - Medium</option>
+                                <option value="4">4 - Low</option>
+                                <option value="5">5 - Someday</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="task-description">Description</label>
+                        <div class="markdown-toolbar">
+                            <button type="button" data-md="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                            <button type="button" data-md="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+                            <button type="button" data-md="heading" title="Heading">#</button>
+                            <button type="button" data-md="link" title="Link">🔗</button>
+                            <button type="button" data-md="list" title="Bullet List">•</button>
+                            <button type="button" data-md="code" title="Code">&lt;/&gt;</button>
+                        </div>
+                        <textarea id="task-description" rows="5" placeholder="Describe the project... (Markdown supported)"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Acceptance Criteria</label>
+                        <div id="criteria-list" class="list-input"></div>
+                        <div class="list-input-add">
+                            <input type="text" id="criteria-input" placeholder="Add criterion">
+                            <button type="button" id="add-criteria" class="btn btn-small">+</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Context Links</label>
+                        <div id="links-list" class="list-input"></div>
+                        <div class="list-input-add">
+                            <input type="url" id="link-input" placeholder="https://...">
+                            <button type="button" id="add-link" class="btn btn-small">+</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="task-notes">Notes</label>
+                        <textarea id="task-notes" rows="2" placeholder="Updates, blockers, etc."></textarea>
+                    </div>
+
+                    <div id="task-meta" class="task-meta"></div>
+                    
+                    <div id="activity-log-section" class="activity-log-section">
+                        <label>Activity Log</label>
+                        <div id="activity-log" class="activity-log"></div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="delete-task" class="btn btn-danger">Delete</button>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Project</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Task Item Modal -->
+    <div id="task-item-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-task">
+            <div class="modal-header">
+                <!-- Date/time above title in reader view -->
+                <div id="task-header-datetime" class="task-header-datetime" style="display: none;">
+                    <span id="task-header-date" class="task-header-date"></span>
+                    <span id="task-header-time" class="task-header-time"></span>
+                    <span id="task-header-recurring" class="task-header-recurring"></span>
+                </div>
+                <div class="modal-title-row">
+                    <button type="button" id="task-complete-btn" class="task-complete-btn" title="Mark complete">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </button>
+                    <h2 id="task-reader-title" class="task-reader-title" style="display: none;"></h2>
+                    <input type="text" id="task-item-title" class="modal-title-input" placeholder="Task title" />
+                </div>
+                <div class="modal-header-actions">
+                    <button type="button" id="task-edit-mode-btn" class="edit-mode-btn" title="Edit task" style="display: none;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button type="button" id="task-important-btn" class="task-important-btn" title="Mark important">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                    </button>
+                    <button class="modal-close" aria-label="Close">&times;</button>
+                </div>
+            </div>
+            
+            <!-- Reader View -->
+            <div id="task-reader-view" class="modal-body" style="display: none;">
+                <div class="task-reader-meta">
+                    <span id="task-reader-due" class="task-reader-due"></span>
+                    <span id="task-reader-recurring" class="task-reader-recurring"></span>
+                </div>
+                <div id="task-reader-description-section" class="task-reader-section">
+                    <h4>Description</h4>
+                    <div id="task-reader-description" class="markdown-body"></div>
+                </div>
+                <div id="task-reader-subtasks-section" class="task-reader-section">
+                    <h4>Subtasks</h4>
+                    <div id="task-reader-subtasks"></div>
+                </div>
+            </div>
+            
+            <!-- Edit View -->
+            <div id="task-edit-view" class="modal-body">
+                <!-- Date & Time Row -->
+                <div class="task-item-section">
+                    <label class="task-item-section-label">When</label>
+                    <div class="task-datetime-row">
+                        <div class="task-datetime-field" onclick="document.getElementById('task-item-due').showPicker()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span id="task-due-display">Select date</span>
+                            <input type="date" id="task-item-due" />
+                        </div>
+                        <div class="task-datetime-field" onclick="document.getElementById('task-item-time').showPicker()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            <span id="task-time-display">Select time</span>
+                            <input type="time" id="task-item-time" />
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recurring -->
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Repeat</label>
+                    <div class="task-recurring-presets">
+                        <button type="button" class="task-recurring-preset active" data-value="">Never</button>
+                        <button type="button" class="task-recurring-preset" data-value="daily">Daily</button>
+                        <button type="button" class="task-recurring-preset" data-value="weekdays">Weekdays</button>
+                        <button type="button" class="task-recurring-preset" data-value="weekly">Weekly</button>
+                        <button type="button" class="task-recurring-preset" data-value="biweekly">Every 2 weeks</button>
+                        <button type="button" class="task-recurring-preset" data-value="monthly">Monthly</button>
+                        <button type="button" class="task-recurring-preset" data-value="yearly">Yearly</button>
+                    </div>
+                    <div class="task-days-of-week">
+                        <button type="button" class="task-day-btn" data-day="0">S</button>
+                        <button type="button" class="task-day-btn" data-day="1">M</button>
+                        <button type="button" class="task-day-btn" data-day="2">T</button>
+                        <button type="button" class="task-day-btn" data-day="3">W</button>
+                        <button type="button" class="task-day-btn" data-day="4">T</button>
+                        <button type="button" class="task-day-btn" data-day="5">F</button>
+                        <button type="button" class="task-day-btn" data-day="6">S</button>
+                    </div>
+                </div>
+                
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Description</label>
+                    <div id="task-description-reader" class="reader-description markdown-body" style="display: none;"></div>
+                    <div id="task-description-editor">
+                        <div class="markdown-toolbar">
+                            <button type="button" data-md="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                            <button type="button" data-md="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+                            <div class="md-dropdown">
+                                <button type="button" class="md-dropdown-trigger" title="Heading">#</button>
+                                <div class="md-dropdown-menu">
+                                    <button type="button" data-md="h1">H1</button>
+                                    <button type="button" data-md="h2">H2</button>
+                                    <button type="button" data-md="h3">H3</button>
+                                    <button type="button" data-md="h4">H4</button>
+                                </div>
+                            </div>
+                            <button type="button" data-md="link" title="Link">🔗</button>
+                            <button type="button" data-md="list" title="Bullet List">•</button>
+                            <button type="button" data-md="code" title="Code">&lt;/&gt;</button>
+                            <button type="button" data-md="hr" title="Line separator">―</button>
+                        </div>
+                        <textarea id="task-item-description" class="task-item-notes" placeholder="Add description... (Markdown supported)" rows="4"></textarea>
+                    </div>
+                </div>
+                
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Subtasks</label>
+                    <div id="subtasks-list" class="subtasks-list"></div>
+                    <div class="subtask-add">
+                        <input type="text" id="subtask-input" placeholder="+ Add subtask" />
+                    </div>
+                </div>
+                
+                </div>
+            
+            <div class="modal-footer">
+                <button type="button" id="delete-task-item" class="btn btn-danger" style="display: none;">Delete</button>
+                <div class="modal-actions">
+                    <span id="task-item-created" class="task-meta-text"></span>
+                    <button type="button" id="save-task-item" class="btn btn-primary">Save Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New List Modal -->
+    <div id="new-list-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>New List</h2>
+                <button class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-list-name">List name</label>
+                    <input type="text" id="new-list-name" placeholder="Enter list name" />
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <div class="color-picker-grid" id="list-color-picker">
+                        <button type="button" class="color-swatch active" data-color="#bf5af2" style="--swatch-color: #bf5af2" title="Purple"></button>
+                        <button type="button" class="color-swatch" data-color="#0af" style="--swatch-color: #0af" title="Blue"></button>
+                        <button type="button" class="color-swatch" data-color="#00f5d4" style="--swatch-color: #00f5d4" title="Cyan"></button>
+                        <button type="button" class="color-swatch" data-color="#ff2a6d" style="--swatch-color: #ff2a6d" title="Pink"></button>
+                        <button type="button" class="color-swatch" data-color="#ff6b35" style="--swatch-color: #ff6b35" title="Orange"></button>
+                        <button type="button" class="color-swatch" data-color="#ffe66d" style="--swatch-color: #ffe66d" title="Yellow"></button>
+                        <button type="button" class="color-swatch" data-color="#05ffa1" style="--swatch-color: #05ffa1" title="Green"></button>
+                        <button type="button" class="color-swatch" data-color="#ff5555" style="--swatch-color: #ff5555" title="Red"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" id="create-list-btn" class="btn btn-primary">Create List</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Delete Project?</h2>
+            </div>
+            <div class="modal-body">
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Reason Modal -->
+    <div id="reason-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2 id="reason-modal-title">Reason</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="status-reason" id="reason-modal-label">Why is this blocked?</label>
+                    <textarea id="status-reason" rows="3" placeholder="Explain what's happening..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="reason-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="reason-submit">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column View Modal -->
+    <div id="column-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h2 id="column-modal-title">Projects</h2>
+                <button class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="column-cards" class="column-cards-grid"></div>
+                <p id="column-empty" class="column-empty" style="display: none;">No projects in this column</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/particles.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/kanban.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/bases.js"></script>
+</body>
+</html>
