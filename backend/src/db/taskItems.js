@@ -61,15 +61,50 @@ function getAllTaskItems(userId, view = 'all', userDate = null) {
   console.log(`[getAllTaskItems] Params: ${JSON.stringify(params)}`);
   const items = stmt.all(...params);
   console.log(`[getAllTaskItems] Found ${items.length} items`);
-  
-  // Parse JSON fields
+
+  // Parse JSON fields and add calendar_ids
   return items.map(item => ({
     ...item,
     subtasks: JSON.parse(item.subtasks || '[]'),
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
-    completed: !!item.completed
+    completed: !!item.completed,
+    calendar_ids: getTaskItemCalendarIds(item.id)
   }));
+}
+
+/**
+ * Get calendar IDs associated with a task item
+ */
+function getTaskItemCalendarIds(taskItemId) {
+  const stmt = db.prepare(`SELECT calendar_id FROM task_item_calendars WHERE task_item_id = ?`);
+  const rows = stmt.all(taskItemId);
+  return rows.map(r => r.calendar_id);
+}
+
+/**
+ * Set calendar associations for a task item
+ */
+function setTaskItemCalendars(taskItemId, calendarIds, userId) {
+  // First verify the task belongs to the user
+  const task = db.prepare(`SELECT id FROM task_items WHERE id = ? AND user_id = ?`).get(taskItemId, userId);
+  if (!task) return false;
+
+  // Delete existing associations
+  db.prepare(`DELETE FROM task_item_calendars WHERE task_item_id = ?`).run(taskItemId);
+
+  // Insert new associations (only for calendars belonging to this user)
+  if (calendarIds && calendarIds.length > 0) {
+    const insertStmt = db.prepare(`
+      INSERT INTO task_item_calendars (task_item_id, calendar_id)
+      SELECT ?, id FROM calendars WHERE id = ? AND user_id = ?
+    `);
+    for (const calendarId of calendarIds) {
+      insertStmt.run(taskItemId, calendarId, userId);
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -78,15 +113,16 @@ function getAllTaskItems(userId, view = 'all', userDate = null) {
 function getTaskItemById(id, userId) {
   const stmt = db.prepare(`SELECT * FROM task_items WHERE id = ? AND user_id = ?`);
   const item = stmt.get(id, userId);
-  
+
   if (!item) return null;
-  
+
   return {
     ...item,
     subtasks: JSON.parse(item.subtasks || '[]'),
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
-    completed: !!item.completed
+    completed: !!item.completed,
+    calendar_ids: getTaskItemCalendarIds(id)
   };
 }
 
@@ -96,12 +132,12 @@ function getTaskItemById(id, userId) {
 function createTaskItem(data, userId) {
   const id = uuidv4();
   const now = new Date().toISOString();
-  
+
   const stmt = db.prepare(`
     INSERT INTO task_items (id, title, description, due_date, due_time, recurring, recurring_days, important, subtasks, user_id, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  
+
   stmt.run(
     id,
     data.title,
@@ -116,7 +152,12 @@ function createTaskItem(data, userId) {
     now,
     now
   );
-  
+
+  // Set calendar associations if provided
+  if (data.calendar_ids && data.calendar_ids.length > 0) {
+    setTaskItemCalendars(id, data.calendar_ids, userId);
+  }
+
   return getTaskItemById(id, userId);
 }
 
@@ -164,6 +205,11 @@ function updateTaskItem(id, data, userId) {
     id,
     userId
   );
+
+  // Update calendar associations if provided
+  if (data.calendar_ids !== undefined) {
+    setTaskItemCalendars(id, data.calendar_ids || [], userId);
+  }
 
   return getTaskItemById(id, userId);
 }
@@ -252,74 +298,120 @@ function getTaskItemCounts(userId, userDate = null) {
 
 /**
  * Get task items for calendar view (within a date range)
+ * @param {string} userId
+ * @param {string} startDate
+ * @param {string} endDate
+ * @param {string[]} calendarIds - Optional: filter by calendar IDs
  */
-function getTaskItemsForCalendar(userId, startDate, endDate) {
-  const sql = `
-    SELECT * FROM task_items
-    WHERE user_id = ?
-    AND due_date IS NOT NULL
-    AND due_date >= ?
-    AND due_date <= ?
-    ORDER BY due_date ASC, due_time ASC, created_at DESC
+function getTaskItemsForCalendar(userId, startDate, endDate, calendarIds = null) {
+  let sql = `
+    SELECT DISTINCT t.* FROM task_items t
   `;
 
+  const params = [userId, startDate, endDate];
+
+  // If filtering by calendars, join with junction table
+  if (calendarIds && calendarIds.length > 0) {
+    sql += ` INNER JOIN task_item_calendars tc ON t.id = tc.task_item_id
+             WHERE t.user_id = ?
+             AND t.due_date IS NOT NULL
+             AND t.due_date >= ?
+             AND t.due_date <= ?
+             AND tc.calendar_id IN (${calendarIds.map(() => '?').join(',')})`;
+    params.push(...calendarIds);
+  } else {
+    sql += ` WHERE t.user_id = ?
+             AND t.due_date IS NOT NULL
+             AND t.due_date >= ?
+             AND t.due_date <= ?`;
+  }
+
+  sql += ` ORDER BY t.due_date ASC, t.due_time ASC, t.created_at DESC`;
+
   const stmt = db.prepare(sql);
-  const items = stmt.all(userId, startDate, endDate);
+  const items = stmt.all(...params);
 
   return items.map(item => ({
     ...item,
     subtasks: JSON.parse(item.subtasks || '[]'),
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
-    completed: !!item.completed
+    completed: !!item.completed,
+    calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
 
 /**
  * Get scheduled task items (have due_date)
+ * @param {string} userId
+ * @param {string[]} calendarIds - Optional: filter by calendar IDs
  */
-function getScheduledTaskItems(userId) {
-  const sql = `
-    SELECT * FROM task_items
-    WHERE user_id = ?
-    AND due_date IS NOT NULL
-    AND completed = 0
-    ORDER BY due_date ASC, due_time ASC
-  `;
+function getScheduledTaskItems(userId, calendarIds = null) {
+  let sql = `SELECT DISTINCT t.* FROM task_items t`;
+  const params = [userId];
+
+  if (calendarIds && calendarIds.length > 0) {
+    sql += ` INNER JOIN task_item_calendars tc ON t.id = tc.task_item_id
+             WHERE t.user_id = ?
+             AND t.due_date IS NOT NULL
+             AND t.completed = 0
+             AND tc.calendar_id IN (${calendarIds.map(() => '?').join(',')})`;
+    params.push(...calendarIds);
+  } else {
+    sql += ` WHERE t.user_id = ?
+             AND t.due_date IS NOT NULL
+             AND t.completed = 0`;
+  }
+
+  sql += ` ORDER BY t.due_date ASC, t.due_time ASC`;
 
   const stmt = db.prepare(sql);
-  const items = stmt.all(userId);
+  const items = stmt.all(...params);
 
   return items.map(item => ({
     ...item,
     subtasks: JSON.parse(item.subtasks || '[]'),
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
-    completed: !!item.completed
+    completed: !!item.completed,
+    calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
 
 /**
  * Get unscheduled task items (no due_date)
+ * @param {string} userId
+ * @param {string[]} calendarIds - Optional: filter by calendar IDs
  */
-function getUnscheduledTaskItems(userId) {
-  const sql = `
-    SELECT * FROM task_items
-    WHERE user_id = ?
-    AND due_date IS NULL
-    AND completed = 0
-    ORDER BY important DESC, created_at DESC
-  `;
+function getUnscheduledTaskItems(userId, calendarIds = null) {
+  let sql = `SELECT DISTINCT t.* FROM task_items t`;
+  const params = [userId];
+
+  if (calendarIds && calendarIds.length > 0) {
+    sql += ` INNER JOIN task_item_calendars tc ON t.id = tc.task_item_id
+             WHERE t.user_id = ?
+             AND t.due_date IS NULL
+             AND t.completed = 0
+             AND tc.calendar_id IN (${calendarIds.map(() => '?').join(',')})`;
+    params.push(...calendarIds);
+  } else {
+    sql += ` WHERE t.user_id = ?
+             AND t.due_date IS NULL
+             AND t.completed = 0`;
+  }
+
+  sql += ` ORDER BY t.important DESC, t.created_at DESC`;
 
   const stmt = db.prepare(sql);
-  const items = stmt.all(userId);
+  const items = stmt.all(...params);
 
   return items.map(item => ({
     ...item,
     subtasks: JSON.parse(item.subtasks || '[]'),
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
-    completed: !!item.completed
+    completed: !!item.completed,
+    calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
 
@@ -388,5 +480,8 @@ module.exports = {
   getScheduledTaskItems,
   getUnscheduledTaskItems,
   scheduleTaskItem,
-  unscheduleTaskItem
+  unscheduleTaskItem,
+  // Calendar association functions
+  getTaskItemCalendarIds,
+  setTaskItemCalendars
 };

@@ -13,7 +13,8 @@ const {
   getScheduledTaskItems,
   getUnscheduledTaskItems,
   scheduleTaskItem,
-  unscheduleTaskItem
+  unscheduleTaskItem,
+  setTaskItemCalendars
 } = require('../db/taskItems');
 
 const router = express.Router();
@@ -88,11 +89,13 @@ router.get('/calendar', (req, res) => {
 /**
  * GET /api/task-items/calendar/scheduled
  * Get all scheduled task items (have due_date)
+ * Query params: ?calendars=id1,id2,id3 (optional filter)
  */
 router.get('/calendar/scheduled', (req, res) => {
   try {
     const userId = req.user.id;
-    const items = getScheduledTaskItems(userId);
+    const calendarIds = req.query.calendars ? req.query.calendars.split(',') : null;
+    const items = getScheduledTaskItems(userId, calendarIds);
     res.json({ items });
   } catch (err) {
     console.error('Error fetching scheduled task items:', err);
@@ -103,11 +106,13 @@ router.get('/calendar/scheduled', (req, res) => {
 /**
  * GET /api/task-items/calendar/unscheduled
  * Get all unscheduled task items (no due_date)
+ * Query params: ?calendars=id1,id2,id3 (optional filter)
  */
 router.get('/calendar/unscheduled', (req, res) => {
   try {
     const userId = req.user.id;
-    const items = getUnscheduledTaskItems(userId);
+    const calendarIds = req.query.calendars ? req.query.calendars.split(',') : null;
+    const items = getUnscheduledTaskItems(userId, calendarIds);
     res.json({ items });
   } catch (err) {
     console.error('Error fetching unscheduled task items:', err);
@@ -189,12 +194,12 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, description, due_date, due_time, recurring, recurring_days, important, subtasks } = req.body;
-    
+    const { title, description, due_date, due_time, recurring, recurring_days, important, subtasks, calendar_ids } = req.body;
+
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
     }
-    
+
     const item = createTaskItem({
       title: title.trim(),
       description,
@@ -205,7 +210,13 @@ router.post('/', (req, res) => {
       important,
       subtasks
     }, userId);
-    
+
+    // Set calendar associations if provided
+    if (calendar_ids && Array.isArray(calendar_ids) && calendar_ids.length > 0) {
+      setTaskItemCalendars(item.id, calendar_ids, userId);
+      item.calendar_ids = calendar_ids;
+    }
+
     res.status(201).json({ item });
   } catch (err) {
     console.error('Error creating task item:', err);
@@ -220,12 +231,19 @@ router.post('/', (req, res) => {
 router.patch('/:id', (req, res) => {
   try {
     const userId = req.user.id;
-    const item = updateTaskItem(req.params.id, req.body, userId);
-    
+    const { calendar_ids, ...updateData } = req.body;
+    const item = updateTaskItem(req.params.id, updateData, userId);
+
     if (!item) {
       return res.status(404).json({ error: 'Task not found' });
     }
-    
+
+    // Update calendar associations if provided
+    if (calendar_ids !== undefined) {
+      setTaskItemCalendars(item.id, calendar_ids || [], userId);
+      item.calendar_ids = calendar_ids || [];
+    }
+
     res.json({ item });
   } catch (err) {
     console.error('Error updating task item:', err);

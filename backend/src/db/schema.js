@@ -240,6 +240,24 @@ if (!calendarsTable) {
   console.log('Calendars table created');
 }
 
+// ============================================
+// TASK_ITEM_CALENDARS JUNCTION TABLE (many-to-many)
+// ============================================
+const taskItemCalendarsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='task_item_calendars'").get();
+if (!taskItemCalendarsTable) {
+  console.log('Creating task_item_calendars junction table...');
+  db.exec(`
+    CREATE TABLE task_item_calendars (
+      task_item_id TEXT REFERENCES task_items(id) ON DELETE CASCADE,
+      calendar_id TEXT REFERENCES calendars(id) ON DELETE CASCADE,
+      PRIMARY KEY (task_item_id, calendar_id)
+    )
+  `);
+  db.exec(`CREATE INDEX idx_task_item_calendars_task ON task_item_calendars(task_item_id)`);
+  db.exec(`CREATE INDEX idx_task_item_calendars_calendar ON task_item_calendars(calendar_id)`);
+  console.log('Task item calendars junction table created');
+}
+
 console.log('Database initialized at', dbPath);
 
 module.exports = db;

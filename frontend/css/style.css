@@ -3269,6 +3269,49 @@ body.login-page {
     box-shadow: 0 0 15px rgba(191, 90, 242, 0.4);
 }
 
+/* Task Calendars Selection */
+.task-calendars-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.task-calendar-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.task-calendar-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.task-calendar-chip.selected {
+    background: rgba(0, 170, 255, 0.15);
+    border-color: rgba(0, 170, 255, 0.3);
+    color: var(--text-primary);
+}
+
+.task-calendar-chip .calendar-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.task-calendar-chip:not(.selected) .calendar-dot {
+    opacity: 0.5;
+}
+
 /* Markdown Dropdown */
 .md-dropdown {
     position: relative;

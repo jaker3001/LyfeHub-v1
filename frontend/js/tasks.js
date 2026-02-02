@@ -13,6 +13,8 @@ const taskModal = {
     currentListId: null,
     tasks: [],
     lists: [],
+    calendars: [], // Available calendars for selection
+    selectedCalendarIds: [], // Selected calendar IDs for current task
     isEditMode: true,
     displayMode: 'list', // 'list' or 'cards'
     cardSize: 'medium', // 'small', 'medium', 'large'
@@ -1038,8 +1040,9 @@ const taskModal = {
         this.currentTask = null;
         this.subtasks = [];
         this.isImportant = false;
+        this.selectedCalendarIds = [];
         this.isEditMode = true;
-        
+
         // Reset form
         document.getElementById('task-item-title').value = title;
         document.getElementById('task-item-description').value = '';
@@ -1054,32 +1057,35 @@ const taskModal = {
             btn.classList.toggle('active', btn.dataset.value === '');
         });
         document.getElementById('subtasks-list').innerHTML = '';
-        
+
         // Reset important button
         this.updateImportantButton();
-        
+
         // Reset complete button
         const completeBtn = document.getElementById('task-complete-btn');
         completeBtn.classList.remove('completed');
-        
+
         // Hide delete and edit buttons for new tasks
         document.getElementById('delete-task-item').style.display = 'none';
-        
+
         // Hide header datetime for new tasks
         const headerDatetime = document.getElementById('task-header-datetime');
         if (headerDatetime) headerDatetime.style.display = 'none';
         document.getElementById('task-edit-mode-btn').style.display = 'none';
-        
+
         // Clear created date
         document.getElementById('task-item-created').textContent = '';
-        
+
+        // Load and render calendars
+        this.loadCalendarsForModal();
+
         // Always edit mode for new tasks
         this.updateViewMode();
-        
+
         // Show modal
         this.el.classList.add('open');
         document.body.style.overflow = 'hidden';
-        
+
         // Focus title
         setTimeout(() => {
             document.getElementById('task-item-title').focus();
@@ -1090,6 +1096,7 @@ const taskModal = {
         this.currentTask = task;
         this.subtasks = task.subtasks || [];
         this.isImportant = task.important || false;
+        this.selectedCalendarIds = task.calendar_ids || [];
         
         // Populate form
         document.getElementById('task-item-title').value = task.title || '';
@@ -1129,11 +1136,14 @@ const taskModal = {
             const date = new Date(task.created_at);
             document.getElementById('task-item-created').textContent = `Created ${date.toLocaleDateString()}`;
         }
-        
+
+        // Load and render calendars
+        this.loadCalendarsForModal();
+
         // Start in reader view for existing tasks
         this.isEditMode = false;
         this.updateViewMode();
-        
+
         // Show modal
         this.el.classList.add('open');
         document.body.style.overflow = 'hidden';
@@ -1526,6 +1536,65 @@ const taskModal = {
         }
     },
 
+    /**
+     * Load calendars for the task modal
+     */
+    async loadCalendarsForModal() {
+        try {
+            const response = await api.getCalendars();
+            this.calendars = response.calendars || [];
+            this.renderCalendarsInModal();
+        } catch (err) {
+            console.error('Failed to load calendars:', err);
+            this.calendars = [];
+            this.renderCalendarsInModal();
+        }
+    },
+
+    /**
+     * Render calendar chips in the task modal
+     */
+    renderCalendarsInModal() {
+        const container = document.getElementById('task-calendars-list');
+        if (!container) return;
+
+        if (this.calendars.length === 0) {
+            container.innerHTML = '<span class="text-muted">No calendars available</span>';
+            return;
+        }
+
+        container.innerHTML = this.calendars.map(cal => {
+            const isSelected = this.selectedCalendarIds.includes(cal.id);
+            return `
+                <div class="task-calendar-chip${isSelected ? ' selected' : ''}" data-calendar-id="${cal.id}">
+                    <span class="calendar-dot" style="background: ${cal.color};"></span>
+                    <span>${this.escapeHtml(cal.name)}</span>
+                </div>
+            `;
+        }).join('');
+
+        // Bind click events
+        container.querySelectorAll('.task-calendar-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const calId = chip.dataset.calendarId;
+                this.toggleCalendarInModal(calId);
+            });
+        });
+    },
+
+    /**
+     * Toggle calendar selection in modal
+     */
+    toggleCalendarInModal(calendarId) {
+        const index = this.selectedCalendarIds.indexOf(calendarId);
+        if (index > -1) {
+            this.selectedCalendarIds.splice(index, 1);
+        } else {
+            this.selectedCalendarIds.push(calendarId);
+        }
+        this.renderCalendarsInModal();
+    },
+
     async save() {
         const title = document.getElementById('task-item-title').value.trim();
         if (!title) {
@@ -1550,7 +1619,8 @@ const taskModal = {
             recurring_days: this.selectedDays,
             subtasks: this.subtasks,
             important: this.isImportant,
-            completed: completeBtn.classList.contains('completed')
+            completed: completeBtn.classList.contains('completed'),
+            calendar_ids: this.selectedCalendarIds
         };
         
         try {

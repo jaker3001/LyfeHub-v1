@@ -276,16 +276,24 @@ const api = {
 
     /**
      * Task Items Calendar: Get all scheduled task items
+     * @param {string[]} calendarIds - Optional array of calendar IDs to filter by
      */
-    async getScheduledTaskItems() {
-        return this.request('/task-items/calendar/scheduled');
+    async getScheduledTaskItems(calendarIds = null) {
+        const query = calendarIds && calendarIds.length > 0
+            ? `?calendars=${encodeURIComponent(calendarIds.join(','))}`
+            : '';
+        return this.request(`/task-items/calendar/scheduled${query}`);
     },
 
     /**
      * Task Items Calendar: Get all unscheduled task items
+     * @param {string[]} calendarIds - Optional array of calendar IDs to filter by
      */
-    async getUnscheduledTaskItems() {
-        return this.request('/task-items/calendar/unscheduled');
+    async getUnscheduledTaskItems(calendarIds = null) {
+        const query = calendarIds && calendarIds.length > 0
+            ? `?calendars=${encodeURIComponent(calendarIds.join(','))}`
+            : '';
+        return this.request(`/task-items/calendar/unscheduled${query}`);
     },
 
     /**

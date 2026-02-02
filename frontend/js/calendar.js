@@ -10,6 +10,7 @@ const calendar = {
     scheduledTasks: [],
     unscheduledTasks: [],
     calendars: [],
+    selectedCalendarIds: [], // Track which calendars are selected for filtering
     isInitialized: false,
 
     // Drag state for time range selection
@@ -89,6 +90,12 @@ const calendar = {
         try {
             const response = await api.getCalendars();
             this.calendars = response.calendars || [];
+
+            // Initialize selectedCalendarIds to all calendars on first load
+            if (this.selectedCalendarIds.length === 0 && this.calendars.length > 0) {
+                this.selectedCalendarIds = this.calendars.map(c => c.id);
+            }
+
             this.renderCalendarsList();
         } catch (err) {
             console.error('Failed to load calendars:', err);
@@ -107,12 +114,47 @@ const calendar = {
             return;
         }
 
-        container.innerHTML = this.calendars.map(cal => `
-            <div class="calendar-list-item${cal.is_default ? ' active' : ''}" data-calendar-id="${cal.id}">
-                <span class="calendar-color" style="background: ${cal.color};"></span>
-                <span class="calendar-name">${this.escapeHtml(cal.name)}</span>
-            </div>
-        `).join('');
+        container.innerHTML = this.calendars.map(cal => {
+            const isSelected = this.selectedCalendarIds.includes(cal.id);
+            return `
+                <div class="calendar-list-item${isSelected ? ' selected' : ''}" data-calendar-id="${cal.id}">
+                    <span class="calendar-color" style="background: ${cal.color};${isSelected ? '' : ' opacity: 0.3;'}"></span>
+                    <span class="calendar-name">${this.escapeHtml(cal.name)}</span>
+                </div>
+            `;
+        }).join('');
+
+        // Bind click events for toggling selection
+        container.querySelectorAll('.calendar-list-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const calId = item.dataset.calendarId;
+                this.toggleCalendarSelection(calId);
+            });
+        });
+    },
+
+    /**
+     * Toggle calendar selection for filtering
+     */
+    async toggleCalendarSelection(calendarId) {
+        const index = this.selectedCalendarIds.indexOf(calendarId);
+        if (index > -1) {
+            // Deselect - but keep at least one selected
+            if (this.selectedCalendarIds.length > 1) {
+                this.selectedCalendarIds.splice(index, 1);
+            }
+        } else {
+            // Select
+            this.selectedCalendarIds.push(calendarId);
+        }
+
+        this.renderCalendarsList();
+        // Reload tasks with new filter
+        await Promise.all([
+            this.loadScheduledTasks(),
+            this.loadUnscheduledTasks()
+        ]);
+        this.render();
     },
 
     /**
@@ -222,7 +264,8 @@ const calendar = {
      */
     async loadScheduledTasks() {
         try {
-            const response = await api.getScheduledTaskItems();
+            const calendarFilter = this.selectedCalendarIds.length > 0 ? this.selectedCalendarIds : null;
+            const response = await api.getScheduledTaskItems(calendarFilter);
             this.scheduledTasks = response.items || [];
             this.updateSidebarScheduled();
         } catch (err) {
@@ -235,7 +278,8 @@ const calendar = {
      */
     async loadUnscheduledTasks() {
         try {
-            const response = await api.getUnscheduledTaskItems();
+            const calendarFilter = this.selectedCalendarIds.length > 0 ? this.selectedCalendarIds : null;
+            const response = await api.getUnscheduledTaskItems(calendarFilter);
             this.unscheduledTasks = response.items || [];
             this.updateSidebarUnscheduled();
         } catch (err) {

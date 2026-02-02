@@ -159,6 +159,19 @@
     color: var(--text-primary);
 }
 
+.calendar-list-item.selected {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.calendar-list-item:not(.selected) {
+    opacity: 0.5;
+}
+
+.calendar-list-item:not(.selected):hover {
+    opacity: 0.8;
+}
+
 .calendar-color {
     width: 12px;
     height: 12px;
