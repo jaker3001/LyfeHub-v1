@@ -262,8 +262,18 @@ const api = {
     },
 
     // ========================================
-    // TASK ITEMS CALENDAR
+    // TASK ITEMS
     // ========================================
+
+    /**
+     * Task Items: Create new task item
+     */
+    async createTaskItem(data) {
+        return this.request('/task-items', {
+            method: 'POST',
+            body: data,
+        });
+    },
 
     /**
      * Task Items Calendar: Get task items scheduled within a date range

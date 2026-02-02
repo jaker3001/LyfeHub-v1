@@ -172,6 +172,38 @@
     opacity: 0.8;
 }
 
+/* Calendar Edit Button */
+.calendar-edit-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.calendar-list-item:hover .calendar-edit-btn {
+    display: flex;
+}
+
+.calendar-edit-btn:hover {
+    background: rgba(191, 90, 242, 0.2);
+    color: var(--neon-purple);
+}
+
+.calendar-edit-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
 .calendar-color {
     width: 12px;
     height: 12px;
@@ -604,6 +636,10 @@
     grid-template-columns: 60px repeat(3, 1fr);
 }
 
+.week-container.three-day .week-all-day-cells {
+    /* Ensure 3 cells in 3-day view */
+}
+
 .week-header-cell {
     padding: 0.75rem 0.5rem;
     text-align: center;
@@ -675,7 +711,96 @@
     border-left: none;
 }
 
-/* All-day section at top of day columns */
+/* =============================================
+   Week/3-Day All-Day Row (Frozen at top, auto-expands)
+   ============================================= */
+.week-all-day-row {
+    display: flex;
+    min-height: 50px;
+    max-height: 150px; /* Cap expansion to prevent taking over the view */
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.02);
+    flex-shrink: 0;
+    overflow-y: auto; /* Scroll if many all-day events */
+    transition: max-height 0.2s ease;
+}
+
+.week-all-day-label {
+    width: 60px;
+    flex-shrink: 0;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: right;
+    border-right: 1px solid var(--glass-border);
+    display: flex;
+    align-items: flex-start; /* Align to top as row expands */
+    justify-content: flex-end;
+    position: sticky;
+    left: 0;
+    background: rgba(15, 15, 25, 0.95);
+}
+
+.week-all-day-cells {
+    display: flex;
+    flex: 1;
+    min-height: 40px;
+}
+
+.week-all-day-cell {
+    flex: 1;
+    min-height: 40px;
+    padding: 0.25rem;
+    border-left: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column; /* Stack events vertically */
+    gap: 0.25rem;
+    align-items: stretch;
+}
+
+.week-all-day-cell:first-child {
+    border-left: none;
+}
+
+.week-all-day-cell.calendar-drop-target {
+    background: rgba(191, 90, 242, 0.1);
+    border: 2px dashed var(--neon-purple);
+}
+
+/* All-day events in the frozen row cells */
+.week-all-day-cell .all-day-event {
+    padding: 0.2rem 0.4rem;
+    background: rgba(191, 90, 242, 0.2);
+    border-left: 2px solid var(--neon-purple);
+    border-radius: 3px;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    cursor: grab;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0; /* Don't shrink events */
+}
+
+.week-all-day-cell .all-day-event.important {
+    border-left-color: var(--neon-yellow);
+    background: rgba(255, 230, 109, 0.2);
+}
+
+.week-all-day-cell .all-day-event:hover {
+    background: rgba(191, 90, 242, 0.3);
+}
+
+.week-all-day-cell .all-day-event.important:hover {
+    background: rgba(255, 230, 109, 0.3);
+}
+
+/* All-day events in Day view */
+.all-day-events .all-day-event {
+    flex-shrink: 0; /* Don't shrink events */
+}
+
+/* Legacy - keeping for potential nested usage but no longer used in columns */
 .week-all-day {
     min-height: 40px;
     padding: 0.25rem;
@@ -691,6 +816,10 @@
 
 .week-hour-slot:hover {
     background: rgba(255, 255, 255, 0.02);
+}
+
+.week-hour-slot.drag-hover {
+    background: rgba(0, 170, 255, 0.1);
 }
 
 /* =============================================
@@ -743,12 +872,15 @@
     flex-direction: column;
 }
 
-/* All-day Section */
+/* All-day Section (Day View - auto-expands with content) */
 .all-day-section {
     display: flex;
     min-height: 50px;
+    max-height: 150px; /* Cap expansion */
     border-bottom: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.02);
+    overflow-y: auto;
+    flex-shrink: 0;
 }
 
 .all-day-label {
@@ -758,14 +890,19 @@
     color: var(--text-muted);
     text-align: right;
     border-right: 1px solid var(--glass-border);
+    flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    background: rgba(15, 15, 25, 0.95);
 }
 
 .all-day-events {
     flex: 1;
     padding: 0.25rem;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column; /* Stack events vertically */
     gap: 0.25rem;
+    min-height: 40px;
 }
 
 .all-day-event {
@@ -813,6 +950,10 @@
 
 .hour-content:hover {
     background: rgba(255, 255, 255, 0.02);
+}
+
+.hour-content.drag-hover {
+    background: rgba(0, 170, 255, 0.1);
 }
 
 /* Time Blocks / Events */
@@ -888,6 +1029,155 @@
 }
 
 /* =============================================
+   Current Time Indicator
+   ============================================= */
+.current-time-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00aaff 0%, #bf5af2 50%, #ec4899 100%);
+    z-index: 15;
+    pointer-events: none;
+}
+
+.current-time-indicator::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: #00aaff;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(0, 170, 255, 0.6);
+}
+
+/* Day view - indicator spans the hour-content area */
+.hour-grid .current-time-indicator {
+    left: 60px; /* After hour labels */
+}
+
+/* Week/3-Day view - indicator spans all columns */
+.week-columns .current-time-indicator {
+    left: 0;
+    right: 0;
+}
+
+/* Time picker modal - indicator */
+.time-picker-hours .current-time-indicator {
+    left: 60px;
+}
+
+/* =============================================
+   Pending Time Block (drop-then-resize workflow)
+   ============================================= */
+.pending-block {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    background: rgba(0, 170, 255, 0.15);
+    border: 2px dashed var(--neon-blue);
+    border-radius: 6px;
+    z-index: 20;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: pending-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pending-pulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(0, 170, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(0, 170, 255, 0.5);
+    }
+}
+
+.pending-block:hover {
+    background: rgba(0, 170, 255, 0.2);
+}
+
+/* Resize handles */
+.pending-block-handle {
+    height: 10px;
+    background: transparent;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+    flex-shrink: 0;
+}
+
+.pending-block-handle::after {
+    content: '';
+    width: 40px;
+    height: 3px;
+    background: rgba(0, 170, 255, 0.4);
+    border-radius: 2px;
+    transition: background 0.15s ease;
+}
+
+.pending-block-handle:hover {
+    background: rgba(0, 170, 255, 0.15);
+}
+
+.pending-block-handle:hover::after {
+    background: var(--neon-blue);
+}
+
+.pending-block-handle.top {
+    border-radius: 4px 4px 0 0;
+}
+
+.pending-block-handle.bottom {
+    border-radius: 0 0 4px 4px;
+}
+
+/* Content area */
+.pending-block-content {
+    flex: 1;
+    padding: 0.25rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.pending-block-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pending-block-time {
+    font-size: 0.7rem;
+    color: var(--neon-blue);
+    margin-top: 0.125rem;
+}
+
+.pending-block-hint {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+/* Resizing state */
+.pending-block.resizing {
+    animation: none;
+    box-shadow: 0 0 20px rgba(0, 170, 255, 0.4);
+}
+
+/* =============================================
    Time Picker Modal (for Month/Week drops)
    ============================================= */
 .time-picker-modal {
@@ -907,7 +1197,7 @@
 
 .time-picker-content {
     width: 320px;
-    max-height: 80vh;
+    max-height: 90vh;
     background: rgba(20, 20, 30, 0.95);
     backdrop-filter: var(--blur);
     border: 1px solid var(--glass-border);
@@ -916,38 +1206,153 @@
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
 }
 
-.time-picker-header {
+/* Time picker body - mini day view style */
+.time-picker-body {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--glass-border);
+    flex-direction: column;
+    max-height: calc(90vh - 70px); /* Account for footer */
 }
 
-.time-picker-header h3 {
-    font-size: 1rem;
-    font-weight: 600;
+/* Frozen all-day section at top */
+.time-picker-all-day {
+    display: flex;
+    min-height: 50px;
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.02);
+    flex-shrink: 0;
+}
+
+.time-picker-all-day-label {
+    width: 60px;
+    flex-shrink: 0;
+    padding: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: right;
+    border-right: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.time-picker-all-day-zone {
+    flex: 1;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.time-picker-all-day-zone:hover {
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
 }
 
-.time-picker-close {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.5rem;
+.time-picker-all-day-zone.selected {
+    background: rgba(191, 90, 242, 0.2);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 10px rgba(191, 90, 242, 0.2);
+}
+
+/* Scrollable hour grid */
+.time-picker-hours-scroll {
+    flex: 1;
+    overflow-y: auto;
+    /* No max-height - uses flex to fill available space in modal */
+}
+
+.time-picker-hours {
+    position: relative;
+}
+
+/* Hour row - matches day view structure */
+.time-picker-hour-row {
+    display: flex;
+    height: 60px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     cursor: pointer;
     transition: var(--transition);
 }
 
-.time-picker-close:hover {
-    color: var(--text-primary);
+.time-picker-hour-row:hover {
+    background: rgba(255, 255, 255, 0.02);
 }
 
-.time-picker-body {
-    max-height: 400px;
-    overflow-y: auto;
+.time-picker-hour-label {
+    width: 60px;
+    flex-shrink: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: right;
+    border-right: 1px solid var(--glass-border);
 }
 
+.time-picker-hour-slot {
+    flex: 1;
+    position: relative;
+}
+
+/* Drag selection styles */
+.time-picker-hour-row.selected,
+.time-picker-hour-row.in-range {
+    background: rgba(191, 90, 242, 0.15);
+}
+
+.time-picker-hour-row.selected .time-picker-hour-slot,
+.time-picker-hour-row.in-range .time-picker-hour-slot {
+    background: rgba(191, 90, 242, 0.1);
+}
+
+.time-picker-hour-row.drag-start {
+    border-top: 2px solid var(--neon-purple);
+}
+
+.time-picker-hour-row.drag-end {
+    border-bottom: 2px solid var(--neon-purple);
+}
+
+/* Time picker drag selection preview */
+.time-picker-selection {
+    position: absolute;
+    left: 60px;
+    right: 0;
+    background: rgba(191, 90, 242, 0.2);
+    border: 2px dashed var(--neon-purple);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.time-picker-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+/* Cancel button - red-orange gradient */
+.btn-cancel {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-cancel:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+/* Legacy styles - kept for compatibility */
 .time-picker-hour {
     display: flex;
     align-items: center;
@@ -964,12 +1369,6 @@
     background: rgba(191, 90, 242, 0.15);
 }
 
-.time-picker-hour-label {
-    width: 60px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
 .time-picker-hour-bar {
     flex: 1;
     height: 40px;
@@ -978,11 +1377,161 @@
     border: 1px solid var(--glass-border);
 }
 
-.time-picker-footer {
+/* Legacy time picker hour row styles removed - see new styles above */
+
+.time-picker-task-info {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.time-picker-task-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+/* =============================================
+   Time Block Popup (click-drag creation)
+   ============================================= */
+.time-block-popup {
+    position: fixed;
+    display: none;
+    z-index: 1001;
+}
+
+.time-block-popup.open {
+    display: block;
+}
+
+.time-block-popup-content {
+    width: 320px;
+    background: rgba(20, 20, 30, 0.98);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(191, 90, 242, 0.1);
+}
+
+.time-block-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(191, 90, 242, 0.1);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.time-block-popup-header span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--neon-purple);
+}
+
+.time-block-popup-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: var(--transition);
+}
+
+.time-block-popup-close:hover {
+    color: var(--text-primary);
+}
+
+.time-block-popup-body {
+    padding: 1rem;
+}
+
+.time-block-quick-input {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.time-block-quick-input:focus {
+    outline: none;
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 10px rgba(191, 90, 242, 0.2);
+}
+
+.time-block-quick-input::placeholder {
+    color: var(--text-muted);
+}
+
+.time-block-task-list {
+    margin-top: 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.time-block-task-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.25rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.time-block-task-option:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--glass-border);
+}
+
+.time-block-task-option.selected {
+    background: rgba(191, 90, 242, 0.15);
+    border-color: var(--neon-purple);
+}
+
+.time-block-task-option .task-bullet {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.time-block-task-option.important .task-bullet {
+    background: var(--neon-yellow);
+}
+
+.time-block-task-option-title {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.time-block-task-empty {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.time-block-popup-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-top: 1px solid var(--glass-border);
 }
 

@@ -976,17 +976,17 @@ function renderCoreBases() {
     const isCollapsed = basesState.coreBasesCollapsed;
     const itemsHeight = coreBases.length * 32 + 10;
 
-    // Items come BEFORE header for upward expansion effect
+    // Header first, items below - header moves up as items expand
     container.innerHTML = `
       <div class="sidebar-core-bases ${isCollapsed ? 'collapsed' : ''}">
-        <div class="sidebar-core-items" style="max-height: ${isCollapsed ? '0' : itemsHeight + 'px'}">
-          ${coreBases.map(base => renderSidebarCoreBaseItem(base)).join('')}
-        </div>
         <div class="sidebar-core-header" id="core-bases-header">
-          <span class="sidebar-core-toggle">▲</span>
+          <span class="sidebar-core-toggle">▼</span>
           <span class="sidebar-core-icon">⚡</span>
           <span class="sidebar-core-title">Core Bases</span>
           <span class="sidebar-core-count">${coreBases.length}</span>
+        </div>
+        <div class="sidebar-core-items" style="max-height: ${isCollapsed ? '0' : itemsHeight + 'px'}">
+          ${coreBases.map(base => renderSidebarCoreBaseItem(base)).join('')}
         </div>
       </div>
     `;
@@ -1407,8 +1407,32 @@ async function toggleGroupCollapse(groupId) {
     if (idx !== -1) {
       basesState.groups[idx] = group;
     }
-    renderSidebar();
-    attachSidebarListeners();
+
+    // Animate the toggle instead of re-rendering
+    const groupEl = document.querySelector(`.sidebar-group[data-group-id="${groupId}"]`);
+    if (groupEl) {
+      const itemsEl = groupEl.querySelector('.sidebar-group-items');
+      const isCollapsed = group.collapsed;
+
+      if (isCollapsed) {
+        // Collapse: animate to 0
+        itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+        // Force reflow
+        itemsEl.offsetHeight;
+        groupEl.classList.add('collapsed');
+        itemsEl.style.maxHeight = '0';
+      } else {
+        // Expand: animate to full height
+        groupEl.classList.remove('collapsed');
+        itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+        // After animation, remove max-height for dynamic content
+        setTimeout(() => {
+          if (!groupEl.classList.contains('collapsed')) {
+            itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+          }
+        }, 350);
+      }
+    }
   } catch (error) {
     console.error('Failed to toggle group:', error);
   }
@@ -2737,8 +2761,32 @@ async function openCoreBase(id) {
 function toggleCoreBasesCollapse() {
   basesState.coreBasesCollapsed = !basesState.coreBasesCollapsed;
   localStorage.setItem("coreBasesCollapsed", basesState.coreBasesCollapsed);
-  renderSidebar();
-  attachSidebarListeners();
+
+  // Animate the toggle instead of re-rendering
+  const coreBasesEl = document.querySelector('.sidebar-core-bases');
+  if (coreBasesEl) {
+    const itemsEl = coreBasesEl.querySelector('.sidebar-core-items');
+    const isCollapsed = basesState.coreBasesCollapsed;
+
+    if (isCollapsed) {
+      // Collapse: animate to 0
+      itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+      // Force reflow
+      itemsEl.offsetHeight;
+      coreBasesEl.classList.add('collapsed');
+      itemsEl.style.maxHeight = '0';
+    } else {
+      // Expand: animate to full height
+      coreBasesEl.classList.remove('collapsed');
+      itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+      // After animation, keep max-height set for content
+      setTimeout(() => {
+        if (!coreBasesEl.classList.contains('collapsed')) {
+          itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+        }
+      }, 350);
+    }
+  }
 }
 
 function isCoreBase(base) {

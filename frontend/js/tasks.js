@@ -1376,36 +1376,58 @@ const taskModal = {
     updateDateDisplay() {
         const input = document.getElementById('task-item-due');
         const display = document.getElementById('task-due-display');
+        const clearBtn = document.getElementById('clear-date-btn');
         if (input.value) {
             const date = new Date(input.value + 'T00:00:00');
-            display.textContent = date.toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                month: 'short', 
-                day: 'numeric' 
+            display.textContent = date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
             });
             display.classList.add('has-value');
+            if (clearBtn) clearBtn.classList.add('visible');
         } else {
             display.textContent = 'Select date';
             display.classList.remove('has-value');
+            if (clearBtn) clearBtn.classList.remove('visible');
         }
     },
 
     updateTimeDisplay() {
         const input = document.getElementById('task-item-time');
         const display = document.getElementById('task-time-display');
+        const clearBtn = document.getElementById('clear-time-btn');
         if (input.value) {
             const [hours, minutes] = input.value.split(':');
             const date = new Date();
             date.setHours(parseInt(hours), parseInt(minutes));
-            display.textContent = date.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
+            display.textContent = date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
                 minute: '2-digit',
-                hour12: true 
+                hour12: true
             });
             display.classList.add('has-value');
+            if (clearBtn) clearBtn.classList.add('visible');
         } else {
             display.textContent = 'Select time';
             display.classList.remove('has-value');
+            if (clearBtn) clearBtn.classList.remove('visible');
+        }
+    },
+
+    clearDate() {
+        const input = document.getElementById('task-item-due');
+        if (input) {
+            input.value = '';
+            this.updateDateDisplay();
+        }
+    },
+
+    clearTime() {
+        const input = document.getElementById('task-item-time');
+        if (input) {
+            input.value = '';
+            this.updateTimeDisplay();
         }
     },
 

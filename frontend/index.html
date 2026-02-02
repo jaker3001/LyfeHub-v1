@@ -494,6 +494,13 @@
                             <div class="week-header" id="week-header">
                                 <!-- Populated by JS -->
                             </div>
+                            <!-- Frozen all-day row -->
+                            <div class="week-all-day-row" id="week-all-day-row">
+                                <div class="week-all-day-label">All Day</div>
+                                <div class="week-all-day-cells" id="week-all-day-cells">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
                             <div class="week-body">
                                 <div class="time-gutter" id="week-time-gutter">
                                     <!-- Populated by JS -->
@@ -510,6 +517,13 @@
                         <div class="week-container three-day">
                             <div class="week-header" id="three-day-header">
                                 <!-- Populated by JS -->
+                            </div>
+                            <!-- Frozen all-day row -->
+                            <div class="week-all-day-row" id="three-day-all-day-row">
+                                <div class="week-all-day-label">All Day</div>
+                                <div class="week-all-day-cells" id="three-day-all-day-cells">
+                                    <!-- Populated by JS -->
+                                </div>
                             </div>
                             <div class="week-body">
                                 <div class="time-gutter" id="three-day-time-gutter">
@@ -654,6 +668,47 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
                 <button type="button" id="create-calendar-btn" class="btn btn-primary">Create Calendar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Calendar Modal -->
+    <div id="edit-calendar-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Edit Calendar</h2>
+                <button class="modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-calendar-name">Calendar name</label>
+                    <input type="text" id="edit-calendar-name" placeholder="Work, Personal, etc." />
+                </div>
+                <div class="form-group">
+                    <label for="edit-calendar-color">Color</label>
+                    <div class="color-picker-row">
+                        <input type="color" id="edit-calendar-color" value="#00aaff" class="color-input" />
+                        <div class="color-presets" id="edit-calendar-color-presets">
+                            <button type="button" class="color-preset" data-color="#00aaff" style="background: #00aaff;" title="Blue"></button>
+                            <button type="button" class="color-preset" data-color="#a855f7" style="background: #a855f7;" title="Purple"></button>
+                            <button type="button" class="color-preset" data-color="#22c55e" style="background: #22c55e;" title="Green"></button>
+                            <button type="button" class="color-preset" data-color="#eab308" style="background: #eab308;" title="Yellow"></button>
+                            <button type="button" class="color-preset" data-color="#f97316" style="background: #f97316;" title="Orange"></button>
+                            <button type="button" class="color-preset" data-color="#ef4444" style="background: #ef4444;" title="Red"></button>
+                            <button type="button" class="color-preset" data-color="#ec4899" style="background: #ec4899;" title="Pink"></button>
+                            <button type="button" class="color-preset" data-color="#06b6d4" style="background: #06b6d4;" title="Cyan"></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-calendar-description">Description (optional)</label>
+                    <textarea id="edit-calendar-description" placeholder="What is this calendar for?" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                <button type="button" id="save-calendar-btn" class="btn btn-primary">Save Changes</button>
             </div>
         </div>
     </div>
@@ -928,23 +983,39 @@
                 <div class="task-item-section">
                     <label class="task-item-section-label">When</label>
                     <div class="task-datetime-row">
-                        <div class="task-datetime-field" onclick="document.getElementById('task-item-due').showPicker()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
-                            <span id="task-due-display">Select date</span>
-                            <input type="date" id="task-item-due" />
+                        <div class="task-datetime-field-wrapper">
+                            <button type="button" class="field-clear-btn" id="clear-date-btn" onclick="event.stopPropagation(); taskModal.clearDate();" title="Clear date">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                            <div class="task-datetime-field" onclick="document.getElementById('task-item-due').showPicker()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <span id="task-due-display">Select date</span>
+                                <input type="date" id="task-item-due" />
+                            </div>
                         </div>
-                        <div class="task-datetime-field" onclick="document.getElementById('task-item-time').showPicker()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                            <span id="task-time-display">Select time</span>
-                            <input type="time" id="task-item-time" />
+                        <div class="task-datetime-field-wrapper">
+                            <button type="button" class="field-clear-btn" id="clear-time-btn" onclick="event.stopPropagation(); taskModal.clearTime();" title="Clear time">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                            <div class="task-datetime-field" onclick="document.getElementById('task-item-time').showPicker()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                <span id="task-time-display">Select time</span>
+                                <input type="time" id="task-item-time" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1107,6 +1178,51 @@
             <div class="modal-body">
                 <div id="column-cards" class="column-cards-grid"></div>
                 <p id="column-empty" class="column-empty" style="display: none;">No projects in this column</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Picker Modal (for Month/Week drops) -->
+    <div id="time-picker-modal" class="time-picker-modal">
+        <div class="time-picker-content">
+            <!-- No header - mini day view style -->
+            <div class="time-picker-body" id="time-picker-body">
+                <!-- Frozen all-day section -->
+                <div class="time-picker-all-day">
+                    <div class="time-picker-all-day-label">All Day</div>
+                    <div class="time-picker-all-day-zone" id="time-picker-all-day-zone">
+                        Click to schedule as all-day
+                    </div>
+                </div>
+                <!-- Scrollable hour grid -->
+                <div class="time-picker-hours-scroll">
+                    <div class="time-picker-hours" id="time-picker-hours">
+                        <!-- Hours populated by JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="time-picker-footer">
+                <button type="button" class="btn btn-cancel" id="time-picker-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="time-picker-confirm">Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Assignment Popup (for click-drag time selection) -->
+    <div id="time-block-popup" class="time-block-popup">
+        <div class="time-block-popup-content">
+            <div class="time-block-popup-header">
+                <span id="time-block-popup-time">9:00 AM - 10:00 AM</span>
+                <button class="time-block-popup-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="time-block-popup-body">
+                <input type="text" id="time-block-quick-input" class="time-block-quick-input" placeholder="Task title or select existing..." autocomplete="off" />
+                <div id="time-block-task-list" class="time-block-task-list">
+                    <!-- Unscheduled tasks shown here -->
+                </div>
+            </div>
+            <div class="time-block-popup-footer">
+                <button type="button" class="btn btn-primary btn-small" id="time-block-create">Create Task</button>
             </div>
         </div>
     </div>
