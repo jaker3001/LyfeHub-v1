@@ -958,29 +958,41 @@ function renderSidebar() {
     `;
   }
   
+  container.innerHTML = html;
+
   // ============================================
-  // CORE BASES SECTION
+  // CORE BASES SECTION (rendered separately at bottom)
   // ============================================
+  renderCoreBases();
+}
+
+function renderCoreBases() {
+  const container = document.getElementById('sidebar-core-bases-container');
+  if (!container) return;
+
+  const coreBases = basesState.coreBases || [];
+
   if (coreBases.length > 0) {
     const isCollapsed = basesState.coreBasesCollapsed;
     const itemsHeight = coreBases.length * 32 + 10;
-    
-    html += `
+
+    // Items come BEFORE header for upward expansion effect
+    container.innerHTML = `
       <div class="sidebar-core-bases ${isCollapsed ? 'collapsed' : ''}">
+        <div class="sidebar-core-items" style="max-height: ${isCollapsed ? '0' : itemsHeight + 'px'}">
+          ${coreBases.map(base => renderSidebarCoreBaseItem(base)).join('')}
+        </div>
         <div class="sidebar-core-header" id="core-bases-header">
-          <span class="sidebar-core-toggle">▼</span>
+          <span class="sidebar-core-toggle">▲</span>
           <span class="sidebar-core-icon">⚡</span>
           <span class="sidebar-core-title">Core Bases</span>
           <span class="sidebar-core-count">${coreBases.length}</span>
         </div>
-        <div class="sidebar-core-items" style="max-height: ${isCollapsed ? '0' : itemsHeight + 'px'}">
-          ${coreBases.map(base => renderSidebarCoreBaseItem(base)).join('')}
-        </div>
       </div>
     `;
+  } else {
+    container.innerHTML = '';
   }
-  
-  container.innerHTML = html;
 }
 
 function renderSidebarCoreBaseItem(base) {
