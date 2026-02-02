@@ -232,12 +232,21 @@ if (!calendarsTable) {
       color TEXT DEFAULT '#00aaff',
       user_id TEXT REFERENCES users(id),
       is_default INTEGER DEFAULT 0,
+      system_type TEXT DEFAULT NULL,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `);
   db.exec(`CREATE INDEX idx_calendars_user_id ON calendars(user_id)`);
   console.log('Calendars table created');
+}
+
+// Add system_type column if it doesn't exist
+const calendarCols = db.prepare("PRAGMA table_info(calendars)").all();
+const hasSystemType = calendarCols.some(c => c.name === 'system_type');
+if (!hasSystemType) {
+  console.log('Adding system_type column to calendars');
+  db.exec(`ALTER TABLE calendars ADD COLUMN system_type TEXT DEFAULT NULL`);
 }
 
 // ============================================

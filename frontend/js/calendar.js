@@ -135,8 +135,9 @@ const calendar = {
 
     /**
      * Toggle calendar selection for filtering
+     * Note: This only affects the calendar view, not the sidebar task lists
      */
-    async toggleCalendarSelection(calendarId) {
+    toggleCalendarSelection(calendarId) {
         const index = this.selectedCalendarIds.indexOf(calendarId);
         if (index > -1) {
             // Deselect - but keep at least one selected
@@ -148,12 +149,9 @@ const calendar = {
             this.selectedCalendarIds.push(calendarId);
         }
 
+        // Just re-render - no need to reload tasks since sidebar shows all
+        // and calendar view filters client-side
         this.renderCalendarsList();
-        // Reload tasks with new filter
-        await Promise.all([
-            this.loadScheduledTasks(),
-            this.loadUnscheduledTasks()
-        ]);
         this.render();
     },
 
@@ -261,11 +259,12 @@ const calendar = {
 
     /**
      * Load scheduled tasks (task items with due_date)
+     * Always loads ALL tasks - filtering by calendar is done in the calendar view only
      */
     async loadScheduledTasks() {
         try {
-            const calendarFilter = this.selectedCalendarIds.length > 0 ? this.selectedCalendarIds : null;
-            const response = await api.getScheduledTaskItems(calendarFilter);
+            // Always load all scheduled tasks for sidebar (no calendar filter)
+            const response = await api.getScheduledTaskItems(null);
             this.scheduledTasks = response.items || [];
             this.updateSidebarScheduled();
         } catch (err) {
@@ -275,11 +274,12 @@ const calendar = {
 
     /**
      * Load unscheduled tasks (task items without due_date)
+     * Always loads ALL tasks - filtering by calendar is done in the calendar view only
      */
     async loadUnscheduledTasks() {
         try {
-            const calendarFilter = this.selectedCalendarIds.length > 0 ? this.selectedCalendarIds : null;
-            const response = await api.getUnscheduledTaskItems(calendarFilter);
+            // Always load all unscheduled tasks for sidebar (no calendar filter)
+            const response = await api.getUnscheduledTaskItems(null);
             this.unscheduledTasks = response.items || [];
             this.updateSidebarUnscheduled();
         } catch (err) {
@@ -1301,10 +1301,28 @@ const calendar = {
     // ==================
 
     /**
-     * Get tasks for a specific date
+     * Check if a task belongs to any of the selected calendars
+     */
+    taskMatchesSelectedCalendars(task) {
+        // If no calendars are selected, show nothing on the calendar view
+        if (this.selectedCalendarIds.length === 0) {
+            return false;
+        }
+        // If task has no calendar associations, don't show it
+        if (!task.calendar_ids || task.calendar_ids.length === 0) {
+            return false;
+        }
+        // Check if any of the task's calendars are selected
+        return task.calendar_ids.some(calId => this.selectedCalendarIds.includes(calId));
+    },
+
+    /**
+     * Get tasks for a specific date (filtered by selected calendars)
      */
     getTasksForDate(dateStr) {
-        return this.scheduledTasks.filter(task => task.due_date === dateStr);
+        return this.scheduledTasks.filter(task =>
+            task.due_date === dateStr && this.taskMatchesSelectedCalendars(task)
+        );
     },
 
     /**

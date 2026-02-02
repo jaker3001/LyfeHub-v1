@@ -6,7 +6,7 @@ const {
   createCalendar,
   updateCalendar,
   deleteCalendar,
-  ensureDefaultCalendar
+  ensureSystemCalendars
 } = require('../db/calendars');
 
 const router = express.Router();
@@ -22,8 +22,8 @@ router.get('/', (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Ensure user has at least a default calendar
-    ensureDefaultCalendar(userId);
+    // Ensure user has system calendars (My Calendar + Tasks)
+    ensureSystemCalendars(userId);
 
     const calendars = getAllCalendars(userId);
     res.json({ calendars });

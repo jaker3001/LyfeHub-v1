@@ -1543,6 +1543,15 @@ const taskModal = {
         try {
             const response = await api.getCalendars();
             this.calendars = response.calendars || [];
+
+            // For new tasks, pre-select the Tasks calendar
+            if (!this.currentTask && this.selectedCalendarIds.length === 0) {
+                const tasksCalendar = this.calendars.find(c => c.system_type === 'tasks');
+                if (tasksCalendar) {
+                    this.selectedCalendarIds = [tasksCalendar.id];
+                }
+            }
+
             this.renderCalendarsInModal();
         } catch (err) {
             console.error('Failed to load calendars:', err);

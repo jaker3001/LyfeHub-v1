@@ -16,6 +16,7 @@ const {
   unscheduleTaskItem,
   setTaskItemCalendars
 } = require('../db/taskItems');
+const { ensureTasksCalendar } = require('../db/calendars');
 
 const router = express.Router();
 
@@ -211,11 +212,15 @@ router.post('/', (req, res) => {
       subtasks
     }, userId);
 
-    // Set calendar associations if provided
-    if (calendar_ids && Array.isArray(calendar_ids) && calendar_ids.length > 0) {
-      setTaskItemCalendars(item.id, calendar_ids, userId);
-      item.calendar_ids = calendar_ids;
+    // Set calendar associations - default to Tasks calendar if none provided
+    let finalCalendarIds = calendar_ids;
+    if (!calendar_ids || !Array.isArray(calendar_ids) || calendar_ids.length === 0) {
+      // Auto-link to the Tasks calendar
+      const tasksCalendar = ensureTasksCalendar(userId);
+      finalCalendarIds = [tasksCalendar.id];
     }
+    setTaskItemCalendars(item.id, finalCalendarIds, userId);
+    item.calendar_ids = finalCalendarIds;
 
     res.status(201).json({ item });
   } catch (err) {
