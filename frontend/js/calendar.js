@@ -170,7 +170,7 @@ const calendar = {
         document.querySelectorAll('#calendar-color-presets .color-preset').forEach(p => p.classList.remove('active'));
         document.querySelector('#calendar-color-presets .color-preset[data-color="#00aaff"]')?.classList.add('active');
 
-        modal.classList.add('active');
+        modal.classList.add('open');
         document.getElementById('new-calendar-name').focus();
     },
 
@@ -180,7 +180,7 @@ const calendar = {
     closeNewCalendarModal() {
         const modal = document.getElementById('new-calendar-modal');
         if (modal) {
-            modal.classList.remove('active');
+            modal.classList.remove('open');
         }
     },
 
