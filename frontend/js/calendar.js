@@ -1308,9 +1308,10 @@ const calendar = {
         if (this.selectedCalendarIds.length === 0) {
             return false;
         }
-        // If task has no calendar associations, don't show it
+        // If task has no calendar associations, show it (legacy tasks)
+        // This ensures tasks created before calendar feature still appear
         if (!task.calendar_ids || task.calendar_ids.length === 0) {
-            return false;
+            return true;
         }
         // Check if any of the task's calendars are selected
         return task.calendar_ids.some(calId => this.selectedCalendarIds.includes(calId));

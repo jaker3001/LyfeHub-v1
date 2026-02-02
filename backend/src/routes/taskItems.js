@@ -141,6 +141,13 @@ router.patch('/:id/schedule', (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // If task has no calendar associations, auto-link to Tasks calendar
+    if (!item.calendar_ids || item.calendar_ids.length === 0) {
+      const tasksCalendar = ensureTasksCalendar(userId);
+      setTaskItemCalendars(item.id, [tasksCalendar.id], userId);
+      item.calendar_ids = [tasksCalendar.id];
+    }
+
     res.json({ item });
   } catch (err) {
     console.error('Error scheduling task item:', err);
