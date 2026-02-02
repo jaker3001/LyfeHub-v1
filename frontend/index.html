@@ -14,6 +14,7 @@
             <button class="tab active" data-tab="projects">Projects</button>
             <button class="tab" data-tab="tasks">Tasks</button>
             <button class="tab" data-tab="bases">Bases</button>
+            <button class="tab" data-tab="calendar">Calendar</button>
         </nav>
         <div class="header-right">
             <span id="refresh-indicator" class="refresh-indicator" title="Auto-refreshes every 30s">⟳</span>
@@ -331,6 +332,10 @@
                 <div id="sidebar-content" class="sidebar-content">
                     <!-- Groups and bases populated by JS -->
                 </div>
+                <!-- Core Bases section - fixed at bottom, expands upward -->
+                <div id="sidebar-core-bases-container" class="sidebar-core-bases-container">
+                    <!-- Core bases populated by JS -->
+                </div>
             </aside>
             
             <!-- Main Content -->
@@ -383,6 +388,154 @@
         </div>
             </div><!-- /.bases-main-content -->
         </div><!-- /.bases-layout -->
+    </main>
+
+    <!-- Calendar Tab Content -->
+    <main class="tab-content" data-tab="calendar">
+        <div class="calendar-layout">
+            <!-- Calendar Sidebar -->
+            <aside class="calendar-sidebar">
+                <div class="calendar-sidebar-header">
+                    <h3>Tasks</h3>
+                </div>
+                <div class="calendar-sidebar-content">
+                    <!-- Scheduled Tasks Section -->
+                    <div class="calendar-section">
+                        <button class="calendar-section-header" data-section="scheduled">
+                            <svg class="section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                            <span>Scheduled</span>
+                            <span class="section-count" id="scheduled-count">0</span>
+                        </button>
+                        <div class="calendar-section-content" id="scheduled-tasks-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Unscheduled Tasks Section -->
+                    <div class="calendar-section">
+                        <button class="calendar-section-header" data-section="unscheduled">
+                            <svg class="section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                            <span>Unscheduled</span>
+                            <span class="section-count" id="unscheduled-count">0</span>
+                        </button>
+                        <div class="calendar-section-content" id="unscheduled-tasks-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Calendar Main Content -->
+            <div class="calendar-main">
+                <!-- Calendar Toolbar -->
+                <div class="calendar-toolbar">
+                    <div class="calendar-nav">
+                        <button id="calendar-prev" class="calendar-nav-btn" title="Previous">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                        </button>
+                        <button id="calendar-today" class="calendar-today-btn">Today</button>
+                        <button id="calendar-next" class="calendar-nav-btn" title="Next">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                        <h2 id="calendar-title" class="calendar-title">January 2026</h2>
+                    </div>
+                    <div class="calendar-view-toggle">
+                        <button class="calendar-view-btn active" data-view="month">Month</button>
+                        <button class="calendar-view-btn" data-view="week">Week</button>
+                        <button class="calendar-view-btn" data-view="3day">3-Day</button>
+                        <button class="calendar-view-btn" data-view="day">Day</button>
+                    </div>
+                </div>
+
+                <!-- Calendar Views -->
+                <div class="calendar-content">
+                    <!-- Month View -->
+                    <div class="calendar-view active" data-view="month">
+                        <div class="month-header">
+                            <div class="month-day-label">Sun</div>
+                            <div class="month-day-label">Mon</div>
+                            <div class="month-day-label">Tue</div>
+                            <div class="month-day-label">Wed</div>
+                            <div class="month-day-label">Thu</div>
+                            <div class="month-day-label">Fri</div>
+                            <div class="month-day-label">Sat</div>
+                        </div>
+                        <div id="month-grid" class="month-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Week View -->
+                    <div class="calendar-view" data-view="week">
+                        <div class="week-container">
+                            <div class="week-header" id="week-header">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="week-body">
+                                <div class="time-gutter" id="week-time-gutter">
+                                    <!-- Populated by JS -->
+                                </div>
+                                <div class="week-columns" id="week-columns">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3-Day View -->
+                    <div class="calendar-view" data-view="3day">
+                        <div class="week-container three-day">
+                            <div class="week-header" id="three-day-header">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="week-body">
+                                <div class="time-gutter" id="three-day-time-gutter">
+                                    <!-- Populated by JS -->
+                                </div>
+                                <div class="week-columns" id="three-day-columns">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Day View -->
+                    <div class="calendar-view" data-view="day">
+                        <div class="day-container">
+                            <div class="day-header" id="day-header">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="day-body">
+                                <div class="time-gutter" id="day-time-gutter">
+                                    <!-- Populated by JS -->
+                                </div>
+                                <div class="day-column" id="day-column">
+                                    <!-- All-day section -->
+                                    <div class="all-day-section" id="day-all-day">
+                                        <div class="all-day-label">All day</div>
+                                        <div class="all-day-events" id="day-all-day-events">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                    <!-- Hour grid -->
+                                    <div class="hour-grid" id="day-hour-grid">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- New Base Modal -->
@@ -900,5 +1053,6 @@
     <script src="js/kanban.js"></script>
     <script src="js/tasks.js"></script>
     <script src="js/bases.js"></script>
+    <script src="js/calendar.js"></script>
 </body>
 </html>

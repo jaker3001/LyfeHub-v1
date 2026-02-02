@@ -211,6 +211,55 @@ const api = {
             body: reviewData,
         });
     },
+
+    // ========================================
+    // CALENDAR
+    // ========================================
+
+    /**
+     * Calendar: Get tasks scheduled within a date range
+     * @param {string} start - Start date (YYYY-MM-DD)
+     * @param {string} end - End date (YYYY-MM-DD)
+     */
+    async getCalendarTasks(start, end) {
+        return this.request(`/tasks/calendar?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+    },
+
+    /**
+     * Calendar: Get all scheduled tasks
+     */
+    async getScheduledTasks() {
+        return this.request('/tasks/scheduled');
+    },
+
+    /**
+     * Calendar: Get all unscheduled tasks
+     */
+    async getUnscheduledTasks() {
+        return this.request('/tasks/unscheduled');
+    },
+
+    /**
+     * Calendar: Schedule a task
+     * @param {string} id - Task ID
+     * @param {object} scheduleData - { scheduled_date, scheduled_start?, scheduled_end?, is_all_day? }
+     */
+    async scheduleTask(id, scheduleData) {
+        return this.request(`/tasks/${id}/schedule`, {
+            method: 'PATCH',
+            body: scheduleData,
+        });
+    },
+
+    /**
+     * Calendar: Remove task from calendar
+     * @param {string} id - Task ID
+     */
+    async unscheduleTask(id) {
+        return this.request(`/tasks/${id}/unschedule`, {
+            method: 'PATCH',
+        });
+    },
 };
 
 // Make available globally

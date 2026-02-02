@@ -175,6 +175,41 @@ if (!taskItemsTable) {
   console.log('Task items table created');
 }
 
+// ============================================
+// CALENDAR SCHEDULING COLUMNS (for tasks)
+// ============================================
+// Add scheduling columns to tasks table for calendar integration
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN scheduled_date TEXT`);
+  console.log('Added scheduled_date column to tasks');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN scheduled_start TEXT`);
+  console.log('Added scheduled_start column to tasks');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN scheduled_end TEXT`);
+  console.log('Added scheduled_end column to tasks');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN is_all_day INTEGER DEFAULT 0`);
+  console.log('Added is_all_day column to tasks');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+// Index for calendar queries
+db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_scheduled_date ON tasks(scheduled_date)`);
+
 console.log('Database initialized at', dbPath);
 
 module.exports = db;

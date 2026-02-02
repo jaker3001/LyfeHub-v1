@@ -10,7 +10,13 @@ const {
   completeTask,
   addLogEntry,
   submitReview,
-  submitPlanReview
+  submitPlanReview,
+  // Calendar functions
+  getTasksForCalendar,
+  getScheduledTasks,
+  getUnscheduledTasks,
+  scheduleTask,
+  unscheduleTask
 } = require('../db/queries');
 
 const router = express.Router();
@@ -118,6 +124,83 @@ router.post('/', (req, res) => {
     console.error('Error creating task:', err);
     res.status(500).json({ 
       error: 'Failed to create task',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+// ========================================
+// CALENDAR ENDPOINTS
+// ========================================
+
+/**
+ * GET /api/tasks/calendar
+ * Get tasks scheduled within a date range
+ * Query params: ?start=YYYY-MM-DD&end=YYYY-MM-DD
+ */
+router.get('/calendar', (req, res) => {
+  try {
+    const { start, end } = req.query;
+    const userId = getUserId(req);
+
+    if (!start || !end) {
+      return res.status(400).json({
+        error: 'start and end query parameters are required (YYYY-MM-DD format)',
+        code: 'MISSING_DATE_RANGE'
+      });
+    }
+
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(start) || !dateRegex.test(end)) {
+      return res.status(400).json({
+        error: 'Dates must be in YYYY-MM-DD format',
+        code: 'INVALID_DATE_FORMAT'
+      });
+    }
+
+    const tasks = getTasksForCalendar(userId, start, end);
+    res.json({ tasks });
+  } catch (err) {
+    console.error('Error fetching calendar tasks:', err);
+    res.status(500).json({
+      error: 'Failed to fetch calendar tasks',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
+ * GET /api/tasks/scheduled
+ * Get all scheduled tasks (tasks with a scheduled_date)
+ */
+router.get('/scheduled', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const tasks = getScheduledTasks(userId);
+    res.json({ tasks });
+  } catch (err) {
+    console.error('Error fetching scheduled tasks:', err);
+    res.status(500).json({
+      error: 'Failed to fetch scheduled tasks',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
+ * GET /api/tasks/unscheduled
+ * Get all unscheduled tasks (tasks without a scheduled_date)
+ */
+router.get('/unscheduled', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const tasks = getUnscheduledTasks(userId);
+    res.json({ tasks });
+  } catch (err) {
+    console.error('Error fetching unscheduled tasks:', err);
+    res.status(500).json({
+      error: 'Failed to fetch unscheduled tasks',
       code: 'INTERNAL_ERROR'
     });
   }
@@ -381,6 +464,97 @@ router.post('/:id/review', (req, res) => {
     console.error('Error submitting review:', err);
     res.status(500).json({ 
       error: 'Failed to submit review',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
+ * PATCH /api/tasks/:id/schedule
+ * Schedule a task on the calendar
+ * Body: { scheduled_date: "YYYY-MM-DD", scheduled_start?: "HH:MM", scheduled_end?: "HH:MM", is_all_day?: boolean }
+ */
+router.patch('/:id/schedule', (req, res) => {
+  try {
+    const { scheduled_date, scheduled_start, scheduled_end, is_all_day } = req.body;
+    const userId = getUserId(req);
+
+    if (!scheduled_date) {
+      return res.status(400).json({
+        error: 'scheduled_date is required (YYYY-MM-DD format)',
+        code: 'MISSING_DATE'
+      });
+    }
+
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(scheduled_date)) {
+      return res.status(400).json({
+        error: 'scheduled_date must be in YYYY-MM-DD format',
+        code: 'INVALID_DATE_FORMAT'
+      });
+    }
+
+    // Validate time format if provided
+    const timeRegex = /^\d{2}:\d{2}$/;
+    if (scheduled_start && !timeRegex.test(scheduled_start)) {
+      return res.status(400).json({
+        error: 'scheduled_start must be in HH:MM format',
+        code: 'INVALID_TIME_FORMAT'
+      });
+    }
+    if (scheduled_end && !timeRegex.test(scheduled_end)) {
+      return res.status(400).json({
+        error: 'scheduled_end must be in HH:MM format',
+        code: 'INVALID_TIME_FORMAT'
+      });
+    }
+
+    const task = scheduleTask(req.params.id, {
+      scheduled_date,
+      scheduled_start,
+      scheduled_end,
+      is_all_day: is_all_day || false
+    }, userId);
+
+    if (!task) {
+      return res.status(404).json({
+        error: 'Task not found',
+        code: 'TASK_NOT_FOUND'
+      });
+    }
+
+    res.json({ task });
+  } catch (err) {
+    console.error('Error scheduling task:', err);
+    res.status(500).json({
+      error: 'Failed to schedule task',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
+ * PATCH /api/tasks/:id/unschedule
+ * Remove a task from the calendar
+ */
+router.patch('/:id/unschedule', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const task = unscheduleTask(req.params.id, userId);
+
+    if (!task) {
+      return res.status(404).json({
+        error: 'Task not found',
+        code: 'TASK_NOT_FOUND'
+      });
+    }
+
+    res.json({ task });
+  } catch (err) {
+    console.error('Error unscheduling task:', err);
+    res.status(500).json({
+      error: 'Failed to unschedule task',
       code: 'INTERNAL_ERROR'
     });
   }

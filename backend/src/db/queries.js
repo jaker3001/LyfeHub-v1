@@ -11,7 +11,8 @@ function parseTask(row) {
     acceptance_criteria: JSON.parse(row.acceptance_criteria || '[]'),
     context_links: JSON.parse(row.context_links || '[]'),
     activity_log: JSON.parse(row.activity_log || '[]'),
-    review_state: JSON.parse(row.review_state || '{}')
+    review_state: JSON.parse(row.review_state || '{}'),
+    is_all_day: row.is_all_day === 1 || row.is_all_day === true
   };
 }
 
@@ -544,6 +545,151 @@ function submitPlanReview(id, reviewData, userId = null) {
   };
 }
 
+/**
+ * Get tasks scheduled within a date range (for calendar view)
+ * @param {string|null} userId - User ID (null for system access = all tasks)
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ */
+function getTasksForCalendar(userId, startDate, endDate) {
+  let sql = `SELECT * FROM tasks WHERE scheduled_date IS NOT NULL
+             AND scheduled_date >= ? AND scheduled_date <= ?`;
+  const params = [startDate, endDate];
+
+  if (userId) {
+    sql += ' AND user_id = ?';
+    params.push(userId);
+  }
+
+  sql += ' ORDER BY scheduled_date ASC, scheduled_start ASC, priority ASC';
+
+  const stmt = db.prepare(sql);
+  return stmt.all(...params).map(parseTask);
+}
+
+/**
+ * Get all scheduled tasks for a user (tasks with a scheduled_date)
+ * @param {string|null} userId - User ID (null for system access)
+ */
+function getScheduledTasks(userId) {
+  let sql = 'SELECT * FROM tasks WHERE scheduled_date IS NOT NULL';
+  const params = [];
+
+  if (userId) {
+    sql += ' AND user_id = ?';
+    params.push(userId);
+  }
+
+  sql += ' ORDER BY scheduled_date ASC, scheduled_start ASC';
+
+  const stmt = db.prepare(sql);
+  return stmt.all(...params).map(parseTask);
+}
+
+/**
+ * Get all unscheduled tasks for a user (tasks without a scheduled_date)
+ * @param {string|null} userId - User ID (null for system access)
+ */
+function getUnscheduledTasks(userId) {
+  let sql = 'SELECT * FROM tasks WHERE scheduled_date IS NULL';
+  const params = [];
+
+  if (userId) {
+    sql += ' AND user_id = ?';
+    params.push(userId);
+  }
+
+  // Exclude done tasks from unscheduled list
+  sql += " AND status != 'done'";
+  sql += ' ORDER BY priority ASC, created_at DESC';
+
+  const stmt = db.prepare(sql);
+  return stmt.all(...params).map(parseTask);
+}
+
+/**
+ * Schedule a task (set date/time)
+ * @param {string} id - Task ID
+ * @param {object} scheduleData - { scheduled_date, scheduled_start, scheduled_end, is_all_day }
+ * @param {string|null} userId - User ID for ownership check
+ */
+function scheduleTask(id, scheduleData, userId = null) {
+  const task = getTaskById(id, userId);
+  if (!task) return null;
+
+  const now = new Date().toISOString();
+  const activityLog = task.activity_log || [];
+
+  // Log the scheduling
+  const scheduleInfo = scheduleData.is_all_day
+    ? `${scheduleData.scheduled_date} (all day)`
+    : `${scheduleData.scheduled_date} ${scheduleData.scheduled_start || ''}-${scheduleData.scheduled_end || ''}`;
+
+  activityLog.push(createLogEntry('scheduled', `Task scheduled for ${scheduleInfo}`, {
+    scheduled_date: scheduleData.scheduled_date,
+    scheduled_start: scheduleData.scheduled_start || null,
+    scheduled_end: scheduleData.scheduled_end || null,
+    is_all_day: scheduleData.is_all_day || false
+  }));
+
+  const stmt = db.prepare(`
+    UPDATE tasks SET
+      scheduled_date = ?,
+      scheduled_start = ?,
+      scheduled_end = ?,
+      is_all_day = ?,
+      activity_log = ?,
+      updated_at = ?
+    WHERE id = ?
+  `);
+
+  stmt.run(
+    scheduleData.scheduled_date,
+    scheduleData.scheduled_start || null,
+    scheduleData.scheduled_end || null,
+    scheduleData.is_all_day ? 1 : 0,
+    JSON.stringify(activityLog),
+    now,
+    id
+  );
+
+  return getTaskById(id);
+}
+
+/**
+ * Unschedule a task (clear date/time)
+ * @param {string} id - Task ID
+ * @param {string|null} userId - User ID for ownership check
+ */
+function unscheduleTask(id, userId = null) {
+  const task = getTaskById(id, userId);
+  if (!task) return null;
+
+  const now = new Date().toISOString();
+  const activityLog = task.activity_log || [];
+
+  activityLog.push(createLogEntry('unscheduled', 'Task removed from calendar', {
+    previous_date: task.scheduled_date,
+    previous_start: task.scheduled_start,
+    previous_end: task.scheduled_end
+  }));
+
+  const stmt = db.prepare(`
+    UPDATE tasks SET
+      scheduled_date = NULL,
+      scheduled_start = NULL,
+      scheduled_end = NULL,
+      is_all_day = 0,
+      activity_log = ?,
+      updated_at = ?
+    WHERE id = ?
+  `);
+
+  stmt.run(JSON.stringify(activityLog), now, id);
+
+  return getTaskById(id);
+}
+
 module.exports = {
   getAllTasks,
   getTaskById,
@@ -554,5 +700,11 @@ module.exports = {
   completeTask,
   addLogEntry,
   submitReview,
-  submitPlanReview
+  submitPlanReview,
+  // Calendar functions
+  getTasksForCalendar,
+  getScheduledTasks,
+  getUnscheduledTasks,
+  scheduleTask,
+  unscheduleTask
 };

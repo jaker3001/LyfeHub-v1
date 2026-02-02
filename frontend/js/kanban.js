@@ -114,6 +114,11 @@ const dashboard = {
             taskModal.loadCounts();
             taskModal.loadLists();
         }
+
+        // Load calendar when switching to Calendar tab
+        if (tabName === 'calendar' && typeof calendar !== 'undefined') {
+            calendar.load();
+        }
     },
 
     switchView(viewName) {
