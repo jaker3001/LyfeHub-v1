@@ -395,35 +395,59 @@
         <div class="calendar-layout">
             <!-- Calendar Sidebar -->
             <aside class="calendar-sidebar">
-                <div class="calendar-sidebar-header">
-                    <h3>Tasks</h3>
-                </div>
-                <div class="calendar-sidebar-content">
-                    <!-- Scheduled Tasks Section -->
-                    <div class="calendar-section">
-                        <button class="calendar-section-header" data-section="scheduled">
-                            <svg class="section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"/>
-                            </svg>
-                            <span>Scheduled</span>
-                            <span class="section-count" id="scheduled-count">0</span>
-                        </button>
-                        <div class="calendar-section-content" id="scheduled-tasks-list">
-                            <!-- Populated by JS -->
+                <!-- Calendars Section -->
+                <div class="calendar-sidebar-group">
+                    <button class="calendar-sidebar-toggle" data-group="calendars">
+                        <svg class="toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                        <span>Calendars</span>
+                    </button>
+                    <div class="calendar-sidebar-group-content" id="calendars-list">
+                        <div class="calendar-list-item active" data-calendar="default">
+                            <span class="calendar-color" style="background: var(--neon-blue);"></span>
+                            <span class="calendar-name">My Calendar</span>
                         </div>
+                        <!-- Additional calendars will be added here -->
                     </div>
+                </div>
 
-                    <!-- Unscheduled Tasks Section -->
-                    <div class="calendar-section">
-                        <button class="calendar-section-header" data-section="unscheduled">
-                            <svg class="section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"/>
-                            </svg>
-                            <span>Unscheduled</span>
-                            <span class="section-count" id="unscheduled-count">0</span>
-                        </button>
-                        <div class="calendar-section-content" id="unscheduled-tasks-list">
-                            <!-- Populated by JS -->
+                <!-- Tasks Section (Collapsible) -->
+                <div class="calendar-sidebar-group">
+                    <button class="calendar-sidebar-toggle" data-group="tasks">
+                        <svg class="toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                        <span>Tasks</span>
+                        <span class="section-count" id="tasks-total-count">0</span>
+                    </button>
+                    <div class="calendar-sidebar-group-content" id="tasks-group-content">
+                        <!-- Scheduled Tasks Section -->
+                        <div class="calendar-section">
+                            <button class="calendar-section-header" data-section="scheduled">
+                                <svg class="section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                                <span>Scheduled</span>
+                                <span class="section-count" id="scheduled-count">0</span>
+                            </button>
+                            <div class="calendar-section-content" id="scheduled-tasks-list">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Unscheduled Tasks Section -->
+                        <div class="calendar-section">
+                            <button class="calendar-section-header" data-section="unscheduled">
+                                <svg class="section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                                <span>Unscheduled</span>
+                                <span class="section-count" id="unscheduled-count">0</span>
+                            </button>
+                            <div class="calendar-section-content" id="unscheduled-tasks-list">
+                                <!-- Populated by JS -->
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -49,9 +49,18 @@ const calendar = {
         document.getElementById('calendar-next')?.addEventListener('click', () => this.navigate(1));
         document.getElementById('calendar-today')?.addEventListener('click', () => this.goToToday());
 
-        // Sidebar section toggle
+        // Sidebar group toggle (Calendars, Tasks headers)
+        document.querySelectorAll('.calendar-sidebar-toggle').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const group = toggle.closest('.calendar-sidebar-group');
+                group.classList.toggle('collapsed');
+            });
+        });
+
+        // Sidebar section toggle (Scheduled, Unscheduled within Tasks)
         document.querySelectorAll('.calendar-section-header').forEach(header => {
-            header.addEventListener('click', () => {
+            header.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent bubbling to group toggle
                 const section = header.closest('.calendar-section');
                 section.classList.toggle('collapsed');
             });
@@ -66,7 +75,18 @@ const calendar = {
             this.loadScheduledTasks(),
             this.loadUnscheduledTasks()
         ]);
+        this.updateTotalTasksCount();
         this.render();
+    },
+
+    /**
+     * Update total tasks count in sidebar header
+     */
+    updateTotalTasksCount() {
+        const totalCount = document.getElementById('tasks-total-count');
+        if (totalCount) {
+            totalCount.textContent = this.scheduledTasks.length + this.unscheduledTasks.length;
+        }
     },
 
     /**

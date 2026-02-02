@@ -25,9 +25,100 @@
     overflow: hidden;
 }
 
+/* Sidebar Groups (Collapsible) */
+.calendar-sidebar-group {
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.calendar-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.calendar-sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.calendar-sidebar-toggle .toggle-chevron {
+    transition: transform 0.2s ease;
+}
+
+.calendar-sidebar-group.collapsed .toggle-chevron {
+    transform: rotate(-90deg);
+}
+
+.calendar-sidebar-toggle .section-count {
+    margin-left: auto;
+}
+
+.calendar-sidebar-group-content {
+    padding: 0 0.5rem 0.75rem;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+.calendar-sidebar-group.collapsed .calendar-sidebar-group-content {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+}
+
+/* Calendar List Items */
+.calendar-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.25rem;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-secondary);
+}
+
+.calendar-list-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.calendar-list-item.active {
+    background: rgba(0, 170, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.calendar-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.calendar-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Legacy header styles (keeping for potential reuse) */
 .calendar-sidebar-header {
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--glass-border);
+    display: none; /* Hidden - using groups now */
 }
 
 .calendar-sidebar-header h3 {

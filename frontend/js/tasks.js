@@ -1574,10 +1574,14 @@ const taskModal = {
             }
             
             if (!response.ok) throw new Error('Failed to save task');
-            
+
             this.close();
             this.loadTasks();
             this.loadCounts();
+            // Also refresh calendar if it exists
+            if (typeof calendar !== 'undefined' && calendar.load) {
+                calendar.load();
+            }
             this.showToast(this.currentTask ? 'Task updated!' : 'Task created!');
         } catch (err) {
             console.error('Error saving task:', err);
@@ -1596,10 +1600,14 @@ const taskModal = {
                 });
                 
                 if (!response.ok) throw new Error('Failed to delete task');
-                
+
                 this.close();
                 this.loadTasks();
                 this.loadCounts();
+                // Also refresh calendar if it exists
+                if (typeof calendar !== 'undefined' && calendar.load) {
+                    calendar.load();
+                }
                 this.showToast('Task deleted!');
             } catch (err) {
                 console.error('Error deleting task:', err);
