@@ -286,6 +286,26 @@
     cursor: grabbing;
 }
 
+/* Dragging states for calendar events */
+.month-event.dragging,
+.time-block.dragging,
+.all-day-event.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.month-event,
+.time-block,
+.all-day-event {
+    cursor: grab;
+}
+
+.month-event:active,
+.time-block:active,
+.all-day-event:active {
+    cursor: grabbing;
+}
+
 .calendar-task-item .task-bullet {
     width: 6px;
     height: 6px;

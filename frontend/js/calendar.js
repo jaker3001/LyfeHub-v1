@@ -562,7 +562,7 @@ const calendar = {
 
         const eventsHtml = dayTasks.slice(0, 3).map(task => {
             const importantClass = task.important ? ' important' : '';
-            return `<div class="month-event${importantClass}" data-id="${task.id}" title="${this.escapeHtml(task.title)}">${this.escapeHtml(task.title)}</div>`;
+            return `<div class="month-event${importantClass}" data-id="${task.id}" title="${this.escapeHtml(task.title)}" draggable="true">${this.escapeHtml(task.title)}</div>`;
         }).join('');
 
         const moreCount = dayTasks.length - 3;
@@ -618,7 +618,7 @@ const calendar = {
             });
         });
 
-        // Click on events
+        // Click and drag on events
         grid.querySelectorAll('.month-event').forEach(event => {
             event.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -627,6 +627,18 @@ const calendar = {
                 if (task && typeof taskModal !== 'undefined') {
                     taskModal.openTask(task);
                 }
+            });
+
+            // Drag to reschedule
+            event.addEventListener('dragstart', (e) => {
+                e.stopPropagation();
+                event.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', event.dataset.id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            event.addEventListener('dragend', () => {
+                event.classList.remove('dragging');
             });
         });
     },
@@ -759,6 +771,7 @@ const calendar = {
                         const el = document.createElement('div');
                         el.className = `all-day-event${task.important ? ' important' : ''}`;
                         el.dataset.id = task.id;
+                        el.draggable = true;
                         el.textContent = task.title;
                         el.title = task.title;
                         allDaySection.appendChild(el);
@@ -797,6 +810,7 @@ const calendar = {
         const block = document.createElement('div');
         block.className = `time-block${task.important ? ' important' : ''}`;
         block.dataset.id = task.id;
+        block.draggable = true;
         block.style.top = `${top + 40}px`; // +40 for all-day section
         block.style.height = `${height}px`;
 
@@ -813,7 +827,7 @@ const calendar = {
      * Bind events to multi-day view
      */
     bindMultiDayViewEvents(columnsEl) {
-        // Click on time blocks
+        // Click and drag on time blocks
         columnsEl.querySelectorAll('.time-block, .all-day-event').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -822,6 +836,18 @@ const calendar = {
                 if (task && typeof taskModal !== 'undefined') {
                     taskModal.openTask(task);
                 }
+            });
+
+            // Drag to reschedule
+            el.addEventListener('dragstart', (e) => {
+                e.stopPropagation();
+                el.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', el.dataset.id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            el.addEventListener('dragend', () => {
+                el.classList.remove('dragging');
             });
         });
 
@@ -1046,6 +1072,7 @@ const calendar = {
                     const el = document.createElement('div');
                     el.className = `all-day-event${task.important ? ' important' : ''}`;
                     el.dataset.id = task.id;
+                    el.draggable = true;
                     el.textContent = task.title;
                     allDayEventsEl.appendChild(el);
                 }
@@ -1087,6 +1114,7 @@ const calendar = {
         const block = document.createElement('div');
         block.className = `time-block${task.important ? ' important' : ''}`;
         block.dataset.id = task.id;
+        block.draggable = true;
         block.style.top = `${topOffset}px`;
         block.style.height = `${height}px`;
 
@@ -1103,7 +1131,7 @@ const calendar = {
      * Bind events to day view
      */
     bindDayViewEvents(hourGridEl, allDayEventsEl) {
-        // Click on time blocks
+        // Click and drag on time blocks
         hourGridEl.querySelectorAll('.time-block').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1112,6 +1140,18 @@ const calendar = {
                 if (task && typeof taskModal !== 'undefined') {
                     taskModal.openTask(task);
                 }
+            });
+
+            // Drag to reschedule
+            el.addEventListener('dragstart', (e) => {
+                e.stopPropagation();
+                el.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', el.dataset.id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            el.addEventListener('dragend', () => {
+                el.classList.remove('dragging');
             });
         });
 
@@ -1124,6 +1164,18 @@ const calendar = {
                     if (task && typeof taskModal !== 'undefined') {
                         taskModal.openTask(task);
                     }
+                });
+
+                // Drag to reschedule
+                el.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    el.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', el.dataset.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('dragging');
                 });
             });
 
