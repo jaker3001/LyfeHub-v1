@@ -373,6 +373,44 @@ if (!peopleTable) {
   console.log('People table created');
 }
 
+// ============================================
+// PEOPLE GROUPS TABLE (Organize people into collapsible groups)
+// ============================================
+const peopleGroupsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='people_groups'").get();
+if (!peopleGroupsTable) {
+  console.log('Creating people_groups table...');
+  db.exec(`
+    CREATE TABLE people_groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      icon TEXT DEFAULT '👥',
+      user_id TEXT REFERENCES users(id),
+      position INTEGER DEFAULT 0,
+      collapsed INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_people_groups_user_id ON people_groups(user_id)`);
+  console.log('People groups table created');
+}
+
+// Add group_id column to people if it doesn't exist
+try {
+  db.exec(`ALTER TABLE people ADD COLUMN group_id TEXT REFERENCES people_groups(id)`);
+  console.log('Added group_id column to people');
+} catch (e) {
+  // Column already exists, ignore
+}
+
+// Add position column to people if it doesn't exist (for ordering within groups)
+try {
+  db.exec(`ALTER TABLE people ADD COLUMN position INTEGER DEFAULT 0`);
+  console.log('Added position column to people');
+} catch (e) {
+  // Column already exists, ignore
+}
+
 console.log('Database initialized at', dbPath);
 
 module.exports = db;

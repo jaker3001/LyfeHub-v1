@@ -12,7 +12,7 @@ function getAllPeople(userId) {
   const stmt = db.prepare(`
     SELECT * FROM people
     WHERE user_id = ?
-    ORDER BY name ASC
+    ORDER BY position ASC, name ASC
   `);
   return stmt.all(userId);
 }

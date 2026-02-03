@@ -14,6 +14,7 @@
             <button class="tab active" data-tab="projects">Projects</button>
             <button class="tab" data-tab="tasks">Tasks</button>
             <button class="tab" data-tab="bases">Bases</button>
+            <button class="tab" data-tab="people">People</button>
             <button class="tab" data-tab="calendar">Calendar</button>
         </nav>
         <div class="header-right">
@@ -395,6 +396,78 @@
         </div>
             </div><!-- /.bases-main-content -->
         </div><!-- /.bases-layout -->
+    </main>
+
+    <!-- People Tab Content -->
+    <main class="tab-content" data-tab="people">
+        <div id="people-layout" class="people-layout">
+            <!-- Sidebar -->
+            <aside id="people-sidebar" class="people-sidebar">
+                <button id="sidebar-new-person-btn" class="sidebar-new-person-btn">+ Add Person</button>
+                <div class="sidebar-header">
+                    <button id="people-add-group-btn" class="btn btn-primary sidebar-add-group-btn">+ New Group</button>
+                    <button id="people-toggle-all-groups-btn" class="sidebar-btn toggle-groups-btn" title="Expand/Collapse All">
+                        <svg class="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 4 18 9"/>
+                            <polyline points="6 15 12 20 18 15"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="people-sidebar-content" class="sidebar-content">
+                    <!-- Groups and people populated by JS -->
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="people-main-content">
+                <!-- List View (shows all people) -->
+                <div id="people-list-view" class="people-list-view">
+                    <div class="people-view-controls">
+                        <div class="people-display-toggle">
+                            <button class="people-display-btn active" data-display="cards">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                                </svg>
+                                Cards
+                            </button>
+                            <button class="people-display-btn" data-display="list">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+                                    <line x1="3" y1="18" x2="21" y2="18"/>
+                                </svg>
+                                List
+                            </button>
+                        </div>
+                        <div class="people-card-size-control" id="people-card-size-control">
+                            <span class="people-card-size-label">Size:</span>
+                            <button class="people-card-size-btn" data-size="small" title="Small cards">S</button>
+                            <button class="people-card-size-btn active" data-size="medium" title="Medium cards">M</button>
+                            <button class="people-card-size-btn" data-size="large" title="Large cards">L</button>
+                        </div>
+                    </div>
+                    <div id="people-list" class="people-list people-cards-grid size-medium">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Person Detail View (hidden by default) -->
+                <div id="person-detail-view" class="person-detail-view" style="display: none;">
+                    <div class="person-detail-header">
+                        <button id="back-to-people" class="btn btn-icon" title="Back to people">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="19" y1="12" x2="5" y2="12"/>
+                                <polyline points="12 19 5 12 12 5"/>
+                            </svg>
+                        </button>
+                        <h2 id="person-name-display" class="person-name-display"></h2>
+                    </div>
+                    <div id="person-detail-content" class="person-detail-content">
+                        <!-- Person details rendered by JS -->
+                    </div>
+                </div>
+            </div><!-- /.people-main-content -->
+        </div><!-- /.people-layout -->
     </main>
 
     <!-- Calendar Tab Content -->
@@ -1240,6 +1313,7 @@
     <script src="js/kanban.js"></script>
     <script src="js/tasks.js"></script>
     <script src="js/bases.js"></script>
+    <script src="js/people.js"></script>
     <script src="js/calendar.js"></script>
 </body>
 </html>
