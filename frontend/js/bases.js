@@ -143,6 +143,9 @@ const basesApi = {
   async deleteCoreRecord(baseId, recordId) {
     return api.request(`/bases/core/${baseId}/records/${recordId}`, { method: "DELETE" });
   },
+  async getCoreBaseReadme(baseId) {
+    return api.request(`/bases/core/${baseId}/readme`);
+  },
 };
 
 // ============================================
@@ -2703,11 +2706,14 @@ async function openBase(id) {
     document.getElementById('bases-list-view').style.display = 'none';
     document.getElementById('base-table-view').style.display = 'block';
     document.getElementById('base-name-display').textContent = base.name;
-    
+
+    // Hide README button for regular bases
+    document.getElementById('base-readme-btn').style.display = 'none';
+
     // Update sidebar active state
     renderSidebar();
     attachSidebarListeners();
-    
+
     renderTableView();
   } catch (error) {
     console.error('Failed to open base:', error);
@@ -2747,11 +2753,15 @@ async function openCoreBase(id) {
     document.getElementById("bases-list-view").style.display = "none";
     document.getElementById("base-table-view").style.display = "block";
     document.getElementById("base-name-display").textContent = base.name;
-    
+
+    // Show README button for core bases (if they have readme content)
+    const readmeBtn = document.getElementById('base-readme-btn');
+    readmeBtn.style.display = 'inline-flex';
+
     // Update sidebar active state
     renderSidebar();
     attachSidebarListeners();
-    
+
     renderTableView();
   } catch (error) {
     console.error("Failed to open core base:", error);
@@ -2791,6 +2801,103 @@ function toggleCoreBasesCollapse() {
 
 function isCoreBase(base) {
   return base && base.is_core === true;
+}
+
+/**
+ * Show README modal for core base
+ */
+async function showCoreBaseReadme() {
+  const base = basesState.currentBase;
+  if (!base || !base.is_core) return;
+
+  try {
+    const response = await basesApi.getCoreBaseReadme(base.id);
+    if (!response || !response.readme) {
+      console.error('No readme content found');
+      return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal open';
+    modal.id = 'readme-modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-large readme-modal-content">
+        <button class="modal-close-corner" aria-label="Close">×</button>
+        <div class="readme-modal-header">
+          <span class="readme-modal-icon">${base.icon || '📊'}</span>
+          <h2>${escapeHtml(base.name)} Guide</h2>
+        </div>
+        <div class="readme-modal-body">
+          ${renderMarkdown(response.readme)}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close handlers
+    const closeModal = () => modal.remove();
+    modal.querySelector('.modal-close-corner').addEventListener('click', closeModal);
+    modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+
+    // ESC key to close
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', handleEsc);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+
+  } catch (error) {
+    console.error('Failed to load readme:', error);
+  }
+}
+
+/**
+ * Simple markdown to HTML renderer for README content
+ */
+function renderMarkdown(markdown) {
+  if (!markdown) return '';
+
+  let html = markdown
+    // Escape HTML first
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // Headers
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    // Bold and italic
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    // Lists (unordered)
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    // Wrap consecutive list items in ul
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    // Paragraphs (double newline)
+    .replace(/\n\n/g, '</p><p>')
+    // Single newlines within paragraphs
+    .replace(/\n/g, '<br>');
+
+  // Wrap in paragraph tags
+  html = '<p>' + html + '</p>';
+
+  // Clean up empty paragraphs and fix nesting
+  html = html
+    .replace(/<p><\/p>/g, '')
+    .replace(/<p>(<h[234]>)/g, '$1')
+    .replace(/(<\/h[234]>)<\/p>/g, '$1')
+    .replace(/<p>(<ul>)/g, '$1')
+    .replace(/(<\/ul>)<\/p>/g, '$1')
+    .replace(/<br><\/p>/g, '</p>')
+    .replace(/<p><br>/g, '<p>');
+
+  return html;
 }
 
 // ============================================
@@ -3999,6 +4106,9 @@ function initBases() {
   
   // Back button
   document.getElementById('back-to-bases')?.addEventListener('click', closeBase);
+
+  // README button for core bases
+  document.getElementById('base-readme-btn')?.addEventListener('click', showCoreBaseReadme);
   
   // Add property modal handlers
   document.getElementById('add-property-modal')?.querySelector('.modal-close')?.addEventListener('click', closeAddPropertyModal);

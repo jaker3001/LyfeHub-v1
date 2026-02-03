@@ -267,6 +267,112 @@ if (!taskItemCalendarsTable) {
   console.log('Task item calendars junction table created');
 }
 
+// ============================================
+// PEOPLE TABLE (Core Base)
+// ============================================
+const peopleTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='people'").get();
+if (!peopleTable) {
+  console.log('Creating people table...');
+  db.exec(`
+    CREATE TABLE people (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),
+
+      -- Core Identity
+      name TEXT NOT NULL,
+      nickname TEXT DEFAULT '',
+      photo_url TEXT DEFAULT '',
+      birthday TEXT,
+      gender TEXT DEFAULT '',
+
+      -- Contact Methods
+      email TEXT DEFAULT '',
+      email_secondary TEXT DEFAULT '',
+      phone_mobile TEXT DEFAULT '',
+      phone_work TEXT DEFAULT '',
+      phone_home TEXT DEFAULT '',
+
+      -- Location
+      address TEXT DEFAULT '',
+      city TEXT DEFAULT '',
+      state TEXT DEFAULT '',
+      country TEXT DEFAULT '',
+      timezone TEXT DEFAULT '',
+
+      -- Professional
+      company TEXT DEFAULT '',
+      job_title TEXT DEFAULT '',
+      industry TEXT DEFAULT '',
+
+      -- Social & Online
+      website TEXT DEFAULT '',
+      linkedin TEXT DEFAULT '',
+      twitter TEXT DEFAULT '',
+      instagram TEXT DEFAULT '',
+
+      -- Relationship & Context
+      relationship TEXT DEFAULT '',
+      how_we_met TEXT DEFAULT '',
+      tags TEXT DEFAULT '[]',
+      introduced_by TEXT DEFAULT '',
+
+      -- Notes & Tracking
+      notes TEXT DEFAULT '',
+      last_contacted TEXT,
+      follow_up TEXT,
+      important INTEGER DEFAULT 0,
+
+      -- Personality & Communication
+      mbti_type TEXT DEFAULT '',
+      enneagram TEXT DEFAULT '',
+      love_language TEXT DEFAULT '',
+      communication_style TEXT DEFAULT '',
+      preferred_contact_method TEXT DEFAULT '',
+      best_time_to_reach TEXT DEFAULT '',
+
+      -- Relationship Dynamics
+      relationship_strength TEXT DEFAULT '',
+      energy_impact TEXT DEFAULT '',
+      trust_level TEXT DEFAULT '',
+      reciprocity TEXT DEFAULT '',
+      contact_frequency TEXT DEFAULT '',
+      desired_frequency TEXT DEFAULT '',
+
+      -- Personal Reflection
+      what_i_admire TEXT DEFAULT '',
+      what_i_can_learn TEXT DEFAULT '',
+      how_they_make_me_feel TEXT DEFAULT '',
+      shared_interests TEXT DEFAULT '[]',
+      conversation_topics TEXT DEFAULT '[]',
+      sensitive_topics TEXT DEFAULT '[]',
+
+      -- History & Milestones
+      date_met TEXT,
+      how_relationship_evolved TEXT DEFAULT '',
+      past_conflicts TEXT DEFAULT '',
+
+      -- Gifts & Thoughtfulness
+      gift_ideas TEXT DEFAULT '[]',
+      favorite_things TEXT DEFAULT '',
+      allergies_dislikes TEXT DEFAULT '',
+
+      -- Relationship Goals
+      relationship_goals TEXT DEFAULT '',
+      how_i_can_support TEXT DEFAULT '',
+      how_they_support_me TEXT DEFAULT '',
+
+      -- Timestamps
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_people_user_id ON people(user_id)`);
+  db.exec(`CREATE INDEX idx_people_name ON people(name)`);
+  db.exec(`CREATE INDEX idx_people_relationship ON people(relationship)`);
+  db.exec(`CREATE INDEX idx_people_important ON people(important)`);
+  console.log('People table created');
+}
+
 console.log('Database initialized at', dbPath);
 
 module.exports = db;

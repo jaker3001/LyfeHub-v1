@@ -144,21 +144,38 @@ router.delete('/core/:id/records/:recordId', (req, res) => {
     const baseId = req.params.id;
     const recordId = req.params.recordId;
     const coreDef = coreBasesDb.getCoreBase(baseId);
-    
+
     if (!coreDef) {
       return res.status(404).json({ error: 'Core base not found' });
     }
-    
+
     const success = coreBasesDb.deleteCoreBaseRecord(baseId, recordId, req.user.id);
-    
+
     if (!success) {
       return res.status(404).json({ error: 'Record not found' });
     }
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting core base record:', error);
     res.status(500).json({ error: 'Failed to delete record' });
+  }
+});
+
+// GET /api/bases/core/:id/readme - Get README/help content for core base
+router.get('/core/:id/readme', (req, res) => {
+  try {
+    const baseId = req.params.id;
+    const readme = coreBasesDb.getCoreBaseReadme(baseId);
+
+    if (!readme) {
+      return res.status(404).json({ error: 'README not found for this core base' });
+    }
+
+    res.json({ readme });
+  } catch (error) {
+    console.error('Error fetching core base readme:', error);
+    res.status(500).json({ error: 'Failed to fetch readme' });
   }
 });
 

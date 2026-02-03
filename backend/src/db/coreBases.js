@@ -4,9 +4,300 @@
 
 const db = require('./schema');
 const taskItemsDb = require('./taskItems');
+const peopleDb = require('./people');
 
 // Core base definitions - these are defined in code, not in the database
 const CORE_BASES = {
+  'core-people': {
+    id: 'core-people',
+    name: 'People',
+    description: 'Contacts and relationships - personal, professional, and notable people',
+    icon: '👥',
+    is_core: true,
+    table_name: 'people',
+    readme: `# People Base Guide
+
+## Overview
+The People base is your comprehensive relationship management system. Track everyone from close friends and family to professional contacts and notable figures. It's designed to help you be more intentional about your relationships by capturing not just contact info, but the deeper context of how you relate to each person.
+
+## Property Categories
+
+### Core Identity
+- **Name**: Full name of the contact
+- **Nickname**: What you call them or how they prefer to be called
+- **Photo URL**: Link to their photo
+- **Birthday**: Their birth date (great for reminders)
+- **Gender**: Their gender identity
+
+### Contact Methods
+- **Email**: Primary email address
+- **Email (Secondary)**: Work or alternate email
+- **Phone (Mobile/Work/Home)**: Various phone numbers
+
+### Location
+- **Address**: Street address
+- **City/State/Country**: Geographic location
+- **Timezone**: Their timezone (helpful for scheduling calls)
+
+### Professional
+- **Company**: Where they work
+- **Job Title**: Their role
+- **Industry**: The field they work in
+
+### Social & Online
+- **Website**: Personal or professional site
+- **LinkedIn/Twitter/Instagram**: Social profiles
+
+### Relationship & Context
+- **Relationship**: How they relate to you (Family, Friend, Colleague, etc.)
+- **How We Met**: The story of your first meeting
+- **Tags**: Custom labels for organizing contacts
+- **Introduced By**: Who connected you
+
+### Notes & Tracking
+- **Notes**: Free-form notes about this person
+- **Last Contacted**: When you last reached out
+- **Follow Up**: Next follow-up date
+- **Important**: Flag for key contacts
+
+### Personality & Communication
+- **MBTI Type**: Their Myers-Briggs personality type
+- **Enneagram**: Their Enneagram type
+- **Love Language**: How they prefer to give/receive appreciation
+- **Communication Style**: Direct, Diplomatic, Analytical, or Expressive
+- **Preferred Contact Method**: How they like to be reached
+- **Best Time to Reach**: When they're most available
+
+### Relationship Dynamics
+- **Relationship Strength**: How strong your connection is
+- **Energy Impact**: How interactions affect your energy
+- **Trust Level**: Your level of trust with them
+- **Reciprocity**: Balance of give and take
+- **Contact Frequency**: How often you currently connect
+- **Desired Frequency**: How often you'd like to connect
+
+### Personal Reflection
+- **What I Admire**: Qualities you appreciate about them
+- **What I Can Learn**: Skills or traits to learn from them
+- **How They Make Me Feel**: Emotional impact of the relationship
+- **Shared Interests**: Common hobbies or topics
+- **Conversation Topics**: Good things to discuss
+- **Sensitive Topics**: Areas to avoid
+
+### History & Milestones
+- **Date Met**: When you first met
+- **How Relationship Evolved**: Journey of your connection
+- **Past Conflicts**: Issues you've worked through
+
+### Gifts & Thoughtfulness
+- **Gift Ideas**: Present ideas for them
+- **Favorite Things**: What they love
+- **Allergies/Dislikes**: What to avoid
+
+### Relationship Goals
+- **Relationship Goals**: Where you want the relationship to go
+- **How I Can Support**: Ways you can help them
+- **How They Support Me**: What they bring to your life
+
+## Use Cases
+
+### Personal Contacts
+Track family traditions, remember important dates, note conversation topics for your next call. Use the energy impact and relationship strength fields to be intentional about nurturing key relationships.
+
+### Professional Contacts
+Keep track of LinkedIn connections, note how you met at conferences, track follow-up dates. The industry and company fields help you remember context for networking.
+
+### Celebrities/Public Figures
+Track notable people you admire - authors, thought leaders, etc. Note what you can learn from them and their public work.
+
+## Tips & Best Practices
+- Set the "Important" flag for your inner circle
+- Use Tags to create custom groupings (e.g., "Book Club", "College Friends")
+- Review "Last Contacted" regularly to stay in touch with people who matter
+- The "What I Can Learn" field is great for mentors and role models
+- Use "Sensitive Topics" to avoid awkward conversations`,
+    properties: [
+      // Core Identity
+      { id: 'name', name: 'Name', type: 'text', position: 0, width: 200 },
+      { id: 'nickname', name: 'Nickname', type: 'text', position: 1, width: 120 },
+      { id: 'photo_url', name: 'Photo', type: 'url', position: 2, width: 100 },
+      { id: 'birthday', name: 'Birthday', type: 'date', position: 3, width: 120 },
+      { id: 'gender', name: 'Gender', type: 'select', position: 4, width: 120, options: [
+        { value: 'male', label: 'Male' },
+        { value: 'female', label: 'Female' },
+        { value: 'non-binary', label: 'Non-binary' },
+        { value: 'other', label: 'Other' },
+        { value: 'prefer-not-to-say', label: 'Prefer not to say' }
+      ]},
+      // Contact Methods
+      { id: 'email', name: 'Email', type: 'text', position: 5, width: 200 },
+      { id: 'email_secondary', name: 'Email (Secondary)', type: 'text', position: 6, width: 200 },
+      { id: 'phone_mobile', name: 'Phone (Mobile)', type: 'text', position: 7, width: 140 },
+      { id: 'phone_work', name: 'Phone (Work)', type: 'text', position: 8, width: 140 },
+      { id: 'phone_home', name: 'Phone (Home)', type: 'text', position: 9, width: 140 },
+      // Location
+      { id: 'address', name: 'Address', type: 'text', position: 10, width: 250 },
+      { id: 'city', name: 'City', type: 'text', position: 11, width: 120 },
+      { id: 'state', name: 'State', type: 'text', position: 12, width: 100 },
+      { id: 'country', name: 'Country', type: 'text', position: 13, width: 120 },
+      { id: 'timezone', name: 'Timezone', type: 'select', position: 14, width: 180, options: [
+        { value: 'America/New_York', label: 'Eastern (US)' },
+        { value: 'America/Chicago', label: 'Central (US)' },
+        { value: 'America/Denver', label: 'Mountain (US)' },
+        { value: 'America/Los_Angeles', label: 'Pacific (US)' },
+        { value: 'America/Anchorage', label: 'Alaska' },
+        { value: 'Pacific/Honolulu', label: 'Hawaii' },
+        { value: 'Europe/London', label: 'London (GMT)' },
+        { value: 'Europe/Paris', label: 'Paris (CET)' },
+        { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+        { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+        { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+        { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+        { value: 'Asia/Mumbai', label: 'Mumbai (IST)' },
+        { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+        { value: 'Pacific/Auckland', label: 'Auckland (NZST)' }
+      ]},
+      // Professional
+      { id: 'company', name: 'Company', type: 'text', position: 15, width: 180 },
+      { id: 'job_title', name: 'Job Title', type: 'text', position: 16, width: 180 },
+      { id: 'industry', name: 'Industry', type: 'text', position: 17, width: 150 },
+      // Social & Online
+      { id: 'website', name: 'Website', type: 'url', position: 18, width: 200 },
+      { id: 'linkedin', name: 'LinkedIn', type: 'url', position: 19, width: 200 },
+      { id: 'twitter', name: 'Twitter', type: 'url', position: 20, width: 200 },
+      { id: 'instagram', name: 'Instagram', type: 'url', position: 21, width: 200 },
+      // Relationship & Context
+      { id: 'relationship', name: 'Relationship', type: 'select', position: 22, width: 140, options: [
+        { value: 'family', label: 'Family' },
+        { value: 'friend', label: 'Friend' },
+        { value: 'colleague', label: 'Colleague' },
+        { value: 'client', label: 'Client' },
+        { value: 'vendor', label: 'Vendor' },
+        { value: 'acquaintance', label: 'Acquaintance' },
+        { value: 'celebrity', label: 'Celebrity' },
+        { value: 'other', label: 'Other' }
+      ]},
+      { id: 'how_we_met', name: 'How We Met', type: 'text', position: 23, width: 250 },
+      { id: 'tags', name: 'Tags', type: 'multi_select', position: 24, width: 200, options: [] },
+      { id: 'introduced_by', name: 'Introduced By', type: 'text', position: 25, width: 150 },
+      // Notes & Tracking
+      { id: 'notes', name: 'Notes', type: 'text', position: 26, width: 300 },
+      { id: 'last_contacted', name: 'Last Contacted', type: 'date', position: 27, width: 140 },
+      { id: 'follow_up', name: 'Follow Up', type: 'date', position: 28, width: 120 },
+      { id: 'important', name: 'Important', type: 'checkbox', position: 29, width: 100 },
+      // Personality & Communication
+      { id: 'mbti_type', name: 'MBTI Type', type: 'select', position: 30, width: 120, options: [
+        { value: 'INTJ', label: 'INTJ' }, { value: 'INTP', label: 'INTP' },
+        { value: 'ENTJ', label: 'ENTJ' }, { value: 'ENTP', label: 'ENTP' },
+        { value: 'INFJ', label: 'INFJ' }, { value: 'INFP', label: 'INFP' },
+        { value: 'ENFJ', label: 'ENFJ' }, { value: 'ENFP', label: 'ENFP' },
+        { value: 'ISTJ', label: 'ISTJ' }, { value: 'ISFJ', label: 'ISFJ' },
+        { value: 'ESTJ', label: 'ESTJ' }, { value: 'ESFJ', label: 'ESFJ' },
+        { value: 'ISTP', label: 'ISTP' }, { value: 'ISFP', label: 'ISFP' },
+        { value: 'ESTP', label: 'ESTP' }, { value: 'ESFP', label: 'ESFP' }
+      ]},
+      { id: 'enneagram', name: 'Enneagram', type: 'select', position: 31, width: 140, options: [
+        { value: '1', label: 'Type 1 - Reformer' },
+        { value: '1w9', label: '1w9' }, { value: '1w2', label: '1w2' },
+        { value: '2', label: 'Type 2 - Helper' },
+        { value: '2w1', label: '2w1' }, { value: '2w3', label: '2w3' },
+        { value: '3', label: 'Type 3 - Achiever' },
+        { value: '3w2', label: '3w2' }, { value: '3w4', label: '3w4' },
+        { value: '4', label: 'Type 4 - Individualist' },
+        { value: '4w3', label: '4w3' }, { value: '4w5', label: '4w5' },
+        { value: '5', label: 'Type 5 - Investigator' },
+        { value: '5w4', label: '5w4' }, { value: '5w6', label: '5w6' },
+        { value: '6', label: 'Type 6 - Loyalist' },
+        { value: '6w5', label: '6w5' }, { value: '6w7', label: '6w7' },
+        { value: '7', label: 'Type 7 - Enthusiast' },
+        { value: '7w6', label: '7w6' }, { value: '7w8', label: '7w8' },
+        { value: '8', label: 'Type 8 - Challenger' },
+        { value: '8w7', label: '8w7' }, { value: '8w9', label: '8w9' },
+        { value: '9', label: 'Type 9 - Peacemaker' },
+        { value: '9w8', label: '9w8' }, { value: '9w1', label: '9w1' }
+      ]},
+      { id: 'love_language', name: 'Love Language', type: 'select', position: 32, width: 180, options: [
+        { value: 'words_of_affirmation', label: 'Words of Affirmation' },
+        { value: 'acts_of_service', label: 'Acts of Service' },
+        { value: 'receiving_gifts', label: 'Receiving Gifts' },
+        { value: 'quality_time', label: 'Quality Time' },
+        { value: 'physical_touch', label: 'Physical Touch' }
+      ]},
+      { id: 'communication_style', name: 'Communication Style', type: 'select', position: 33, width: 160, options: [
+        { value: 'direct', label: 'Direct' },
+        { value: 'diplomatic', label: 'Diplomatic' },
+        { value: 'analytical', label: 'Analytical' },
+        { value: 'expressive', label: 'Expressive' }
+      ]},
+      { id: 'preferred_contact_method', name: 'Preferred Contact', type: 'select', position: 34, width: 160, options: [
+        { value: 'call', label: 'Call' },
+        { value: 'text', label: 'Text' },
+        { value: 'email', label: 'Email' },
+        { value: 'in_person', label: 'In-person' },
+        { value: 'video_chat', label: 'Video Chat' }
+      ]},
+      { id: 'best_time_to_reach', name: 'Best Time to Reach', type: 'text', position: 35, width: 150 },
+      // Relationship Dynamics
+      { id: 'relationship_strength', name: 'Relationship Strength', type: 'select', position: 36, width: 160, options: [
+        { value: 'strong', label: 'Strong' },
+        { value: 'good', label: 'Good' },
+        { value: 'neutral', label: 'Neutral' },
+        { value: 'distant', label: 'Distant' },
+        { value: 'strained', label: 'Strained' }
+      ]},
+      { id: 'energy_impact', name: 'Energy Impact', type: 'select', position: 37, width: 140, options: [
+        { value: 'energizing', label: 'Energizing' },
+        { value: 'neutral', label: 'Neutral' },
+        { value: 'draining', label: 'Draining' }
+      ]},
+      { id: 'trust_level', name: 'Trust Level', type: 'select', position: 38, width: 120, options: [
+        { value: 'high', label: 'High' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'low', label: 'Low' },
+        { value: 'building', label: 'Building' }
+      ]},
+      { id: 'reciprocity', name: 'Reciprocity', type: 'select', position: 39, width: 150, options: [
+        { value: 'balanced', label: 'Balanced' },
+        { value: 'i_give_more', label: 'I Give More' },
+        { value: 'they_give_more', label: 'They Give More' }
+      ]},
+      { id: 'contact_frequency', name: 'Contact Frequency', type: 'select', position: 40, width: 150, options: [
+        { value: 'daily', label: 'Daily' },
+        { value: 'weekly', label: 'Weekly' },
+        { value: 'monthly', label: 'Monthly' },
+        { value: 'quarterly', label: 'Quarterly' },
+        { value: 'yearly', label: 'Yearly' },
+        { value: 'rarely', label: 'Rarely' }
+      ]},
+      { id: 'desired_frequency', name: 'Desired Frequency', type: 'select', position: 41, width: 150, options: [
+        { value: 'daily', label: 'Daily' },
+        { value: 'weekly', label: 'Weekly' },
+        { value: 'monthly', label: 'Monthly' },
+        { value: 'quarterly', label: 'Quarterly' },
+        { value: 'yearly', label: 'Yearly' },
+        { value: 'rarely', label: 'Rarely' }
+      ]},
+      // Personal Reflection
+      { id: 'what_i_admire', name: 'What I Admire', type: 'text', position: 42, width: 250 },
+      { id: 'what_i_can_learn', name: 'What I Can Learn', type: 'text', position: 43, width: 250 },
+      { id: 'how_they_make_me_feel', name: 'How They Make Me Feel', type: 'text', position: 44, width: 200 },
+      { id: 'shared_interests', name: 'Shared Interests', type: 'multi_select', position: 45, width: 200, options: [] },
+      { id: 'conversation_topics', name: 'Conversation Topics', type: 'multi_select', position: 46, width: 200, options: [] },
+      { id: 'sensitive_topics', name: 'Sensitive Topics', type: 'multi_select', position: 47, width: 200, options: [] },
+      // History & Milestones
+      { id: 'date_met', name: 'Date Met', type: 'date', position: 48, width: 120 },
+      { id: 'how_relationship_evolved', name: 'How Relationship Evolved', type: 'text', position: 49, width: 300 },
+      { id: 'past_conflicts', name: 'Past Conflicts', type: 'text', position: 50, width: 250 },
+      // Gifts & Thoughtfulness
+      { id: 'gift_ideas', name: 'Gift Ideas', type: 'multi_select', position: 51, width: 200, options: [] },
+      { id: 'favorite_things', name: 'Favorite Things', type: 'text', position: 52, width: 200 },
+      { id: 'allergies_dislikes', name: 'Allergies/Dislikes', type: 'text', position: 53, width: 200 },
+      // Relationship Goals
+      { id: 'relationship_goals', name: 'Relationship Goals', type: 'text', position: 54, width: 250 },
+      { id: 'how_i_can_support', name: 'How I Can Support', type: 'text', position: 55, width: 250 },
+      { id: 'how_they_support_me', name: 'How They Support Me', type: 'text', position: 56, width: 250 }
+    ]
+  },
   'core-tasks': {
     id: 'core-tasks',
     name: 'Tasks',
@@ -62,6 +353,9 @@ function getRecordCount(baseId, userId) {
     const result = stmt.get(userId);
     return result ? result.count : 0;
   }
+  if (baseId === 'core-people') {
+    return peopleDb.getPeopleCount(userId);
+  }
   return 0;
 }
 
@@ -73,12 +367,12 @@ function getCoreBaseRecords(baseId, userId) {
     const stmt = db.prepare(`
       SELECT id, title, description, due_date, due_time, recurring, recurring_days,
              important, completed, completed_at, subtasks, user_id, created_at, updated_at
-      FROM task_items 
-      WHERE user_id = ? 
+      FROM task_items
+      WHERE user_id = ?
       ORDER BY created_at DESC
     `);
     const rows = stmt.all(userId);
-    
+
     // Convert to base record format
     return rows.map((row, index) => ({
       id: row.id,
@@ -98,7 +392,93 @@ function getCoreBaseRecords(baseId, userId) {
       }
     }));
   }
+
+  if (baseId === 'core-people') {
+    const rows = peopleDb.getAllPeople(userId);
+
+    // Convert to base record format
+    return rows.map((row, index) => ({
+      id: row.id,
+      base_id: baseId,
+      global_id: index + 1,
+      position: index,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      values: {
+        name: row.name || '',
+        nickname: row.nickname || '',
+        photo_url: row.photo_url || '',
+        birthday: row.birthday || '',
+        gender: row.gender || '',
+        email: row.email || '',
+        email_secondary: row.email_secondary || '',
+        phone_mobile: row.phone_mobile || '',
+        phone_work: row.phone_work || '',
+        phone_home: row.phone_home || '',
+        address: row.address || '',
+        city: row.city || '',
+        state: row.state || '',
+        country: row.country || '',
+        timezone: row.timezone || '',
+        company: row.company || '',
+        job_title: row.job_title || '',
+        industry: row.industry || '',
+        website: row.website || '',
+        linkedin: row.linkedin || '',
+        twitter: row.twitter || '',
+        instagram: row.instagram || '',
+        relationship: row.relationship || '',
+        how_we_met: row.how_we_met || '',
+        tags: safeJsonParse(row.tags, []),
+        introduced_by: row.introduced_by || '',
+        notes: row.notes || '',
+        last_contacted: row.last_contacted || '',
+        follow_up: row.follow_up || '',
+        important: !!row.important,
+        mbti_type: row.mbti_type || '',
+        enneagram: row.enneagram || '',
+        love_language: row.love_language || '',
+        communication_style: row.communication_style || '',
+        preferred_contact_method: row.preferred_contact_method || '',
+        best_time_to_reach: row.best_time_to_reach || '',
+        relationship_strength: row.relationship_strength || '',
+        energy_impact: row.energy_impact || '',
+        trust_level: row.trust_level || '',
+        reciprocity: row.reciprocity || '',
+        contact_frequency: row.contact_frequency || '',
+        desired_frequency: row.desired_frequency || '',
+        what_i_admire: row.what_i_admire || '',
+        what_i_can_learn: row.what_i_can_learn || '',
+        how_they_make_me_feel: row.how_they_make_me_feel || '',
+        shared_interests: safeJsonParse(row.shared_interests, []),
+        conversation_topics: safeJsonParse(row.conversation_topics, []),
+        sensitive_topics: safeJsonParse(row.sensitive_topics, []),
+        date_met: row.date_met || '',
+        how_relationship_evolved: row.how_relationship_evolved || '',
+        past_conflicts: row.past_conflicts || '',
+        gift_ideas: safeJsonParse(row.gift_ideas, []),
+        favorite_things: row.favorite_things || '',
+        allergies_dislikes: row.allergies_dislikes || '',
+        relationship_goals: row.relationship_goals || '',
+        how_i_can_support: row.how_i_can_support || '',
+        how_they_support_me: row.how_they_support_me || ''
+      }
+    }));
+  }
+
   return [];
+}
+
+/**
+ * Safely parse JSON, return default on error
+ */
+function safeJsonParse(str, defaultVal) {
+  if (!str) return defaultVal;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return defaultVal;
+  }
 }
 
 /**
@@ -114,7 +494,7 @@ function createCoreBaseRecord(baseId, values, userId) {
       recurring: values.recurring || null,
       important: values.important || false
     }, userId);
-    
+
     return {
       id: task.id,
       base_id: baseId,
@@ -133,7 +513,145 @@ function createCoreBaseRecord(baseId, values, userId) {
       }
     };
   }
+
+  if (baseId === 'core-people') {
+    const person = peopleDb.createPerson({
+      name: values.name || 'Unnamed Person',
+      nickname: values.nickname || '',
+      photo_url: values.photo_url || '',
+      birthday: values.birthday || null,
+      gender: values.gender || '',
+      email: values.email || '',
+      email_secondary: values.email_secondary || '',
+      phone_mobile: values.phone_mobile || '',
+      phone_work: values.phone_work || '',
+      phone_home: values.phone_home || '',
+      address: values.address || '',
+      city: values.city || '',
+      state: values.state || '',
+      country: values.country || '',
+      timezone: values.timezone || '',
+      company: values.company || '',
+      job_title: values.job_title || '',
+      industry: values.industry || '',
+      website: values.website || '',
+      linkedin: values.linkedin || '',
+      twitter: values.twitter || '',
+      instagram: values.instagram || '',
+      relationship: values.relationship || '',
+      how_we_met: values.how_we_met || '',
+      tags: values.tags || [],
+      introduced_by: values.introduced_by || '',
+      notes: values.notes || '',
+      last_contacted: values.last_contacted || null,
+      follow_up: values.follow_up || null,
+      important: values.important || false,
+      mbti_type: values.mbti_type || '',
+      enneagram: values.enneagram || '',
+      love_language: values.love_language || '',
+      communication_style: values.communication_style || '',
+      preferred_contact_method: values.preferred_contact_method || '',
+      best_time_to_reach: values.best_time_to_reach || '',
+      relationship_strength: values.relationship_strength || '',
+      energy_impact: values.energy_impact || '',
+      trust_level: values.trust_level || '',
+      reciprocity: values.reciprocity || '',
+      contact_frequency: values.contact_frequency || '',
+      desired_frequency: values.desired_frequency || '',
+      what_i_admire: values.what_i_admire || '',
+      what_i_can_learn: values.what_i_can_learn || '',
+      how_they_make_me_feel: values.how_they_make_me_feel || '',
+      shared_interests: values.shared_interests || [],
+      conversation_topics: values.conversation_topics || [],
+      sensitive_topics: values.sensitive_topics || [],
+      date_met: values.date_met || null,
+      how_relationship_evolved: values.how_relationship_evolved || '',
+      past_conflicts: values.past_conflicts || '',
+      gift_ideas: values.gift_ideas || [],
+      favorite_things: values.favorite_things || '',
+      allergies_dislikes: values.allergies_dislikes || '',
+      relationship_goals: values.relationship_goals || '',
+      how_i_can_support: values.how_i_can_support || '',
+      how_they_support_me: values.how_they_support_me || ''
+    }, userId);
+
+    return {
+      id: person.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: person.created_at,
+      updated_at: person.updated_at,
+      values: mapPersonToValues(person)
+    };
+  }
+
   return null;
+}
+
+/**
+ * Map person database row to values object
+ */
+function mapPersonToValues(person) {
+  return {
+    name: person.name || '',
+    nickname: person.nickname || '',
+    photo_url: person.photo_url || '',
+    birthday: person.birthday || '',
+    gender: person.gender || '',
+    email: person.email || '',
+    email_secondary: person.email_secondary || '',
+    phone_mobile: person.phone_mobile || '',
+    phone_work: person.phone_work || '',
+    phone_home: person.phone_home || '',
+    address: person.address || '',
+    city: person.city || '',
+    state: person.state || '',
+    country: person.country || '',
+    timezone: person.timezone || '',
+    company: person.company || '',
+    job_title: person.job_title || '',
+    industry: person.industry || '',
+    website: person.website || '',
+    linkedin: person.linkedin || '',
+    twitter: person.twitter || '',
+    instagram: person.instagram || '',
+    relationship: person.relationship || '',
+    how_we_met: person.how_we_met || '',
+    tags: safeJsonParse(person.tags, []),
+    introduced_by: person.introduced_by || '',
+    notes: person.notes || '',
+    last_contacted: person.last_contacted || '',
+    follow_up: person.follow_up || '',
+    important: !!person.important,
+    mbti_type: person.mbti_type || '',
+    enneagram: person.enneagram || '',
+    love_language: person.love_language || '',
+    communication_style: person.communication_style || '',
+    preferred_contact_method: person.preferred_contact_method || '',
+    best_time_to_reach: person.best_time_to_reach || '',
+    relationship_strength: person.relationship_strength || '',
+    energy_impact: person.energy_impact || '',
+    trust_level: person.trust_level || '',
+    reciprocity: person.reciprocity || '',
+    contact_frequency: person.contact_frequency || '',
+    desired_frequency: person.desired_frequency || '',
+    what_i_admire: person.what_i_admire || '',
+    what_i_can_learn: person.what_i_can_learn || '',
+    how_they_make_me_feel: person.how_they_make_me_feel || '',
+    shared_interests: safeJsonParse(person.shared_interests, []),
+    conversation_topics: safeJsonParse(person.conversation_topics, []),
+    sensitive_topics: safeJsonParse(person.sensitive_topics, []),
+    date_met: person.date_met || '',
+    how_relationship_evolved: person.how_relationship_evolved || '',
+    past_conflicts: person.past_conflicts || '',
+    gift_ideas: safeJsonParse(person.gift_ideas, []),
+    favorite_things: person.favorite_things || '',
+    allergies_dislikes: person.allergies_dislikes || '',
+    relationship_goals: person.relationship_goals || '',
+    how_i_can_support: person.how_i_can_support || '',
+    how_they_support_me: person.how_they_support_me || ''
+  };
 }
 
 /**
@@ -150,9 +668,9 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
       important: values.important,
       completed: values.completed
     }, userId);
-    
+
     if (!task) return null;
-    
+
     return {
       id: task.id,
       base_id: baseId,
@@ -171,6 +689,23 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
       }
     };
   }
+
+  if (baseId === 'core-people') {
+    const person = peopleDb.updatePerson(recordId, values, userId);
+
+    if (!person) return null;
+
+    return {
+      id: person.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: person.created_at,
+      updated_at: person.updated_at,
+      values: mapPersonToValues(person)
+    };
+  }
+
   return null;
 }
 
@@ -181,7 +716,18 @@ function deleteCoreBaseRecord(baseId, recordId, userId) {
   if (baseId === 'core-tasks') {
     return taskItemsDb.deleteTaskItem(recordId, userId);
   }
+  if (baseId === 'core-people') {
+    return peopleDb.deletePerson(recordId, userId);
+  }
   return false;
+}
+
+/**
+ * Get README content for a core base
+ */
+function getCoreBaseReadme(baseId) {
+  const base = CORE_BASES[baseId];
+  return base?.readme || null;
 }
 
 /**
@@ -199,5 +745,6 @@ module.exports = {
   createCoreBaseRecord,
   updateCoreBaseRecord,
   deleteCoreBaseRecord,
+  getCoreBaseReadme,
   isCoreBase
 };
