@@ -270,14 +270,15 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/bases/:id - Delete base (cascades to properties and records)
+// Also cleans up orphaned relation properties in other bases
 router.delete('/:id', (req, res) => {
   try {
     const existing = basesDb.getBaseById(req.params.id, req.user.id);
     if (!existing) {
       return res.status(404).json({ error: 'Base not found' });
     }
-    
-    basesDb.deleteBase(req.params.id, req.user.id);
+
+    basesDb.deleteBaseWithCleanup(req.params.id, req.user.id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting base:', error);

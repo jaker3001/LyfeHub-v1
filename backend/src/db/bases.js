@@ -627,6 +627,108 @@ function unlinkReverseProperty(propertyId) {
 }
 
 /**
+ * Clean up ALL relation references when a base is being deleted.
+ * Removes record IDs from relation fields in other bases that point to the deleted base.
+ * Must be called BEFORE the base is deleted (while record IDs still exist).
+ * @param {string} deletedBaseId - The base being deleted
+ */
+function cleanupAllRecordReferences(deletedBaseId) {
+  // Get all record IDs from the base being deleted
+  const deletedRecords = getRecordsByBase.all(deletedBaseId);
+  const deletedRecordIds = new Set(deletedRecords.map(r => r.id));
+
+  if (deletedRecordIds.size === 0) return;
+
+  // Find all relation properties in OTHER bases that point to the deleted base
+  const allBases = db.prepare('SELECT id FROM bases WHERE id != ?').all(deletedBaseId);
+
+  for (const base of allBases) {
+    const properties = getPropertiesByBase.all(base.id);
+    const relationProps = properties.filter(p => {
+      if (p.type !== 'relation') return false;
+      const opts = JSON.parse(p.options || '{}');
+      return opts.relatedBaseId === deletedBaseId;
+    });
+
+    if (relationProps.length === 0) continue;
+
+    // Get all records from this base and clean up references
+    const records = getRecordsByBase.all(base.id);
+    for (const record of records) {
+      const data = JSON.parse(record.data || '{}');
+      let modified = false;
+
+      for (const prop of relationProps) {
+        const value = data[prop.id];
+        if (!value) continue;
+
+        const ids = Array.isArray(value) ? value : [value];
+        const filteredIds = ids.filter(id => !deletedRecordIds.has(id));
+
+        if (filteredIds.length !== ids.length) {
+          data[prop.id] = filteredIds.length > 0 ? filteredIds : null;
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        updateRecordData.run(JSON.stringify(data), record.id);
+      }
+    }
+  }
+}
+
+/**
+ * Delete orphaned relation properties when a base is deleted.
+ * Finds and deletes relation properties in other bases that point to the deleted base.
+ * Also unlinks any reverse property pairings before deletion.
+ * @param {string} deletedBaseId - The base being deleted
+ */
+function cleanupOrphanedRelationProperties(deletedBaseId) {
+  // Find all relation properties in OTHER bases that point to the deleted base
+  const allBases = db.prepare('SELECT id FROM bases WHERE id != ?').all(deletedBaseId);
+
+  for (const base of allBases) {
+    const properties = getPropertiesByBase.all(base.id);
+
+    for (const prop of properties) {
+      if (prop.type !== 'relation') continue;
+
+      const opts = JSON.parse(prop.options || '{}');
+      if (opts.relatedBaseId !== deletedBaseId) continue;
+
+      // Unlink any reverse property pairing (the reverse is in the deleted base, but good practice)
+      unlinkReverseProperty(prop.id);
+
+      // Delete the orphaned property
+      deleteProperty.run(prop.id);
+    }
+  }
+}
+
+/**
+ * Delete a base with full cleanup of orphaned relations.
+ * Wraps all operations in a transaction to ensure atomicity.
+ * Order: clean record refs → clean properties → delete base
+ * @param {string} baseId - The base to delete
+ * @param {string} userId - The user who owns the base
+ */
+function deleteBaseWithCleanup(baseId, userId) {
+  const transaction = db.transaction(() => {
+    // 1. Clean up record references FIRST (while records still exist)
+    cleanupAllRecordReferences(baseId);
+
+    // 2. Delete orphaned relation properties in other bases
+    cleanupOrphanedRelationProperties(baseId);
+
+    // 3. Delete the base (CASCADE handles its own records and properties)
+    deleteBase.run(baseId, userId);
+  });
+
+  transaction();
+}
+
+/**
  * Create a paired reverse relation property
  * @param {string} sourcePropertyId - The source relation property
  * @param {string} sourceBaseId - The base containing the source property
@@ -763,5 +865,10 @@ module.exports = {
   syncReverseRelation,
   updateRecordWithSync,
   unlinkReverseProperty,
-  createReverseRelationProperty
+  createReverseRelationProperty,
+
+  // Base deletion cleanup
+  cleanupAllRecordReferences,
+  cleanupOrphanedRelationProperties,
+  deleteBaseWithCleanup
 };
