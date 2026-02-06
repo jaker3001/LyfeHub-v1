@@ -7349,7 +7349,7 @@ body.column-dragging .base-table {
 .job-form-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
     gap: 1.5rem;
     padding: 1.5rem;
     overflow-y: auto;
@@ -7372,6 +7372,9 @@ body.column-dragging .base-table {
 /* Row 3: 2 columns */
 .job-section-assignment { grid-column: 1 / 2; grid-row: 4; }
 .job-section-tracking { grid-column: 2 / -1; grid-row: 4; }
+
+/* Row 5: Contacts */
+.job-section-contacts { grid-column: 1 / -1; grid-row: 5; }
 
 /* Section card styling */
 .job-section {
@@ -7629,7 +7632,7 @@ body.column-dragging .base-table {
     
     .job-form-grid {
         grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: auto auto auto auto auto;
+        grid-template-rows: auto auto auto auto auto auto;
     }
     
     /* Row 0: Job Type (full width) */
@@ -7649,6 +7652,9 @@ body.column-dragging .base-table {
     /* Row 4: 2 columns */
     .job-section-assignment { grid-column: 1; grid-row: 5; }
     .job-section-tracking { grid-column: 2; grid-row: 5; }
+    
+    /* Row 5: Full width */
+    .job-section-contacts { grid-column: 1 / -1; grid-row: 6; }
     
     /* Job number inputs adjust on tablet */
     .job-number-input-group {
@@ -7681,7 +7687,8 @@ body.column-dragging .base-table {
     .job-section-property,
     .job-section-loss,
     .job-section-assignment,
-    .job-section-tracking {
+    .job-section-tracking,
+    .job-section-contacts {
         grid-column: 1;
         grid-row: auto;
     }

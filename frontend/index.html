@@ -1757,21 +1757,39 @@
                             <h3>Assignment</h3>
                         </div>
                         <div class="job-section-content job-fields">
-                            <div class="job-field job-field-full">
-                                <label for="job-employees">Assigned Employees</label>
-                                <input type="text" id="job-employees" name="employees" placeholder="Enter names or select...">
-                            </div>
                             <div class="job-field">
-                                <label for="job-pm">Project Manager</label>
-                                <select id="job-pm" name="project_manager">
-                                    <option value="">Select...</option>
+                                <label for="job-mit-pm">Mitigation PM</label>
+                                <select id="job-mit-pm" name="mitigation_pm" multiple>
                                     <option value="jake">Jake</option>
+                                    <option value="sterling">Sterling</option>
                                 </select>
                             </div>
                             <div class="job-field">
-                                <label for="job-lead">Lead Tech</label>
-                                <select id="job-lead" name="lead_tech">
-                                    <option value="">Select...</option>
+                                <label for="job-recon-pm">Reconstruction PM</label>
+                                <select id="job-recon-pm" name="reconstruction_pm" multiple>
+                                    <option value="jake">Jake</option>
+                                    <option value="sterling">Sterling</option>
+                                </select>
+                            </div>
+                            <div class="job-field">
+                                <label for="job-estimator">Estimator</label>
+                                <select id="job-estimator" name="estimator" multiple>
+                                    <option value="jake">Jake</option>
+                                    <option value="sterling">Sterling</option>
+                                </select>
+                            </div>
+                            <div class="job-field">
+                                <label for="job-proj-coord">Project Coordinator</label>
+                                <select id="job-proj-coord" name="project_coordinator" multiple>
+                                    <option value="jake">Jake</option>
+                                    <option value="sterling">Sterling</option>
+                                </select>
+                            </div>
+                            <div class="job-field job-field-full">
+                                <label for="job-mit-techs">Mitigation Technician(s)</label>
+                                <select id="job-mit-techs" name="mitigation_techs" multiple>
+                                    <option value="jake">Jake</option>
+                                    <option value="sterling">Sterling</option>
                                 </select>
                             </div>
                         </div>
@@ -1809,6 +1827,30 @@
                             <div class="job-field job-field-full">
                                 <label for="job-internal-notes">Internal Notes</label>
                                 <textarea id="job-internal-notes" name="internal_notes" rows="2" placeholder="Private notes for the team..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 4: Assign Contacts (full width) -->
+                    <div class="job-section job-section-contacts">
+                        <div class="job-section-header">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="8.5" cy="7" r="4"/>
+                                <line x1="20" y1="8" x2="20" y2="14"/>
+                                <line x1="23" y1="11" x2="17" y2="11"/>
+                            </svg>
+                            <h3>Assign Contacts</h3>
+                        </div>
+                        <div class="job-section-content job-fields">
+                            <div class="job-field job-field-full">
+                                <label for="job-contact-search">Search Contacts</label>
+                                <input type="text" id="job-contact-search" name="contact_search" placeholder="Search contacts...">
+                            </div>
+                            <div class="job-field job-field-full">
+                                <div class="contacts-list-placeholder" style="padding: 1rem; text-align: center; color: var(--text-muted); font-style: italic;">
+                                    No contacts found
+                                </div>
                             </div>
                         </div>
                     </div>
