@@ -1,0 +1,900 @@
+/* ========================================
+   Apex Jobs - Neon Glassmorphic Styling
+   ======================================== */
+
+/* Sub-tabs navigation */
+.projects-subtabs {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    margin-right: auto;
+}
+
+.subtab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.subtab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.subtab-btn.active {
+    background: linear-gradient(135deg, rgba(191, 90, 242, 0.3), rgba(0, 170, 255, 0.2));
+    color: var(--text-primary);
+    box-shadow: 0 0 15px rgba(191, 90, 242, 0.2);
+}
+
+/* Apex content container */
+.apex-content {
+    display: none;
+}
+
+.apex-content.active {
+    display: block;
+}
+
+.dev-projects-content {
+    display: block;
+}
+
+.dev-projects-content.hidden {
+    display: none;
+}
+
+/* Apex View Controls */
+.apex-view-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(10, 10, 15, 0.5);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.apex-view-toggle {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+}
+
+.apex-view-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.apex-view-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.apex-view-btn.active {
+    background: linear-gradient(135deg, rgba(0, 170, 255, 0.3), rgba(0, 245, 212, 0.2));
+    color: var(--text-primary);
+    box-shadow: 0 0 15px rgba(0, 170, 255, 0.2);
+}
+
+.apex-view-filters {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.apex-sync-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-right: 1rem;
+}
+
+.apex-filter-select {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.apex-filter-select:hover,
+.apex-filter-select:focus {
+    border-color: var(--neon-cyan);
+    outline: none;
+}
+
+.apex-filter-select option {
+    background: #0a0a0f;
+}
+
+/* Apex View Containers */
+.apex-view-container {
+    display: none;
+}
+
+.apex-view-container.active {
+    display: block;
+}
+
+/* ========================================
+   Apex Kanban View - Glowing Borders
+   ======================================== */
+.apex-board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+    overflow-x: auto;
+}
+
+.apex-column {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    transition: var(--transition);
+}
+
+/* Glowing column borders on hover */
+.apex-column:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.apex-column-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 16px 16px 0 0;
+    position: relative;
+}
+
+/* Glowing bottom border for column headers */
+.apex-column-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+}
+
+/* Active column - Green glow */
+.apex-column-header.active {
+    background: rgba(5, 255, 161, 0.1);
+}
+
+.apex-column-header.active h2 {
+    color: var(--neon-green);
+    text-shadow: 0 0 20px var(--neon-green);
+}
+
+.apex-column-header.active::after {
+    background: linear-gradient(90deg, var(--neon-green), transparent);
+    box-shadow: 0 0 10px var(--neon-green);
+}
+
+/* Pending column - Yellow glow */
+.apex-column-header.pending_insurance {
+    background: rgba(255, 230, 109, 0.1);
+}
+
+.apex-column-header.pending_insurance h2 {
+    color: var(--neon-yellow);
+    text-shadow: 0 0 20px var(--neon-yellow);
+}
+
+.apex-column-header.pending_insurance::after {
+    background: linear-gradient(90deg, var(--neon-yellow), transparent);
+    box-shadow: 0 0 10px var(--neon-yellow);
+}
+
+/* Complete column - Blue glow */
+.apex-column-header.complete {
+    background: rgba(0, 170, 255, 0.1);
+}
+
+.apex-column-header.complete h2 {
+    color: var(--neon-blue);
+    text-shadow: 0 0 20px var(--neon-blue);
+}
+
+.apex-column-header.complete::after {
+    background: linear-gradient(90deg, var(--neon-blue), transparent);
+    box-shadow: 0 0 10px var(--neon-blue);
+}
+
+.apex-column-header h2 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.apex-task-count {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.apex-column-tasks {
+    flex: 1;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 300px);
+}
+
+/* Apex Job Cards (Kanban) */
+.apex-job-card {
+    background: rgba(20, 20, 35, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.apex-job-card:hover {
+    background: rgba(30, 30, 50, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.apex-job-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.apex-job-title {
+    font-weight: 500;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.apex-job-client {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.apex-job-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+}
+
+.apex-job-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.apex-owner {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Loss Type Badges with Glow */
+.apex-loss-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.apex-loss-badge.loss-water {
+    background: rgba(0, 170, 255, 0.2);
+    color: var(--neon-blue);
+    border: 1px solid rgba(0, 170, 255, 0.3);
+    box-shadow: 0 0 8px rgba(0, 170, 255, 0.2);
+}
+
+.apex-loss-badge.loss-fire {
+    background: rgba(255, 107, 53, 0.2);
+    color: var(--neon-orange);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    box-shadow: 0 0 8px rgba(255, 107, 53, 0.2);
+}
+
+.apex-loss-badge.loss-mold {
+    background: rgba(5, 255, 161, 0.2);
+    color: var(--neon-green);
+    border: 1px solid rgba(5, 255, 161, 0.3);
+    box-shadow: 0 0 8px rgba(5, 255, 161, 0.2);
+}
+
+.apex-loss-badge.loss-smoke {
+    background: rgba(128, 128, 128, 0.2);
+    color: #aaa;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.apex-loss-badge.loss-storm,
+.apex-loss-badge.loss-wind {
+    background: rgba(191, 90, 242, 0.2);
+    color: var(--neon-purple);
+    border: 1px solid rgba(191, 90, 242, 0.3);
+    box-shadow: 0 0 8px rgba(191, 90, 242, 0.2);
+}
+
+.apex-loss-badge.loss-unknown {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    border: 1px solid var(--glass-border);
+}
+
+/* Status indicators with glow animation */
+.apex-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { opacity: 0.8; }
+    to { opacity: 1; }
+}
+
+.apex-status-dot.status-active {
+    background: var(--neon-green);
+    box-shadow: 0 0 12px var(--neon-green), 0 0 24px var(--neon-green);
+}
+
+.apex-status-dot.status-pending_insurance {
+    background: var(--neon-yellow);
+    box-shadow: 0 0 10px var(--neon-yellow);
+}
+
+.apex-status-dot.status-complete {
+    background: var(--neon-blue);
+    box-shadow: 0 0 8px var(--neon-blue);
+}
+
+.apex-status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.apex-status-badge.status-active {
+    background: rgba(5, 255, 161, 0.15);
+    color: var(--neon-green);
+}
+
+.apex-status-badge.status-pending_insurance {
+    background: rgba(255, 230, 109, 0.15);
+    color: var(--neon-yellow);
+}
+
+.apex-status-badge.status-complete {
+    background: rgba(0, 170, 255, 0.15);
+    color: var(--neon-blue);
+}
+
+/* Progress bar */
+.apex-task-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar.large {
+    height: 6px;
+    border-radius: 3px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));
+    border-radius: inherit;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(0, 170, 255, 0.5);
+}
+
+.progress-text {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.progress-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
+
+/* ========================================
+   Apex List View - Sortable Table
+   ======================================== */
+.apex-list-view {
+    padding: 1.5rem 2rem;
+}
+
+.apex-task-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: rgba(15, 15, 25, 0.4);
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+}
+
+.apex-task-table thead {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.apex-task-table th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.apex-task-table th.sortable {
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.apex-task-table th.sortable:hover {
+    color: var(--neon-purple);
+}
+
+.apex-task-table th.sortable.sorted-asc::after {
+    content: ' ↑';
+    color: var(--neon-cyan);
+}
+
+.apex-task-table th.sortable.sorted-desc::after {
+    content: ' ↓';
+    color: var(--neon-cyan);
+}
+
+.apex-task-table tbody tr {
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.apex-task-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.apex-task-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    font-size: 0.875rem;
+}
+
+.apex-task-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.apex-task-table .title-cell {
+    font-weight: 500;
+}
+
+/* ========================================
+   Apex Card View - Glassmorphic Grid
+   ======================================== */
+.apex-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+    padding: 1.5rem 2rem;
+}
+
+.apex-project-card {
+    background: rgba(20, 20, 35, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.apex-project-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: 0.8;
+}
+
+.apex-project-card.loss-border-water::before { 
+    background: linear-gradient(90deg, var(--neon-blue), transparent);
+    box-shadow: 0 0 10px var(--neon-blue);
+}
+.apex-project-card.loss-border-fire::before { 
+    background: linear-gradient(90deg, var(--neon-orange), transparent);
+    box-shadow: 0 0 10px var(--neon-orange);
+}
+.apex-project-card.loss-border-mold::before { 
+    background: linear-gradient(90deg, var(--neon-green), transparent);
+    box-shadow: 0 0 10px var(--neon-green);
+}
+.apex-project-card.loss-border-smoke::before { 
+    background: linear-gradient(90deg, #888, transparent);
+}
+.apex-project-card.loss-border-storm::before,
+.apex-project-card.loss-border-wind::before { 
+    background: linear-gradient(90deg, var(--neon-purple), transparent);
+    box-shadow: 0 0 10px var(--neon-purple);
+}
+
+.apex-project-card:hover {
+    background: rgba(30, 30, 50, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.apex-project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.apex-project-title {
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.3;
+    flex: 1;
+    margin-right: 0.75rem;
+}
+
+.apex-project-client {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.apex-address {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.apex-project-progress {
+    margin-bottom: 1rem;
+}
+
+.apex-project-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ========================================
+   Apex Job Modal
+   ======================================== */
+#apex-job-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+#apex-job-modal.open {
+    display: flex;
+}
+
+#apex-job-modal .modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+}
+
+#apex-job-modal .modal-content {
+    position: relative;
+    background: rgba(15, 15, 25, 0.95);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 
+        0 0 60px rgba(191, 90, 242, 0.1),
+        0 0 100px rgba(0, 170, 255, 0.05);
+}
+
+#apex-job-modal .modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#apex-job-modal .modal-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+#apex-job-modal .modal-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+#apex-job-modal .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: var(--transition);
+}
+
+#apex-job-modal .modal-close:hover {
+    color: var(--text-primary);
+}
+
+#apex-job-modal .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 180px);
+}
+
+.apex-modal-section {
+    margin-bottom: 1.5rem;
+}
+
+.apex-modal-section:last-child {
+    margin-bottom: 0;
+}
+
+.apex-section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--neon-cyan);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0, 245, 212, 0.2);
+}
+
+.apex-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.apex-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.apex-detail-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.apex-detail-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.apex-detail-value {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+/* Tasks list in modal */
+.apex-tasks-container {
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 0.5rem;
+}
+
+.apex-task-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.apex-task-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.apex-task-item.completed {
+    opacity: 0.6;
+}
+
+.apex-task-item.completed .apex-task-name {
+    text-decoration: line-through;
+}
+
+.apex-task-checkbox {
+    font-size: 1rem;
+    color: var(--neon-cyan);
+}
+
+.apex-task-name {
+    flex: 1;
+    font-size: 0.85rem;
+}
+
+.apex-task-assignees {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.no-tasks {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* Refresh indicator */
+#apex-refresh-indicator {
+    font-size: 1rem;
+    opacity: 0.5;
+    cursor: default;
+    transition: var(--transition);
+}
+
+#apex-refresh-indicator.spinning {
+    animation: spin 1s linear infinite;
+    opacity: 1;
+    color: var(--neon-cyan);
+}
+
+/* Empty states */
+.apex-empty-message {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 4rem 2rem;
+    font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+    .apex-board {
+        grid-template-columns: repeat(3, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .apex-board {
+        grid-template-columns: 1fr;
+    }
+    
+    .apex-detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .apex-card-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .apex-view-controls {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .apex-view-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .apex-view-filters {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .apex-list-view {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+}

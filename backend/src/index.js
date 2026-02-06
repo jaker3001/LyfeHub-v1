@@ -15,7 +15,11 @@ const taskListsRoutes = require('./routes/taskLists');
 const usersRoutes = require('./routes/users');
 const basesRoutes = require('./routes/bases');
 const calendarsRoutes = require('./routes/calendars');
+
 const peopleRoutes = require('./routes/people');
+
+const apexJobsRoutes = require('./routes/apexJobs');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,7 +48,11 @@ app.use('/api/task-lists', taskListsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/bases', basesRoutes);
 app.use('/api/calendars', calendarsRoutes);
+
 app.use('/api/people', peopleRoutes);
+
+app.use('/api/apex-jobs', apexJobsRoutes);
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
