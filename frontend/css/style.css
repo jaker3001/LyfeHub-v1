@@ -7321,3 +7321,358 @@ body.column-dragging .base-table {
     padding-top: 0.5rem;
     border-top: 1px solid var(--glass-border);
 }
+
+/* ===========================================
+   NEW JOB MODAL - Wide Grid Layout
+   FIXES: Wider (1400px), proper scrolling
+   =========================================== */
+
+/* Wide modal override - FIXED: wider to show all 3 columns */
+.modal-job .modal-content {
+    max-width: 1400px;
+    width: 95vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Form element needs to participate in flex layout for scrolling */
+.modal-job #new-job-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Job form grid container - FIXED: scrollable */
+.job-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Row 1: 3 equal columns */
+.job-section-client { grid-column: 1; grid-row: 1; }
+.job-section-insurance { grid-column: 2; grid-row: 1; }
+.job-section-property { grid-column: 3; grid-row: 1; }
+
+/* Row 2: Full width */
+.job-section-loss { grid-column: 1 / -1; grid-row: 2; }
+
+/* Row 3: 2 columns */
+.job-section-assignment { grid-column: 1 / 2; grid-row: 3; }
+.job-section-tracking { grid-column: 2 / -1; grid-row: 3; }
+
+/* Section card styling */
+.job-section {
+    background: rgba(20, 20, 35, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.job-section:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Section headers */
+.job-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.job-section-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.job-section-header svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    color: var(--neon-purple, #a855f7);
+}
+
+/* Section placeholder content */
+.job-section-content {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Same toggle button (for Property section) */
+.same-toggle-btn {
+    margin-left: auto;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.same-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.same-toggle-btn.active {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: var(--neon-purple, #a855f7);
+    color: var(--neon-purple, #a855f7);
+}
+
+/* Job modal footer */
+.job-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(10, 10, 20, 0.5);
+    flex-shrink: 0;
+}
+
+.job-modal-footer .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.job-modal-footer .modal-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Responsive: Tablet (2 columns) */
+@media (max-width: 1200px) {
+    .modal-job .modal-content {
+        max-width: 95vw;
+    }
+    
+    .job-form-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto auto auto auto;
+    }
+    
+    /* Row 1: 2 columns */
+    .job-section-client { grid-column: 1; grid-row: 1; }
+    .job-section-insurance { grid-column: 2; grid-row: 1; }
+    
+    /* Row 2: Full width */
+    .job-section-property { grid-column: 1 / -1; grid-row: 2; }
+    
+    /* Row 3: Full width */
+    .job-section-loss { grid-column: 1 / -1; grid-row: 3; }
+    
+    /* Row 4: 2 columns */
+    .job-section-assignment { grid-column: 1; grid-row: 4; }
+    .job-section-tracking { grid-column: 2; grid-row: 4; }
+}
+
+/* Responsive: Mobile (1 column) */
+@media (max-width: 640px) {
+    .modal-job .modal-content {
+        max-width: 100%;
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .job-form-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    /* All sections stack in single column */
+    .job-section-client,
+    .job-section-insurance,
+    .job-section-property,
+    .job-section-loss,
+    .job-section-assignment,
+    .job-section-tracking {
+        grid-column: 1;
+        grid-row: auto;
+    }
+    
+    .job-section-content {
+        min-height: 80px;
+    }
+}
+
+/* ===========================================
+   JOB FORM FIELDS
+   =========================================== */
+
+/* Override placeholder content style for actual fields */
+.job-section-content.job-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    min-height: auto;
+    align-items: start;
+    justify-content: stretch;
+}
+
+/* Wide layout for Loss section (4 columns) */
+.job-fields-wide {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* Field widths */
+.job-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.job-field-full {
+    grid-column: 1 / -1;
+}
+
+/* Field labels */
+.job-field label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.job-field label .required {
+    color: #ec4899;
+}
+
+/* Input styling */
+.job-field input,
+.job-field select,
+.job-field textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+
+.job-field input:focus,
+.job-field select:focus,
+.job-field textarea:focus {
+    outline: none;
+    border-color: var(--neon-purple, #a855f7);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.job-field input::placeholder,
+.job-field textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.job-field select {
+    cursor: pointer;
+}
+
+.job-field textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+/* Divider text inside sections */
+.job-field-divider {
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.field-divider-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Urgent toggle in Loss section header */
+.urgent-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    cursor: pointer;
+}
+
+.urgent-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #ec4899;
+}
+
+.urgent-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.urgent-toggle input:checked + .urgent-label {
+    color: #ec4899;
+}
+
+/* Same as client - visual highlighting */
+#property-fields.same-active {
+    background: rgba(168, 85, 247, 0.05);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: -0.75rem;
+}
+
+#property-fields.same-active .prop-field {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+#property-fields.same-active .prop-field:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Responsive for wide loss section */
+@media (max-width: 900px) {
+    .job-fields-wide {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .job-section-content.job-fields,
+    .job-fields-wide {
+        grid-template-columns: 1fr;
+    }
+    
+    .job-field-half {
+        grid-column: 1;
+    }
+}
+
+/* End JOB FORM FIELDS */
