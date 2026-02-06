@@ -1456,6 +1456,53 @@
             
             <form id="new-job-form">
                 <div class="job-form-grid">
+                    <!-- Row 0: Job Setup (spans full width) -->
+                    <div class="job-section job-section-job-setup">
+                        <div class="job-section-header">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                            </svg>
+                            <h3>Job Setup</h3>
+                            <span class="section-required-hint">* Required</span>
+                        </div>
+                        <div class="job-section-content job-setup-content">
+                            <!-- Job Type Selection -->
+                            <div class="job-setup-row">
+                                <label class="job-setup-label">Job Type(s) <span class="required">*</span></label>
+                                <div class="job-type-buttons" id="job-type-buttons">
+                                    <button type="button" class="job-type-btn" data-type="mitigation" data-code="MIT">
+                                        <span class="btn-name">Mitigation</span>
+                                        <span class="btn-code">(MIT)</span>
+                                    </button>
+                                    <button type="button" class="job-type-btn" data-type="reconstruction" data-code="RPR">
+                                        <span class="btn-name">Reconstruction</span>
+                                        <span class="btn-code">(RPR)</span>
+                                    </button>
+                                    <button type="button" class="job-type-btn" data-type="remodel" data-code="RMD">
+                                        <span class="btn-name">Remodel</span>
+                                        <span class="btn-code">(RMD)</span>
+                                    </button>
+                                    <button type="button" class="job-type-btn" data-type="abatement" data-code="ABT">
+                                        <span class="btn-name">Abatement</span>
+                                        <span class="btn-code">(ABT)</span>
+                                    </button>
+                                    <button type="button" class="job-type-btn" data-type="remediation" data-code="REM">
+                                        <span class="btn-name">Remediation</span>
+                                        <span class="btn-code">(REM)</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Job Numbers (hidden initially) -->
+                            <div class="job-setup-row job-numbers-row" id="job-numbers-row" style="display: none;">
+                                <label class="job-setup-label">Job Number(s) <span class="required">*</span></label>
+                                <div class="job-numbers-inputs" id="job-numbers-inputs">
+                                    <!-- Dynamically populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Row 1: Client Info -->
                     <div class="job-section job-section-client">
                         <div class="job-section-header">
