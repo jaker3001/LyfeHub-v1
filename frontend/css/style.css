@@ -7349,7 +7349,7 @@ body.column-dragging .base-table {
 .job-form-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
     gap: 1.5rem;
     padding: 1.5rem;
     overflow-y: auto;
@@ -7444,6 +7444,162 @@ body.column-dragging .base-table {
     color: var(--neon-purple, #a855f7);
 }
 
+/* ===========================================
+   JOB SETUP SECTION (T2, T3, T4)
+   Job type buttons + job number inputs
+   =========================================== */
+
+/* Job Setup content layout */
+.job-setup-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.job-setup-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.job-setup-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.section-required-hint {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* T2: Job Type Toggle Buttons */
+.job-type-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.job-type-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-secondary);
+}
+
+.job-type-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.job-type-btn.active {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: var(--neon-purple, #a855f7);
+    color: var(--text-primary);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+}
+
+.job-type-btn .btn-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.job-type-btn .btn-code {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+}
+
+/* T3: Job Numbers Inputs */
+.job-numbers-row {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.job-numbers-inputs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.job-number-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 200px;
+    flex: 1;
+}
+
+.job-number-input-group label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.job-number-input-wrapper {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.job-number-input-wrapper input {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.job-number-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--neon-purple, #a855f7);
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+}
+
+.job-number-input-wrapper input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Generate button */
+.btn-generate {
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.btn-generate:hover {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: var(--neon-purple, #a855f7);
+    color: var(--neon-purple, #a855f7);
+}
+
+.btn-generate.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.btn-generate svg {
+    width: 14px;
+    height: 14px;
+}
+
 /* Job modal footer */
 .job-modal-footer {
     display: flex;
@@ -7493,6 +7649,11 @@ body.column-dragging .base-table {
     /* Row 4: 2 columns */
     .job-section-assignment { grid-column: 1; grid-row: 5; }
     .job-section-tracking { grid-column: 2; grid-row: 5; }
+    
+    /* Job number inputs adjust on tablet */
+    .job-number-input-group {
+        min-width: 180px;
+    }
 }
 
 /* Responsive: Mobile (1 column) */
@@ -7537,6 +7698,20 @@ body.column-dragging .base-table {
     .job-type-btn {
         flex: 1 1 calc(50% - 0.5rem);
         min-width: 120px;
+    }
+    
+    /* Job numbers stack on mobile */
+    .job-numbers-inputs {
+        flex-direction: column;
+    }
+    
+    .job-number-input-group {
+        min-width: 100%;
+    }
+    
+    .job-numbers-row {
+        margin-top: 1rem;
+        padding-top: 1rem;
     }
 }
 
