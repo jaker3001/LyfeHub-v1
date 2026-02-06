@@ -1584,6 +1584,10 @@
                                 <label for="job-ins-policy">Policy #</label>
                                 <input type="text" id="job-ins-policy" name="ins_policy" placeholder="Policy number">
                             </div>
+                            <div class="job-field">
+                                <label for="job-deductible">Deductible</label>
+                                <input type="number" id="job-deductible" name="deductible" placeholder="0.00" step="0.01" min="0">
+                            </div>
                             <div class="job-field job-field-full job-field-divider">
                                 <span class="field-divider-text">Adjuster</span>
                             </div>
@@ -1687,7 +1691,7 @@
                         </div>
                         <div class="job-section-content job-fields job-fields-wide">
                             <div class="job-field">
-                                <label for="job-loss-type">Loss Type</label>
+                                <label for="job-loss-type">Source of Loss</label>
                                 <select id="job-loss-type" name="loss_type">
                                     <option value="">Select...</option>
                                     <option value="water">Water Damage</option>
@@ -1702,6 +1706,25 @@
                             <div class="job-field">
                                 <label for="job-loss-date">Date of Loss</label>
                                 <input type="date" id="job-loss-date" name="loss_date">
+                            </div>
+                            <div class="job-field">
+                                <label for="job-water-cat">Water Category</label>
+                                <select id="job-water-cat" name="water_category">
+                                    <option value="">Select category...</option>
+                                    <option value="cat1">Cat 1 - Clean Water</option>
+                                    <option value="cat2">Cat 2 - Gray Water</option>
+                                    <option value="cat3">Cat 3 - Black Water</option>
+                                </select>
+                            </div>
+                            <div class="job-field">
+                                <label for="job-damage-class">Damage Class</label>
+                                <select id="job-damage-class" name="damage_class">
+                                    <option value="">Select class...</option>
+                                    <option value="class1">Class 1 - Minimal</option>
+                                    <option value="class2">Class 2 - Significant</option>
+                                    <option value="class3">Class 3 - Extensive</option>
+                                    <option value="class4">Class 4 - Specialty</option>
+                                </select>
                             </div>
                             <div class="job-field job-field-grow">
                                 <label for="job-areas">Areas Affected</label>
