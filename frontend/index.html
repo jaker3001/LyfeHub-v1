@@ -287,6 +287,10 @@
                 <div class="apex-card-grid" id="apex-card-grid"></div>
                 <p id="apex-card-empty" class="apex-empty-message" style="display: none;">No jobs found</p>
             </div>
+            <!-- Apex Job Detail View (full-page, hidden by default) -->
+            <div id="apex-job-detail" class="apex-job-detail" style="display: none;">
+                <!-- Populated dynamically by apex-jobs.js openJobDetail() -->
+            </div>
         </div><!-- End apex-jobs-content -->
     </main>
 
@@ -1875,6 +1879,14 @@
         </div>
     </div>
 
+    <!-- Job Detail Modal Overlay (for forms like Add Estimate, Record Payment, etc.) -->
+    <div id="job-detail-modal-overlay" class="jdm-overlay" style="display: none;">
+        <div class="jdm-backdrop" onclick="jobDetailModals.closeModal()"></div>
+        <div class="modal-content jdm-card">
+            <!-- Populated dynamically by jobDetailModals.js -->
+        </div>
+    </div>
+
     <!-- Sub-tab switching script -->
     <script>
     function switchProjectSubtab(subtab) {
@@ -1912,6 +1924,8 @@
     <script src="js/people.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/apex-jobs.js"></script>
+    <script src="js/jobDetailTabs.js"></script>
+    <script src="js/jobDetailModals.js"></script>
     <script src="js/jobModal.js"></script>
 </body>
 </html>

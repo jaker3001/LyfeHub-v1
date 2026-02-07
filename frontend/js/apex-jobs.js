@@ -3,6 +3,9 @@
  * Read-only view with Kanban, List, and Card views
  */
 
+const TYPE_CODE_TO_NAME = { MIT: 'mitigation', RPR: 'reconstruction', RMD: 'remodel', ABT: 'abatement', REM: 'remediation' };
+const TYPE_CODE_LABELS = { mitigation: 'Mitigation', reconstruction: 'Reconstruction', remodel: 'Remodel', abatement: 'Abatement', remediation: 'Remediation' };
+
 const apexJobs = {
     jobs: [],
     stats: {},
@@ -218,7 +221,7 @@ const apexJobs = {
                 column.querySelectorAll('.apex-job-card').forEach(card => {
                     card.addEventListener('click', () => {
                         const job = this.jobs.find(j => String(j.id) === card.dataset.id);
-                        if (job) this.openJobModal(job);
+                        if (job) this.openJobDetail(job);
                     });
                 });
             }
@@ -354,7 +357,7 @@ const apexJobs = {
         tbody.querySelectorAll('tr').forEach(row => {
             row.addEventListener('click', () => {
                 const job = this.jobs.find(j => String(j.id) === row.dataset.id);
-                if (job) this.openJobModal(job);
+                if (job) this.openJobDetail(job);
             });
         });
     },
@@ -383,7 +386,7 @@ const apexJobs = {
         grid.querySelectorAll('.apex-project-card').forEach(card => {
             card.addEventListener('click', () => {
                 const job = this.jobs.find(j => String(j.id) === card.dataset.id);
-                if (job) this.openJobModal(job);
+                if (job) this.openJobDetail(job);
             });
         });
     },
@@ -428,249 +431,812 @@ const apexJobs = {
     },
 
     // ==================
-    // JOB DETAIL MODAL
+    // FULL-PAGE JOB DETAIL VIEW
     // ==================
-    openJobModal(job) {
-        const modal = document.getElementById('apex-job-modal');
-        if (!modal) return;
+    currentJob: null,
+    selectedPhaseId: null,
+    selectedAccountingType: null,
+    activeTab: 'dates',
 
-        document.getElementById('apex-modal-title').textContent = job.name || 'Job Details';
-        document.getElementById('apex-modal-status').textContent = this.formatStatus(job.status);
-        document.getElementById('apex-modal-status').className = `apex-status-badge status-${job.status}`;
+    async openJobDetail(job) {
+        const container = document.getElementById('apex-job-detail');
+        const content = document.getElementById('apex-jobs-content');
+        if (!container) return;
 
-        const body = modal.querySelector('.modal-body');
+        this.currentJob = job;
 
-        if (job.phases && job.phases.length > 0) {
-            body.innerHTML = this.renderTabbedDetailView(job);
-            this.bindTabEvents(body);
-        } else {
-            body.innerHTML = this.renderLegacyDetailView(job);
+        // Hide view controls and kanban/list/cards, show detail view
+        const viewControls = content?.querySelector('.apex-view-controls');
+        const viewContainers = content?.querySelectorAll('.apex-view-container');
+        if (viewControls) viewControls.style.display = 'none';
+        if (viewContainers) viewContainers.forEach(c => c.style.display = 'none');
+        container.style.display = 'block';
+
+        // Show loading state
+        container.innerHTML = '<div class="apex-empty-message">Loading job details...</div>';
+
+        try {
+            // Fetch full job data + related data in parallel
+            const [fullJob, accounting, activity, notes, contacts, estimates] = await Promise.all([
+                api.getApexJob(job.id),
+                api.getApexJobAccounting(job.id).catch(() => ({})),
+                api.getApexJobActivity(job.id).catch(() => []),
+                api.getApexJobNotes(job.id).catch(() => []),
+                // Contacts — placeholder until People module integration
+                Promise.resolve([]),
+                api.getApexJobEstimates(job.id).catch(() => [])
+            ]);
+
+            fullJob.accounting_summary = accounting;
+            fullJob.activity_log = activity;
+            fullJob.contacts = contacts || [];
+            fullJob.notes = notes || [];
+            fullJob.estimates = estimates || [];
+            this.currentJob = fullJob;
+
+            // Set initial phase and accounting type from first phase
+            if (fullJob.phases && fullJob.phases.length > 0) {
+                this.selectedPhaseId = fullJob.phases[0].id;
+                this.selectedAccountingType = TYPE_CODE_TO_NAME[fullJob.phases[0].job_type_code] || null;
+            } else {
+                this.selectedAccountingType = null;
+            }
+            this.activeTab = 'dates';
+
+            // Render full detail layout
+            this.renderDetailView(fullJob);
+            this.bindDetailEvents();
+        } catch (err) {
+            console.error('Failed to load job details:', err);
+            // Fall back to summary data
+            this.renderDetailView(job);
+            this.bindDetailEvents();
         }
-
-        modal.classList.add('open');
     },
 
-    renderTabbedDetailView(job) {
-        const clientAddress = job.client?.address || [job.client_street, job.client_city, job.client_state, job.client_zip].filter(Boolean).join(', ') || '-';
+    closeJobDetail() {
+        const container = document.getElementById('apex-job-detail');
+        const content = document.getElementById('apex-jobs-content');
+        if (container) {
+            container.style.display = 'none';
+            container.innerHTML = '';
+        }
 
-        // Shared info
-        const sharedInfo = `
-            <div class="apex-modal-section">
-                <h3 class="apex-section-title">Client Information</h3>
-                <div class="apex-detail-grid">
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Name</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.client?.name || job.clientName || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Phone</span>
-                        <span class="apex-detail-value">${this.formatPhone(job.client?.phone) || '-'}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Email</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.client?.email || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item full-width">
-                        <span class="apex-detail-label">Address</span>
-                        <span class="apex-detail-value">${this.escapeHtml(clientAddress)}</span>
-                    </div>
+        // Restore view controls and active view container
+        if (content) {
+            const viewControls = content.querySelector('.apex-view-controls');
+            if (viewControls) viewControls.style.display = '';
+            content.querySelectorAll('.apex-view-container').forEach(c => {
+                c.style.display = '';
+            });
+        }
+
+        this.currentJob = null;
+        this.selectedPhaseId = null;
+        this.selectedAccountingType = null;
+        this._activeEstTab = null;
+    },
+
+    renderDetailView(job) {
+        const container = document.getElementById('apex-job-detail');
+        if (!container) return;
+
+        const accounting = job.accounting_summary || {};
+        const activities = job.activity_log || [];
+        const contacts = job.contacts || [];
+        const estimates = job.estimates || [];
+
+        container.innerHTML = `
+            <button class="job-detail-back" onclick="apexJobs.closeJobDetail()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                Back to Jobs
+            </button>
+
+            <div class="job-detail-grid">
+                <div class="job-detail-main">
+                    ${this.renderDetailHeader(job)}
+                    ${this.renderInfoCards(job)}
+                    ${this.renderPhaseBar(job)}
+                    ${this.renderContentTabs()}
+                    <div id="job-detail-tab-panel" class="job-detail-tab-content"></div>
+                    ${this.renderContactsSection(contacts)}
                 </div>
-            </div>
-            <div class="apex-modal-section">
-                <h3 class="apex-section-title">Insurance</h3>
-                <div class="apex-detail-grid">
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Carrier</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.carrier || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Claim #</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.claimNumber || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Adjuster</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.adjusterName || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Loss Type</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.lossType || '-')}</span>
-                    </div>
+                <div class="job-detail-sidebar">
+                    ${this.renderAccountingSidebar(accounting, estimates)}
+                    ${this.renderActivitySidebar(activities)}
                 </div>
             </div>
         `;
 
-        // Phase tabs
-        const tabBar = `
-            <div class="apex-phase-tabs">
-                ${job.phases.map((phase, i) => `
-                    <button class="apex-phase-tab ${i === 0 ? 'active' : ''}" data-phase-idx="${i}">
-                        <span class="apex-phase-badge phase-${phase.job_type_code.toLowerCase()}">${this.escapeHtml(phase.job_type_code)}</span>
-                        <span class="phase-tab-number">${this.escapeHtml(phase.job_number)}</span>
+        // Render initial tab content
+        this.renderActiveTabContent();
+    },
+
+    getDamageIcon(source) {
+        const s = (source || '').toLowerCase();
+        if (s.includes('water') || s.includes('sewage') || s.includes('flood')) {
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="#00aaff" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>';
+        }
+        if (s.includes('fire') || s.includes('smoke')) {
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="#ff6b35" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+        }
+        if (s.includes('mold')) {
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="#05ffa1" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+        }
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
+    },
+
+    renderDetailHeader(job) {
+        const clientName = job.client_name || 'No client';
+        const address = this.formatAddress(job);
+        const statusLabel = this.formatStatus(job.status);
+
+        return `
+            <div class="job-detail-header">
+                <div class="job-detail-header-inner">
+                    <div class="job-detail-header-left">
+                        <div class="job-detail-damage-icon">
+                            ${this.getDamageIcon(job.loss_type)}
+                        </div>
+                        <div class="job-detail-header-text">
+                            <h1>${this.escapeHtml(job.name || job.job_number || 'Job Details')}</h1>
+                            <div class="client-name">${this.escapeHtml(clientName)}</div>
+                            ${address ? `<div class="address">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
+                                ${this.escapeHtml(address)}
+                            </div>` : ''}
+                        </div>
+                    </div>
+                    <div class="job-detail-header-right">
+                        <div class="job-detail-status-btn" id="job-status-toggle" role="button" tabindex="0">
+                            <span class="apex-status-badge status-${job.status || 'active'}">${statusLabel}</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                            <div class="status-dropdown" id="job-status-dropdown" style="display: none;">
+                                ${[
+                                    { value: 'active', label: 'Active' },
+                                    { value: 'pending_insurance', label: 'Pending Insurance' },
+                                    { value: 'complete', label: 'Complete' },
+                                    { value: 'archived', label: 'Archived' }
+                                ].map(s =>
+                                    `<button data-status="${s.value}">${s.label}</button>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <button class="job-detail-edit-btn" id="job-edit-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Edit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderInfoCards(job) {
+        const clientAddr = [job.client_street, [job.client_city, job.client_state].filter(Boolean).join(', '), job.client_zip].filter(Boolean).join(', ');
+
+        const catLabels = { cat1: '1 - Clean Water', cat2: '2 - Gray Water', cat3: '3 - Black Water', '1': '1 - Clean Water', '2': '2 - Gray Water', '3': '3 - Black Water' };
+        const classLabels = { class1: '1', class2: '2', class3: '3', class4: '4', '1': '1', '2': '2', '3': '3', '4': '4' };
+        const catDisplay = catLabels[job.water_category] || job.water_category || '';
+        const classDisplay = classLabels[job.damage_class] || job.damage_class || '';
+
+        return `
+            <div class="job-detail-info-row">
+                <div class="job-info-card">
+                    <div class="job-info-card-title">Client</div>
+                    <p class="font-medium">${this.escapeHtml(job.client_name || '-')}</p>
+                    ${job.client_phone ? `<a href="tel:${this.escapeHtml(job.client_phone)}" class="info-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        ${this.formatPhone(job.client_phone)}
+                    </a>` : ''}
+                    ${job.client_email ? `<a href="mailto:${this.escapeHtml(job.client_email)}" class="info-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        ${this.escapeHtml(job.client_email)}
+                    </a>` : ''}
+                    ${clientAddr ? `<p class="text-muted" style="margin-top:0.25rem">${this.escapeHtml(clientAddr)}</p>` : ''}
+                </div>
+
+                <div class="job-info-card">
+                    <div class="job-info-card-title">Insurance</div>
+                    ${job.ins_carrier ? `<p class="font-medium">${this.escapeHtml(job.ins_carrier)}</p>` : '<p class="text-muted">No carrier</p>'}
+                    ${job.ins_claim ? `<div class="info-row"><span class="info-label">Claim</span><span>${this.escapeHtml(job.ins_claim)}</span></div>` : ''}
+                    ${job.ins_policy ? `<div class="info-row"><span class="info-label">Policy</span><span>${this.escapeHtml(job.ins_policy)}</span></div>` : ''}
+                    ${job.deductible != null ? `<div class="info-row"><span class="info-label">Deductible</span><span>$${Number(job.deductible).toLocaleString()}</span></div>` : ''}
+                    ${job.adj_name ? `
+                        <div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid rgba(255,255,255,0.05)">
+                            <span style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase">Adjuster</span>
+                            <p style="font-size:0.8rem;margin:0.2rem 0">${this.escapeHtml(job.adj_name)}</p>
+                            ${job.adj_phone ? `<a href="tel:${this.escapeHtml(job.adj_phone)}" class="info-link" style="font-size:0.75rem">${this.formatPhone(job.adj_phone)}</a>` : ''}
+                            ${job.adj_email ? `<a href="mailto:${this.escapeHtml(job.adj_email)}" class="info-link" style="font-size:0.75rem">${this.escapeHtml(job.adj_email)}</a>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="job-info-card">
+                    <div class="job-info-card-title">Property</div>
+                    ${this.formatAddress(job) ? `<p class="text-muted">${this.escapeHtml(this.formatAddress(job))}</p>` : ''}
+                    ${job.prop_type ? `<p class="font-medium">${this.escapeHtml(job.prop_type)}</p>` : ''}
+                    <div style="display:flex;gap:0.75rem;font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem">
+                        ${catDisplay ? `<span>Cat ${this.escapeHtml(catDisplay)}</span>` : ''}
+                        ${classDisplay ? `<span>Class ${this.escapeHtml(classDisplay)}</span>` : ''}
+                    </div>
+                    <div class="info-row"><span class="info-label">Source</span><span>${this.escapeHtml(job.loss_type || 'Unknown')}</span></div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderPhaseBar(job) {
+        const phases = job.phases || [];
+        if (phases.length <= 1) return '';
+
+        return `
+            <div class="job-detail-phase-bar">
+                ${phases.map(phase => `
+                    <button class="phase-btn ${phase.id === this.selectedPhaseId ? 'active' : ''}" data-phase-id="${phase.id}">
+                        <span class="phase-badge">${this.escapeHtml(phase.job_type_code)}</span>
+                        <span class="phase-number">${this.escapeHtml(phase.job_number)}</span>
                     </button>
                 `).join('')}
             </div>
         `;
-
-        // Phase panels
-        const panels = job.phases.map((phase, i) => `
-            <div class="apex-phase-panel ${i === 0 ? 'active' : ''}" data-phase-idx="${i}">
-                <div class="apex-phase-header">
-                    <span class="apex-phase-job-number">${this.escapeHtml(phase.job_number)}</span>
-                    <span class="apex-status-badge phase-status-${phase.phase_status || 'not_started'}">${this.formatPhaseStatus(phase.phase_status)}</span>
-                </div>
-
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Documents</h4>
-                    <div class="apex-empty-state">No documents yet</div>
-                </div>
-
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Photos</h4>
-                    <div class="apex-empty-state">No photos yet</div>
-                </div>
-
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Estimates</h4>
-                    <div class="apex-empty-state">No estimates yet</div>
-                </div>
-
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Payments</h4>
-                    <div class="apex-empty-state">No payments yet</div>
-                </div>
-
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Labor Log</h4>
-                    <div class="apex-empty-state">No labor entries yet</div>
-                </div>
-
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Materials</h4>
-                    <div class="apex-empty-state">No materials yet</div>
-                </div>
-
-                ${phase.job_type_code === 'MIT' ? `
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Drying Logs</h4>
-                    <div class="apex-empty-state">No drying log entries yet</div>
-                </div>
-                ` : ''}
-
-                <div class="apex-phase-section">
-                    <h4 class="apex-phase-section-title">Notes</h4>
-                    <div class="apex-empty-state">${this.escapeHtml(phase.notes) || 'No notes yet'}</div>
-                </div>
-            </div>
-        `).join('');
-
-        return sharedInfo + tabBar + panels;
     },
 
-    renderLegacyDetailView(job) {
-        const clientAddress = (job.client?.address || '').replace(/\r?\n/g, ', ') || '-';
+    renderContentTabs() {
+        const tabs = [
+            { id: 'dates', label: 'Dates', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' },
+            { id: 'documents', label: 'Documents', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' },
+            { id: 'tasks', label: 'Tasks', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' },
+            { id: 'notes', label: 'Notes', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' },
+            { id: 'expenses', label: 'Expenses', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg>' },
+            { id: 'drying', label: 'Drying', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>' },
+        ];
+
         return `
-            <div class="apex-modal-section">
-                <h3 class="apex-section-title">Client Information</h3>
-                <div class="apex-detail-grid">
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Name</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.client?.name || job.clientName || '-')}</span>
+            <div class="job-detail-tabs">
+                ${tabs.map(t => `
+                    <button class="job-detail-tab-btn ${t.id === this.activeTab ? 'active' : ''}" data-tab="${t.id}">
+                        ${t.icon}
+                        ${t.label}
+                    </button>
+                `).join('')}
+            </div>
+        `;
+    },
+
+    renderActiveTabContent() {
+        const panel = document.getElementById('job-detail-tab-panel');
+        if (!panel || !this.currentJob) return;
+
+        // Delegate to jobDetailTabs renderer if available
+        if (window.jobDetailTabs && typeof window.jobDetailTabs.renderTab === 'function') {
+            window.jobDetailTabs.renderTab(this.activeTab, this.currentJob, this.selectedPhaseId, panel);
+        } else {
+            panel.innerHTML = '<div class="apex-empty-state">Tab content loading...</div>';
+        }
+    },
+
+    renderAccountingSidebar(accounting, estimates) {
+        estimates = estimates || [];
+        const type = this.selectedAccountingType;
+        const job = this.currentJob || {};
+
+        // Build phase tabs from job phases
+        const phases = job.phases || [];
+        const phaseTabs = phases.map(p => {
+            const typeName = TYPE_CODE_TO_NAME[p.job_type_code] || null;
+            const isActive = type === typeName;
+            return `<button class="acct-phase-tab ${isActive ? 'active' : ''}" data-type="${typeName || ''}">${this.escapeHtml(p.job_type_code)}</button>`;
+        });
+        phaseTabs.push(`<button class="acct-phase-tab ${type == null ? 'active' : ''}" data-type="all">ALL</button>`);
+
+        // Resolve metrics: support nested { all, by_type } and old flat format
+        const metrics = (type && accounting.by_type?.[type]) || accounting.all || accounting;
+
+        const totalEstimates = metrics.total_estimates || 0;
+        const approvedEstimates = metrics.approved_estimates || 0;
+        const totalPayments = metrics.total_paid || 0;
+        const totalCosts = metrics.total_cost || 0;
+        const balanceDue = metrics.balance_due != null ? metrics.balance_due : (totalEstimates - totalPayments);
+        const grossProfit = approvedEstimates - totalCosts;
+        const gpMargin = approvedEstimates > 0 ? ((grossProfit / approvedEstimates) * 100) : 0;
+
+        let gpClass = 'gp-good';
+        if (gpMargin < 15) gpClass = 'gp-bad';
+        else if (gpMargin < 30) gpClass = 'gp-warn';
+
+        const readyToInvoice = job.ready_to_invoice;
+
+        return `
+            <div class="job-accounting">
+                <h3>Accounting</h3>
+                ${phaseTabs.length > 0 ? `<div class="acct-phase-tabs">${phaseTabs.join('')}</div>` : ''}
+                <div class="accounting-metrics">
+                    <div class="accounting-metric">
+                        <span class="metric-label">Total Estimates</span>
+                        <span class="metric-value">$${totalEstimates.toLocaleString()}</span>
                     </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Phone</span>
-                        <span class="apex-detail-value">${this.formatPhone(job.client?.phone) || '-'}</span>
+                    <div class="accounting-metric">
+                        <span class="metric-label">Total Payments</span>
+                        <span class="metric-value">$${totalPayments.toLocaleString()}</span>
                     </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Email</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.client?.email || '-')}</span>
+                    <div class="accounting-metric">
+                        <span class="metric-label">Total Costs</span>
+                        <span class="metric-value">$${totalCosts.toLocaleString()}</span>
                     </div>
-                    <div class="apex-detail-item full-width">
-                        <span class="apex-detail-label">Address</span>
-                        <span class="apex-detail-value">${this.escapeHtml(clientAddress)}</span>
+                    <div class="accounting-metric">
+                        <span class="metric-label">GP Margin</span>
+                        <span class="metric-value ${gpClass}">${gpMargin.toFixed(1)}%</span>
+                    </div>
+                    <div class="accounting-metric full-width">
+                        <span class="metric-label">Balance Due</span>
+                        <span class="metric-value ${balanceDue > 0 ? 'balance-due' : 'balance-paid'}">$${balanceDue.toLocaleString()}</span>
                     </div>
                 </div>
-            </div>
-            <div class="apex-modal-section">
-                <h3 class="apex-section-title">Insurance Information</h3>
-                <div class="apex-detail-grid">
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Carrier</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.carrier || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Claim #</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.claimNumber || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Adjuster</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.adjusterName || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Adjuster Email</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.adjusterEmail || '-')}</span>
-                    </div>
+                ${this.renderEstimatesBreakdown(estimates, type)}
+                <div class="accounting-actions">
+                    <button class="accounting-action-btn" data-action="add-estimate">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Estimate
+                    </button>
+                    <button class="accounting-action-btn" data-action="record-payment">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Payment
+                    </button>
+                    <button class="accounting-action-btn" data-action="add-labor">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Labor
+                    </button>
+                    <button class="accounting-action-btn" data-action="add-receipt">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/></svg>
+                        Receipt
+                    </button>
+                    <button class="accounting-action-btn" data-action="add-work-order">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        Work Order
+                    </button>
                 </div>
+                <button class="accounting-invoice-toggle ${readyToInvoice ? 'ready' : 'not-ready'}" id="invoice-toggle-btn">
+                    ${readyToInvoice ? 'Ready to Invoice' : 'Not Ready to Invoice'}
+                </button>
             </div>
-            <div class="apex-modal-section">
-                <h3 class="apex-section-title">Job Details</h3>
-                <div class="apex-detail-grid">
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Loss Type</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.lossType || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Mitigation Job #</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.jobNumbers?.mitigation || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Repair Job #</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.jobNumbers?.repair || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Owner</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.owner?.name || '-')}</span>
-                    </div>
-                    <div class="apex-detail-item">
-                        <span class="apex-detail-label">Created</span>
-                        <span class="apex-detail-value">${this.escapeHtml(job.createdAt || '-')}</span>
-                    </div>
+        `;
+    },
+
+    renderEstimatesBreakdown(estimates, selectedType) {
+        if (!estimates || estimates.length === 0) return '';
+
+        // Group estimates by type
+        const byType = {};
+        estimates.forEach(est => {
+            const t = (est.estimate_type || est.type || 'unknown').toLowerCase();
+            if (!byType[t]) byType[t] = [];
+            byType[t].push(est);
+        });
+
+        // Filter to selectedType if set, otherwise show all with sub-tabs
+        let typesToShow;
+        if (selectedType) {
+            typesToShow = byType[selectedType] ? { [selectedType]: byType[selectedType] } : {};
+        } else {
+            typesToShow = byType;
+        }
+
+        const typeKeys = Object.keys(typesToShow);
+        if (typeKeys.length === 0) return '<div class="estimates-breakdown"><div class="apex-empty-state">No estimates</div></div>';
+
+        // If ALL view, show type sub-tabs
+        const activeEstTab = this._activeEstTab || typeKeys[0];
+        let subTabs = '';
+        if (!selectedType && typeKeys.length > 1) {
+            subTabs = `<div class="estimates-type-tabs">${typeKeys.map(k =>
+                `<button class="est-tab ${k === activeEstTab ? 'active' : ''}" data-est-type="${k}">${TYPE_CODE_LABELS[k] || k}</button>`
+            ).join('')}</div>`;
+        }
+
+        // Render the estimates for the visible type
+        const visibleType = selectedType || activeEstTab;
+        const visibleEstimates = typesToShow[visibleType] || [];
+
+        return `
+            <div class="estimates-breakdown">
+                <div class="estimates-breakdown-header">
+                    <span>Estimates Breakdown</span>
+                    <svg class="collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
                 </div>
-            </div>
-            <div class="apex-modal-section">
-                <h3 class="apex-section-title">Tasks</h3>
-                <div class="apex-tasks-container">
-                    ${this.renderTaskListHtml(job.tasks || [])}
+                ${subTabs}
+                <div class="estimates-breakdown-body">
+                    ${this._renderEstimateTypeSection(visibleType, visibleEstimates)}
                 </div>
             </div>
         `;
     },
 
-    renderTaskListHtml(tasks) {
-        if (tasks.length === 0) {
-            return '<p class="no-tasks">No tasks found</p>';
+    _renderEstimateTypeSection(typeName, estimates) {
+        if (!estimates || estimates.length === 0) return '<div class="apex-empty-state">No estimates for this type</div>';
+
+        // Sort versions descending (latest first)
+        const sorted = [...estimates].sort((a, b) => (b.version || 0) - (a.version || 0));
+        const current = sorted[0];
+        const original = sorted.find(e => (e.version || 0) === 1) || sorted[sorted.length - 1];
+
+        const currentAmount = current?.amount || 0;
+        const totalForType = currentAmount;
+        const originalAmount = original?.amount || 0;
+
+        // Reduction calculation
+        const reduction = originalAmount > 0 ? ((originalAmount - currentAmount) / originalAmount) * 100 : 0;
+        let reductionClass = '';
+        if (reduction > 0) {
+            if (reduction <= 10) reductionClass = 'reduction-green';
+            else if (reduction <= 15) reductionClass = 'reduction-yellow';
+            else if (reduction <= 20) reductionClass = 'reduction-orange';
+            else reductionClass = 'reduction-red';
         }
-        return tasks.map(task => `
-            <div class="apex-task-item ${task.completed ? 'completed' : ''}">
-                <span class="apex-task-check">${task.completed ? '✓' : '○'}</span>
-                <span class="apex-task-name">${this.escapeHtml(task.name)}</span>
-                ${task.assignees?.length ? `<span class="apex-task-assignees">${task.assignees.join(', ')}</span>` : ''}
+
+        const label = TYPE_CODE_LABELS[typeName] || typeName;
+
+        return `
+            <div class="est-type-header">
+                <span class="est-type-label">${this.escapeHtml(label)}</span>
+                <span class="est-type-total">$${totalForType.toLocaleString()}</span>
             </div>
-        `).join('');
+            <div class="est-summary-row">
+                <span>Current (v${current?.version || '?'})</span>
+                <span>$${currentAmount.toLocaleString()}</span>
+            </div>
+            <div class="est-summary-row">
+                <span>Original (v1)</span>
+                <span>$${originalAmount.toLocaleString()}</span>
+            </div>
+            ${reduction > 0 ? `<div class="est-summary-row">
+                <span>Reduction</span>
+                <span class="${reductionClass}">${reduction.toFixed(1)}%</span>
+            </div>` : ''}
+            <div class="est-version-list">
+                ${sorted.map(est => {
+                    const ver = est.version || 1;
+                    const delta = originalAmount > 0 && ver > 1 ? ((est.amount - originalAmount) / originalAmount * 100) : 0;
+                    const dollarDelta = ver > 1 ? (est.amount - originalAmount) : 0;
+                    const absDelta = Math.abs(delta);
+                    let deltaClass = '';
+                    if (delta !== 0) {
+                        if (absDelta <= 10) deltaClass = 'reduction-green';
+                        else if (absDelta <= 15) deltaClass = 'reduction-yellow';
+                        else if (absDelta <= 20) deltaClass = 'reduction-orange';
+                        else deltaClass = 'reduction-red';
+                    }
+                    const statusClass = this._estStatusClass(est.status);
+                    const isOriginal = ver === 1;
+                    return `
+                        <div class="est-version-row">
+                            <span class="est-ver-num">v${ver}${isOriginal ? ' <span class="est-original-tag">(original)</span>' : ''}</span>
+                            <span class="est-ver-amount">$${(est.amount || 0).toLocaleString()}</span>
+                            ${delta !== 0 ? `<span class="est-ver-delta ${deltaClass}">\u0394 ${dollarDelta >= 0 ? '' : '-'}$${Math.abs(dollarDelta).toLocaleString()} (${delta > 0 ? '+' : ''}${delta.toFixed(1)}%)</span>` : ''}
+                            <span class="est-status-badge ${statusClass}">${this.escapeHtml(est.status || 'draft')}</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
     },
 
-    bindTabEvents(container) {
-        container.querySelectorAll('.apex-phase-tab').forEach(tab => {
+    _estStatusClass(status) {
+        const map = {
+            draft: 'est-draft',
+            submitted: 'est-submitted',
+            approved: 'est-approved',
+            revision_requested: 'est-revision',
+            denied: 'est-denied'
+        };
+        return map[(status || '').toLowerCase()] || 'est-draft';
+    },
+
+    refreshAccountingSidebar() {
+        const container = document.querySelector('.job-accounting');
+        if (!container || !this.currentJob) return;
+        const accounting = this.currentJob.accounting_summary || {};
+        const estimates = this.currentJob.estimates || [];
+        container.outerHTML = this.renderAccountingSidebar(accounting, estimates);
+        this.bindSidebarTabEvents();
+    },
+
+    async refreshSidebarData() {
+        const job = this.currentJob;
+        if (!job) return;
+        const [accounting, estimates] = await Promise.all([
+            api.getApexJobAccounting(job.id).catch(() => ({ all: {}, by_type: {} })),
+            api.getApexJobEstimates(job.id).catch(() => [])
+        ]);
+        job.accounting_summary = accounting;
+        job.estimates = estimates;
+        this.refreshAccountingSidebar();
+    },
+
+    bindSidebarTabEvents() {
+        const container = document.querySelector('.job-accounting');
+        if (!container) return;
+
+        // Phase tabs
+        container.querySelectorAll('.acct-phase-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                const idx = tab.dataset.phaseIdx;
-                // Update active tab
-                container.querySelectorAll('.apex-phase-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                // Update active panel
-                container.querySelectorAll('.apex-phase-panel').forEach(p => p.classList.remove('active'));
-                const panel = container.querySelector(`.apex-phase-panel[data-phase-idx="${idx}"]`);
-                if (panel) panel.classList.add('active');
+                const t = tab.dataset.type;
+                this.selectedAccountingType = (t && t !== 'all') ? t : null;
+                this.refreshAccountingSidebar();
             });
         });
+
+        // Estimates breakdown collapse toggle
+        const breakdownHeader = container.querySelector('.estimates-breakdown-header');
+        if (breakdownHeader) {
+            breakdownHeader.addEventListener('click', () => {
+                const body = container.querySelector('.estimates-breakdown-body');
+                const icon = breakdownHeader.querySelector('.collapse-icon');
+                if (body) {
+                    const isCollapsed = body.style.display === 'none';
+                    body.style.display = isCollapsed ? '' : 'none';
+                    if (icon) icon.style.transform = isCollapsed ? '' : 'rotate(-90deg)';
+                }
+            });
+        }
+
+        // Estimate type sub-tabs (ALL view)
+        container.querySelectorAll('.estimates-type-tabs .est-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                this._activeEstTab = tab.dataset.estType;
+                this.refreshAccountingSidebar();
+            });
+        });
+
+        // Re-bind accounting action buttons (since outerHTML destroys old bindings)
+        const refreshDetail = () => this.openJobDetail(this.currentJob);
+        container.querySelectorAll('.accounting-action-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const action = btn.dataset.action;
+                const job = this.currentJob;
+                if (!window.jobDetailModals || !job) return;
+
+                switch (action) {
+                    case 'add-estimate': {
+                        const estimates = await api.getApexJobEstimates(job.id);
+                        window.jobDetailModals.openAddEstimateModal(job.id, estimates, refreshDetail);
+                        break;
+                    }
+                    case 'record-payment': {
+                        const estimates = await api.getApexJobEstimates(job.id);
+                        window.jobDetailModals.openRecordPaymentModal(job.id, estimates, refreshDetail);
+                        break;
+                    }
+                    case 'add-labor':
+                        window.jobDetailModals.openLaborEntryModal(job.id, null, refreshDetail);
+                        break;
+                    case 'add-receipt':
+                        window.jobDetailModals.openReceiptModal(job.id, null, refreshDetail);
+                        break;
+                    case 'add-work-order':
+                        window.jobDetailModals.openWorkOrderModal(job.id, null, refreshDetail);
+                        break;
+                }
+            });
+        });
+
+        // Invoice toggle
+        const invoiceBtn = container.querySelector('#invoice-toggle-btn');
+        if (invoiceBtn) {
+            invoiceBtn.addEventListener('click', async () => {
+                try {
+                    const newVal = !this.currentJob.ready_to_invoice;
+                    await api.toggleApexJobInvoice(this.currentJob.id, newVal);
+                    this.currentJob.ready_to_invoice = newVal;
+                    invoiceBtn.className = `accounting-invoice-toggle ${newVal ? 'ready' : 'not-ready'}`;
+                    invoiceBtn.textContent = newVal ? 'Ready to Invoice' : 'Not Ready to Invoice';
+                } catch (err) {
+                    console.error('Failed to toggle invoice status:', err);
+                }
+            });
+        }
+    },
+
+    renderActivitySidebar(activities) {
+        const eventTypes = ['all', 'status', 'payment', 'estimate', 'note', 'contact'];
+
+        return `
+            <div class="job-activity">
+                <h3>Activity</h3>
+                <div class="activity-filters">
+                    ${eventTypes.map(type => `
+                        <button class="activity-filter-btn ${type === 'all' ? 'active' : ''}" data-filter="${type}">
+                            ${type.charAt(0).toUpperCase() + type.slice(1)}
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="activity-timeline" id="activity-timeline">
+                    ${activities.length > 0 ? activities.map(event => {
+                        const dotClass = 'dot-' + (event.event_type || 'default');
+                        const dateStr = event.created_at ? new Date(event.created_at).toLocaleDateString() : '';
+                        return `
+                            <div class="activity-event" data-type="${event.event_type || 'default'}">
+                                <span class="event-dot ${dotClass}"></span>
+                                <div class="event-body">
+                                    <div class="event-date">${dateStr}</div>
+                                    <div class="event-desc">${this.escapeHtml(event.description || '')}</div>
+                                </div>
+                                ${event.amount ? `<span class="event-amount">$${Number(event.amount).toLocaleString()}</span>` : ''}
+                            </div>
+                        `;
+                    }).join('') : '<div class="apex-empty-state">No activity yet</div>'}
+                </div>
+            </div>
+        `;
+    },
+
+    renderContactsSection(contacts) {
+        return `
+            <div class="job-contacts">
+                <div class="job-contacts-header">
+                    <div class="job-contacts-header-left">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <h3>Assigned Contacts</h3>
+                        <span class="contact-count">${contacts.length}</span>
+                    </div>
+                    <button class="job-contacts-add-btn" id="add-contact-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Contact
+                    </button>
+                </div>
+                ${contacts.length > 0 ? `
+                    <div class="contacts-grid">
+                        ${contacts.map(c => this.renderContactCard(c)).join('')}
+                    </div>
+                ` : '<div class="apex-empty-state">No contacts assigned to this project</div>'}
+            </div>
+        `;
+    },
+
+    renderContactCard(contact) {
+        const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ');
+        return `
+            <div class="contact-card">
+                <div class="contact-card-top">
+                    <div>
+                        <span class="contact-name">${this.escapeHtml(name)}</span>
+                        ${contact.role_on_project ? `<span class="contact-role"> (${this.escapeHtml(contact.role_on_project)})</span>` : ''}
+                        ${contact.has_msa ? '<span class="msa-badge">MSA</span>' : ''}
+                    </div>
+                </div>
+                ${contact.organization_name ? `<div class="contact-org">${this.escapeHtml(contact.organization_name)}</div>` : ''}
+                <div class="contact-card-actions">
+                    ${contact.phone ? `<a href="tel:${this.escapeHtml(contact.phone)}" title="Call">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </a>` : ''}
+                    ${contact.email ? `<a href="mailto:${this.escapeHtml(contact.email)}" title="Email">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </a>` : ''}
+                </div>
+            </div>
+        `;
+    },
+
+    bindDetailEvents() {
+        const container = document.getElementById('apex-job-detail');
+        if (!container) return;
+
+        // Status dropdown toggle
+        const statusToggle = container.querySelector('#job-status-toggle');
+        const statusDropdown = container.querySelector('#job-status-dropdown');
+        if (statusToggle && statusDropdown) {
+            statusToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = statusDropdown.style.display !== 'none';
+                statusDropdown.style.display = isOpen ? 'none' : 'block';
+            });
+
+            statusDropdown.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const newStatus = btn.dataset.status;
+                    statusDropdown.style.display = 'none';
+                    try {
+                        await api.updateApexJobStatus(this.currentJob.id, newStatus);
+                        this.currentJob.status = newStatus;
+                        // Re-render header
+                        const header = container.querySelector('.job-detail-header');
+                        if (header) {
+                            header.outerHTML = this.renderDetailHeader(this.currentJob);
+                            this.bindDetailEvents();
+                        }
+                    } catch (err) {
+                        console.error('Failed to update status:', err);
+                    }
+                });
+            });
+
+            // Close dropdown on outside click
+            document.addEventListener('click', () => {
+                if (statusDropdown) statusDropdown.style.display = 'none';
+            }, { once: true });
+        }
+
+        // Edit button
+        const editBtn = container.querySelector('#job-edit-btn');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                if (window.jobDetailModals) {
+                    window.jobDetailModals.openEditJobModal(this.currentJob, () => {
+                        this.openJobDetail(this.currentJob);
+                    });
+                }
+            });
+        }
+
+        // Phase bar buttons
+        container.querySelectorAll('.job-detail-phase-bar .phase-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.selectedPhaseId = btn.dataset.phaseId;
+                container.querySelectorAll('.job-detail-phase-bar .phase-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.renderActiveTabContent();
+                // Sync accounting sidebar with selected phase
+                const phase = this.currentJob.phases?.find(p => p.id == this.selectedPhaseId);
+                if (phase) {
+                    this.selectedAccountingType = TYPE_CODE_TO_NAME[phase.job_type_code] || null;
+                    this.refreshAccountingSidebar();
+                }
+            });
+        });
+
+        // Content tab buttons
+        container.querySelectorAll('.job-detail-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.activeTab = btn.dataset.tab;
+                container.querySelectorAll('.job-detail-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.renderActiveTabContent();
+            });
+        });
+
+        // Bind sidebar tabs, accounting actions, and invoice toggle
+        this.bindSidebarTabEvents();
+
+        // Add contact button
+        const refreshDetail = () => this.openJobDetail(this.currentJob);
+        const addContactBtn = container.querySelector('#add-contact-btn');
+        if (addContactBtn) {
+            addContactBtn.addEventListener('click', () => {
+                if (window.jobDetailModals) {
+                    window.jobDetailModals.openAddContactModal(this.currentJob.id, refreshDetail);
+                }
+            });
+        }
+
+        // Activity filter buttons
+        container.querySelectorAll('.activity-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filter = btn.dataset.filter;
+                container.querySelectorAll('.activity-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const timeline = container.querySelector('#activity-timeline');
+                if (timeline) {
+                    timeline.querySelectorAll('.activity-event').forEach(event => {
+                        if (filter === 'all') {
+                            event.style.display = '';
+                        } else {
+                            event.style.display = event.dataset.type === filter ? '' : 'none';
+                        }
+                    });
+                }
+            });
+        });
+    },
+
+    formatAddress(job) {
+        const street = job.prop_street || '';
+        const city = job.prop_city || '';
+        const state = job.prop_state || '';
+        const zip = job.prop_zip || '';
+        const cityState = [city, state].filter(Boolean).join(', ');
+        return [street, cityState, zip].filter(Boolean).join(', ');
     },
 
     formatPhaseStatus(status) {
@@ -696,7 +1262,8 @@ const apexJobs = {
         const labels = {
             'active': 'Active',
             'pending_insurance': 'Pending Insurance',
-            'complete': 'Complete'
+            'complete': 'Complete',
+            'archived': 'Archived'
         };
         return labels[status] || status || 'Unknown';
     },

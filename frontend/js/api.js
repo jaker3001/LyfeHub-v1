@@ -441,6 +441,243 @@ const api = {
             method: 'DELETE',
         });
     },
+
+    // ========================================
+    // APEX JOB DETAIL
+    // ========================================
+
+    /**
+     * Apex Job Detail: Update job dates
+     */
+    async updateApexJobDates(id, dates) {
+        return this.request(`/apex-jobs/${id}/dates`, {
+            method: 'PATCH',
+            body: dates,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Get all notes for a job
+     */
+    async getApexJobNotes(id) {
+        return this.request(`/apex-jobs/${id}/notes`);
+    },
+
+    /**
+     * Apex Job Detail: Create a note on a job
+     */
+    async createApexJobNote(id, data) {
+        return this.request(`/apex-jobs/${id}/notes`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Delete a note from a job
+     */
+    async deleteApexJobNote(id, noteId) {
+        return this.request(`/apex-jobs/${id}/notes/${noteId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * Apex Job Detail: Get all estimates for a job
+     */
+    async getApexJobEstimates(id) {
+        return this.request(`/apex-jobs/${id}/estimates`);
+    },
+
+    /**
+     * Apex Job Detail: Create an estimate for a job
+     */
+    async createApexJobEstimate(id, data) {
+        return this.request(`/apex-jobs/${id}/estimates`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Update an estimate
+     */
+    async updateApexJobEstimate(id, estId, data) {
+        return this.request(`/apex-jobs/${id}/estimates/${estId}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Get all payments for a job
+     */
+    async getApexJobPayments(id) {
+        return this.request(`/apex-jobs/${id}/payments`);
+    },
+
+    /**
+     * Apex Job Detail: Create a payment for a job
+     */
+    async createApexJobPayment(id, data) {
+        return this.request(`/apex-jobs/${id}/payments`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Get all labor entries for a job
+     */
+    async getApexJobLabor(id) {
+        return this.request(`/apex-jobs/${id}/labor`);
+    },
+
+    /**
+     * Apex Job Detail: Create a labor entry for a job
+     */
+    async createApexJobLabor(id, data) {
+        return this.request(`/apex-jobs/${id}/labor`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Update a labor entry
+     */
+    async updateApexJobLabor(id, entryId, data) {
+        return this.request(`/apex-jobs/${id}/labor/${entryId}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Delete a labor entry
+     */
+    async deleteApexJobLabor(id, entryId) {
+        return this.request(`/apex-jobs/${id}/labor/${entryId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * Apex Job Detail: Get all receipts for a job
+     */
+    async getApexJobReceipts(id) {
+        return this.request(`/apex-jobs/${id}/receipts`);
+    },
+
+    /**
+     * Apex Job Detail: Create a receipt for a job
+     */
+    async createApexJobReceipt(id, data) {
+        return this.request(`/apex-jobs/${id}/receipts`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Update a receipt
+     */
+    async updateApexJobReceipt(id, receiptId, data) {
+        return this.request(`/apex-jobs/${id}/receipts/${receiptId}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Delete a receipt
+     */
+    async deleteApexJobReceipt(id, receiptId) {
+        return this.request(`/apex-jobs/${id}/receipts/${receiptId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * Apex Job Detail: Get all work orders for a job
+     */
+    async getApexJobWorkOrders(id) {
+        return this.request(`/apex-jobs/${id}/work-orders`);
+    },
+
+    /**
+     * Apex Job Detail: Create a work order for a job
+     */
+    async createApexJobWorkOrder(id, data) {
+        return this.request(`/apex-jobs/${id}/work-orders`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Update a work order
+     */
+    async updateApexJobWorkOrder(id, woId, data) {
+        return this.request(`/apex-jobs/${id}/work-orders/${woId}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Delete a work order
+     */
+    async deleteApexJobWorkOrder(id, woId) {
+        return this.request(`/apex-jobs/${id}/work-orders/${woId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * Apex Job Detail: Get activity log for a job
+     */
+    async getApexJobActivity(id, params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const qs = query ? `?${query}` : '';
+        return this.request(`/apex-jobs/${id}/activity${qs}`);
+    },
+
+    /**
+     * Apex Job Detail: Get accounting summary for a job
+     */
+    async getApexJobAccounting(id) {
+        return this.request(`/apex-jobs/${id}/accounting`);
+    },
+
+    /**
+     * Apex Job Detail: Assign a contact to a job
+     */
+    async assignApexJobContact(id, data) {
+        return this.request(`/apex-jobs/${id}/contacts`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Job Detail: Remove a contact from a job
+     */
+    async removeApexJobContact(id, contactId) {
+        return this.request(`/apex-jobs/${id}/contacts/${contactId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * Apex Job Detail: Toggle ready-to-invoice flag
+     */
+    async toggleApexJobInvoice(id, ready) {
+        return this.request(`/apex-jobs/${id}/ready-to-invoice`, {
+            method: 'PATCH',
+            body: { ready },
+        });
+    },
 };
 
 // Make available globally

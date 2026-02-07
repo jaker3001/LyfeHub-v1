@@ -290,6 +290,866 @@ function getJobStats(userId) {
   return stats;
 }
 
+// ============================================
+// ACTIVITY LOG
+// ============================================
+
+/**
+ * Log an activity entry (internal, no ownership check)
+ */
+function logActivity(jobId, data) {
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_activity (
+      id, job_id, event_type, description, entity_type, entity_id,
+      old_value, new_value, amount, actor_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, jobId,
+    data.event_type || 'note',
+    data.description || '',
+    data.entity_type || '',
+    data.entity_id || '',
+    data.old_value || '',
+    data.new_value || '',
+    data.amount ?? null,
+    data.actor_id || ''
+  );
+  return id;
+}
+
+/**
+ * Get activity log for a job with optional type filter and pagination
+ */
+function getActivityByJob(jobId, userId, options = {}) {
+  // Verify ownership
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  const params = [jobId];
+  let where = 'WHERE job_id = ?';
+
+  if (options.type) {
+    where += ' AND event_type = ?';
+    params.push(options.type);
+  }
+
+  const limit = options.limit || 50;
+  const offset = options.offset || 0;
+  params.push(limit, offset);
+
+  return db.prepare(
+    `SELECT * FROM apex_job_activity ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  ).all(...params);
+}
+
+// ============================================
+// NOTES
+// ============================================
+
+function createNote(jobId, data, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_notes (id, job_id, phase_id, subject, note_type, content, author_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, jobId,
+    data.phase_id || null,
+    data.subject || '',
+    data.note_type || 'general',
+    data.content || '',
+    data.author_id || userId
+  );
+
+  logActivity(jobId, {
+    event_type: 'note',
+    description: `Note added: ${data.subject || 'Untitled'}`,
+    entity_type: 'note',
+    entity_id: id,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_notes WHERE id = ?').get(id);
+}
+
+function getNotesByJob(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  return db.prepare(
+    'SELECT * FROM apex_job_notes WHERE job_id = ? ORDER BY created_at DESC'
+  ).all(jobId);
+}
+
+function deleteNote(noteId, userId) {
+  const note = db.prepare(`
+    SELECT n.* FROM apex_job_notes n
+    JOIN apex_jobs j ON n.job_id = j.id
+    WHERE n.id = ? AND j.user_id = ?
+  `).get(noteId, userId);
+  if (!note) return false;
+
+  db.prepare('DELETE FROM apex_job_notes WHERE id = ?').run(noteId);
+
+  logActivity(note.job_id, {
+    event_type: 'note',
+    description: `Note deleted: ${note.subject || 'Untitled'}`,
+    entity_type: 'note',
+    entity_id: noteId,
+    actor_id: userId
+  });
+
+  return true;
+}
+
+// ============================================
+// ESTIMATES
+// ============================================
+
+function createEstimate(jobId, data, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  // Auto-version: count existing estimates of same type for this job
+  const existing = db.prepare(
+    'SELECT COUNT(*) as cnt FROM apex_job_estimates WHERE job_id = ? AND estimate_type = ?'
+  ).get(jobId, data.estimate_type || 'mitigation');
+  const version = (existing.cnt || 0) + 1;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_estimates (
+      id, job_id, phase_id, estimate_type, version, amount, original_amount,
+      status, submitted_date, approved_date, file_path, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, jobId,
+    data.phase_id || null,
+    data.estimate_type || 'mitigation',
+    version,
+    data.amount || 0,
+    data.original_amount || data.amount || 0,
+    data.status || 'draft',
+    data.submitted_date || null,
+    data.approved_date || null,
+    data.file_path || '',
+    data.notes || ''
+  );
+
+  logActivity(jobId, {
+    event_type: 'estimate',
+    description: `Estimate created: ${data.estimate_type || 'mitigation'} v${version}`,
+    entity_type: 'estimate',
+    entity_id: id,
+    amount: data.amount || 0,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_estimates WHERE id = ?').get(id);
+}
+
+function getEstimatesByJob(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  return db.prepare(
+    'SELECT * FROM apex_job_estimates WHERE job_id = ? ORDER BY estimate_type, version ASC'
+  ).all(jobId);
+}
+
+function updateEstimate(estimateId, data, userId) {
+  const est = db.prepare(`
+    SELECT e.* FROM apex_job_estimates e
+    JOIN apex_jobs j ON e.job_id = j.id
+    WHERE e.id = ? AND j.user_id = ?
+  `).get(estimateId, userId);
+  if (!est) return null;
+
+  const allowedFields = ['amount', 'original_amount', 'status', 'submitted_date', 'approved_date', 'file_path', 'notes'];
+  const updates = [];
+  const values = [];
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      values.push(data[field]);
+    }
+  }
+
+  if (updates.length === 0) return est;
+  values.push(estimateId);
+
+  db.prepare(
+    `UPDATE apex_job_estimates SET ${updates.join(', ')} WHERE id = ?`
+  ).run(...values);
+
+  logActivity(est.job_id, {
+    event_type: 'estimate',
+    description: `Estimate updated: ${est.estimate_type} v${est.version}`,
+    entity_type: 'estimate',
+    entity_id: estimateId,
+    old_value: data.status ? est.status : '',
+    new_value: data.status || '',
+    amount: data.amount ?? est.amount,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_estimates WHERE id = ?').get(estimateId);
+}
+
+// ============================================
+// PAYMENTS
+// ============================================
+
+function createPayment(jobId, data, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_payments (
+      id, job_id, estimate_id, amount, payment_method, payment_type,
+      check_number, received_date, deposited_date, invoice_number, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, jobId,
+    data.estimate_id || null,
+    data.amount || 0,
+    data.payment_method || 'check',
+    data.payment_type || 'initial',
+    data.check_number || '',
+    data.received_date || null,
+    data.deposited_date || null,
+    data.invoice_number || '',
+    data.notes || ''
+  );
+
+  logActivity(jobId, {
+    event_type: 'payment',
+    description: `Payment received: $${(data.amount || 0).toFixed(2)} (${data.payment_type || 'initial'})`,
+    entity_type: 'payment',
+    entity_id: id,
+    amount: data.amount || 0,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_payments WHERE id = ?').get(id);
+}
+
+function getPaymentsByJob(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  return db.prepare(
+    'SELECT * FROM apex_job_payments WHERE job_id = ? ORDER BY received_date DESC, created_at DESC'
+  ).all(jobId);
+}
+
+// ============================================
+// LABOR
+// ============================================
+
+function createLaborEntry(jobId, data, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_labor (
+      id, job_id, phase_id, employee_name, work_date, hours, hourly_rate,
+      work_category, description, billable
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, jobId,
+    data.phase_id || null,
+    data.employee_name || '',
+    data.work_date || null,
+    data.hours || 0,
+    data.hourly_rate || 0,
+    data.work_category || 'other',
+    data.description || '',
+    data.billable !== undefined ? (data.billable ? 1 : 0) : 1
+  );
+
+  logActivity(jobId, {
+    event_type: 'labor',
+    description: `Labor logged: ${data.employee_name || 'Unknown'} - ${data.hours || 0}h`,
+    entity_type: 'labor',
+    entity_id: id,
+    amount: (data.hours || 0) * (data.hourly_rate || 0),
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_labor WHERE id = ?').get(id);
+}
+
+function getLaborByJob(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  return db.prepare(
+    'SELECT * FROM apex_job_labor WHERE job_id = ? ORDER BY work_date DESC, created_at DESC'
+  ).all(jobId);
+}
+
+function updateLaborEntry(entryId, data, userId) {
+  const entry = db.prepare(`
+    SELECT l.* FROM apex_job_labor l
+    JOIN apex_jobs j ON l.job_id = j.id
+    WHERE l.id = ? AND j.user_id = ?
+  `).get(entryId, userId);
+  if (!entry) return null;
+
+  const allowedFields = ['employee_name', 'work_date', 'hours', 'hourly_rate', 'work_category', 'description', 'billable', 'phase_id'];
+  const updates = [];
+  const values = [];
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      if (field === 'billable') {
+        values.push(data[field] ? 1 : 0);
+      } else {
+        values.push(data[field]);
+      }
+    }
+  }
+
+  if (updates.length === 0) return entry;
+  values.push(entryId);
+
+  db.prepare(
+    `UPDATE apex_job_labor SET ${updates.join(', ')} WHERE id = ?`
+  ).run(...values);
+
+  logActivity(entry.job_id, {
+    event_type: 'labor',
+    description: `Labor entry updated: ${data.employee_name || entry.employee_name}`,
+    entity_type: 'labor',
+    entity_id: entryId,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_labor WHERE id = ?').get(entryId);
+}
+
+function deleteLaborEntry(entryId, userId) {
+  const entry = db.prepare(`
+    SELECT l.* FROM apex_job_labor l
+    JOIN apex_jobs j ON l.job_id = j.id
+    WHERE l.id = ? AND j.user_id = ?
+  `).get(entryId, userId);
+  if (!entry) return false;
+
+  db.prepare('DELETE FROM apex_job_labor WHERE id = ?').run(entryId);
+
+  logActivity(entry.job_id, {
+    event_type: 'labor',
+    description: `Labor entry deleted: ${entry.employee_name} - ${entry.hours}h`,
+    entity_type: 'labor',
+    entity_id: entryId,
+    actor_id: userId
+  });
+
+  return true;
+}
+
+// ============================================
+// RECEIPTS
+// ============================================
+
+function createReceipt(jobId, data, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_receipts (
+      id, job_id, phase_id, amount, expense_category, description,
+      vendor, paid_by, reimbursable, expense_date, file_path
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, jobId,
+    data.phase_id || null,
+    data.amount || 0,
+    data.expense_category || 'materials',
+    data.description || '',
+    data.vendor || '',
+    data.paid_by || 'company_card',
+    data.reimbursable ? 1 : 0,
+    data.expense_date || null,
+    data.file_path || ''
+  );
+
+  logActivity(jobId, {
+    event_type: 'receipt',
+    description: `Receipt added: $${(data.amount || 0).toFixed(2)} - ${data.vendor || 'Unknown vendor'}`,
+    entity_type: 'receipt',
+    entity_id: id,
+    amount: data.amount || 0,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_receipts WHERE id = ?').get(id);
+}
+
+function getReceiptsByJob(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  return db.prepare(
+    'SELECT * FROM apex_job_receipts WHERE job_id = ? ORDER BY expense_date DESC, created_at DESC'
+  ).all(jobId);
+}
+
+function updateReceipt(receiptId, data, userId) {
+  const receipt = db.prepare(`
+    SELECT r.* FROM apex_job_receipts r
+    JOIN apex_jobs j ON r.job_id = j.id
+    WHERE r.id = ? AND j.user_id = ?
+  `).get(receiptId, userId);
+  if (!receipt) return null;
+
+  const allowedFields = ['amount', 'expense_category', 'description', 'vendor', 'paid_by', 'reimbursable', 'expense_date', 'file_path', 'phase_id'];
+  const updates = [];
+  const values = [];
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      if (field === 'reimbursable') {
+        values.push(data[field] ? 1 : 0);
+      } else {
+        values.push(data[field]);
+      }
+    }
+  }
+
+  if (updates.length === 0) return receipt;
+  values.push(receiptId);
+
+  db.prepare(
+    `UPDATE apex_job_receipts SET ${updates.join(', ')} WHERE id = ?`
+  ).run(...values);
+
+  logActivity(receipt.job_id, {
+    event_type: 'receipt',
+    description: `Receipt updated: ${data.vendor || receipt.vendor}`,
+    entity_type: 'receipt',
+    entity_id: receiptId,
+    amount: data.amount ?? receipt.amount,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_receipts WHERE id = ?').get(receiptId);
+}
+
+function deleteReceipt(receiptId, userId) {
+  const receipt = db.prepare(`
+    SELECT r.* FROM apex_job_receipts r
+    JOIN apex_jobs j ON r.job_id = j.id
+    WHERE r.id = ? AND j.user_id = ?
+  `).get(receiptId, userId);
+  if (!receipt) return false;
+
+  db.prepare('DELETE FROM apex_job_receipts WHERE id = ?').run(receiptId);
+
+  logActivity(receipt.job_id, {
+    event_type: 'receipt',
+    description: `Receipt deleted: $${receipt.amount} - ${receipt.vendor}`,
+    entity_type: 'receipt',
+    entity_id: receiptId,
+    actor_id: userId
+  });
+
+  return true;
+}
+
+// ============================================
+// WORK ORDERS
+// ============================================
+
+function createWorkOrder(jobId, data, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_work_orders (
+      id, job_id, phase_id, wo_number, title, description,
+      budget_amount, status, file_path
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, jobId,
+    data.phase_id || null,
+    data.wo_number || '',
+    data.title || '',
+    data.description || '',
+    data.budget_amount || 0,
+    data.status || 'draft',
+    data.file_path || ''
+  );
+
+  logActivity(jobId, {
+    event_type: 'work_order',
+    description: `Work order created: ${data.title || data.wo_number || 'Untitled'}`,
+    entity_type: 'work_order',
+    entity_id: id,
+    amount: data.budget_amount || 0,
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_work_orders WHERE id = ?').get(id);
+}
+
+function getWorkOrdersByJob(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  return db.prepare(
+    'SELECT * FROM apex_job_work_orders WHERE job_id = ? ORDER BY created_at DESC'
+  ).all(jobId);
+}
+
+function updateWorkOrder(woId, data, userId) {
+  const wo = db.prepare(`
+    SELECT w.* FROM apex_job_work_orders w
+    JOIN apex_jobs j ON w.job_id = j.id
+    WHERE w.id = ? AND j.user_id = ?
+  `).get(woId, userId);
+  if (!wo) return null;
+
+  const allowedFields = ['wo_number', 'title', 'description', 'budget_amount', 'status', 'file_path', 'phase_id'];
+  const updates = [];
+  const values = [];
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      values.push(data[field]);
+    }
+  }
+
+  if (updates.length === 0) return wo;
+  values.push(woId);
+
+  db.prepare(
+    `UPDATE apex_job_work_orders SET ${updates.join(', ')} WHERE id = ?`
+  ).run(...values);
+
+  logActivity(wo.job_id, {
+    event_type: 'work_order',
+    description: `Work order updated: ${data.title || wo.title}`,
+    entity_type: 'work_order',
+    entity_id: woId,
+    old_value: data.status ? wo.status : '',
+    new_value: data.status || '',
+    actor_id: userId
+  });
+
+  return db.prepare('SELECT * FROM apex_job_work_orders WHERE id = ?').get(woId);
+}
+
+function deleteWorkOrder(woId, userId) {
+  const wo = db.prepare(`
+    SELECT w.* FROM apex_job_work_orders w
+    JOIN apex_jobs j ON w.job_id = j.id
+    WHERE w.id = ? AND j.user_id = ?
+  `).get(woId, userId);
+  if (!wo) return false;
+
+  db.prepare('DELETE FROM apex_job_work_orders WHERE id = ?').run(woId);
+
+  logActivity(wo.job_id, {
+    event_type: 'work_order',
+    description: `Work order deleted: ${wo.title || wo.wo_number}`,
+    entity_type: 'work_order',
+    entity_id: woId,
+    actor_id: userId
+  });
+
+  return true;
+}
+
+// ============================================
+// CONTACTS (junction — assign contacts to jobs)
+// ============================================
+
+function assignContact(jobId, contactId, role, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  // Check if already assigned
+  const existing = db.prepare(
+    'SELECT id FROM apex_job_contacts WHERE job_id = ? AND contact_id = ?'
+  ).get(jobId, contactId);
+  if (existing) return existing;
+
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO apex_job_contacts (id, job_id, contact_id, role)
+    VALUES (?, ?, ?, ?)
+  `).run(id, jobId, contactId, role || '');
+
+  logActivity(jobId, {
+    event_type: 'status',
+    description: `Contact assigned with role: ${role || 'none'}`,
+    entity_type: 'contact',
+    entity_id: contactId,
+    actor_id: userId
+  });
+
+  return { id, job_id: jobId, contact_id: contactId, role: role || '' };
+}
+
+function removeContact(jobId, contactId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return false;
+
+  const result = db.prepare(
+    'DELETE FROM apex_job_contacts WHERE job_id = ? AND contact_id = ?'
+  ).run(jobId, contactId);
+
+  if (result.changes > 0) {
+    logActivity(jobId, {
+      event_type: 'status',
+      description: 'Contact removed from job',
+      entity_type: 'contact',
+      entity_id: contactId,
+      actor_id: userId
+    });
+  }
+
+  return result.changes > 0;
+}
+
+function getContactsByJob(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  return db.prepare(
+    'SELECT * FROM apex_job_contacts WHERE job_id = ? ORDER BY created_at ASC'
+  ).all(jobId);
+}
+
+// ============================================
+// ACCOUNTING SUMMARY
+// ============================================
+
+// Reverse map: code → long name (e.g. 'MIT' → 'mitigation')
+const REVERSE_TYPE_CODES = Object.fromEntries(
+  Object.entries(TYPE_CODES).map(([name, code]) => [code, name])
+);
+
+/**
+ * Compute accounting metrics for a job, optionally filtered by estimate_type and/or phase_id.
+ * @param {string} jobId
+ * @param {{ estimate_type?: string, phase_id?: string }} opts
+ */
+function computeMetrics(jobId, opts = {}) {
+  const { estimate_type, phase_id } = opts;
+
+  // Total estimates — sum only the LATEST version per estimate_type (dedup)
+  const estFilter = estimate_type ? 'AND e1.estimate_type = ?' : '';
+  const estParams = estimate_type ? [jobId, estimate_type] : [jobId];
+  const totalEstimatesRow = db.prepare(`
+    SELECT COALESCE(SUM(amount), 0) as total
+    FROM apex_job_estimates e1
+    WHERE e1.job_id = ?
+    ${estFilter}
+    AND e1.version = (
+      SELECT MAX(e2.version) FROM apex_job_estimates e2
+      WHERE e2.job_id = e1.job_id
+      AND COALESCE(e2.estimate_type, '') = COALESCE(e1.estimate_type, '')
+    )
+  `).get(...estParams);
+
+  // Approved estimates — same dedup but only approved (for GP calculation)
+  const approvedEstimatesRow = db.prepare(`
+    SELECT COALESCE(SUM(amount), 0) as total
+    FROM apex_job_estimates e1
+    WHERE e1.job_id = ?
+    AND e1.status = 'approved'
+    ${estFilter}
+    AND e1.version = (
+      SELECT MAX(e2.version) FROM apex_job_estimates e2
+      WHERE e2.job_id = e1.job_id
+      AND COALESCE(e2.estimate_type, '') = COALESCE(e1.estimate_type, '')
+    )
+  `).get(...estParams);
+
+  // Estimate count (latest versions only)
+  const estimateCountRow = db.prepare(`
+    SELECT COUNT(*) as cnt
+    FROM apex_job_estimates e1
+    WHERE e1.job_id = ?
+    ${estFilter}
+    AND e1.version = (
+      SELECT MAX(e2.version) FROM apex_job_estimates e2
+      WHERE e2.job_id = e1.job_id
+      AND COALESCE(e2.estimate_type, '') = COALESCE(e1.estimate_type, '')
+    )
+  `).get(...estParams);
+
+  // Payments — joined through estimates when filtered by type
+  let paymentsRow;
+  if (estimate_type) {
+    paymentsRow = db.prepare(`
+      SELECT COALESCE(SUM(p.amount), 0) as total
+      FROM apex_job_payments p
+      WHERE p.estimate_id IN (
+        SELECT id FROM apex_job_estimates WHERE job_id = ? AND estimate_type = ?
+      )
+    `).get(jobId, estimate_type);
+  } else {
+    paymentsRow = db.prepare(
+      'SELECT COALESCE(SUM(amount), 0) as total FROM apex_job_payments WHERE job_id = ?'
+    ).get(jobId);
+  }
+
+  // Labor cost (billable only)
+  const laborFilter = phase_id ? 'AND phase_id = ?' : '';
+  const laborParams = phase_id ? [jobId, phase_id] : [jobId];
+  const laborRow = db.prepare(`
+    SELECT COALESCE(SUM(hours * hourly_rate), 0) as total
+    FROM apex_job_labor WHERE job_id = ? AND billable = 1 ${laborFilter}
+  `).get(...laborParams);
+
+  // Materials/receipts cost
+  const receiptsFilter = phase_id ? 'AND phase_id = ?' : '';
+  const receiptsParams = phase_id ? [jobId, phase_id] : [jobId];
+  const receiptsRow = db.prepare(`
+    SELECT COALESCE(SUM(amount), 0) as total
+    FROM apex_job_receipts WHERE job_id = ? ${receiptsFilter}
+  `).get(...receiptsParams);
+
+  // Work order budget
+  const woFilter = phase_id ? 'AND phase_id = ?' : '';
+  const woParams = phase_id ? [jobId, phase_id] : [jobId];
+  const workOrdersRow = db.prepare(`
+    SELECT COALESCE(SUM(budget_amount), 0) as total
+    FROM apex_job_work_orders WHERE job_id = ? AND status != 'cancelled' ${woFilter}
+  `).get(...woParams);
+
+  const totalEstimates = totalEstimatesRow.total;
+  const approvedEstimates = approvedEstimatesRow.total;
+  const totalPaid = paymentsRow.total;
+  const laborCost = laborRow.total;
+  const materialsCost = receiptsRow.total;
+  const totalCost = laborCost + materialsCost;
+  const workOrderBudget = workOrdersRow.total;
+  const grossProfit = approvedEstimates - totalCost;
+  const gpMargin = approvedEstimates > 0 ? (grossProfit / approvedEstimates) * 100 : 0;
+
+  return {
+    total_estimates: totalEstimates,
+    approved_estimates: approvedEstimates,
+    total_paid: totalPaid,
+    balance_due: totalEstimates - totalPaid,
+    labor_cost: laborCost,
+    materials_cost: materialsCost,
+    total_cost: totalCost,
+    work_order_budget: workOrderBudget,
+    gross_profit: grossProfit,
+    gp_margin: Math.round(gpMargin * 100) / 100,
+    estimate_count: estimateCountRow.cnt
+  };
+}
+
+function getAccountingSummary(jobId, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  // Get all phases for this job
+  const phases = db.prepare(
+    'SELECT * FROM apex_job_phases WHERE job_id = ? ORDER BY created_at ASC'
+  ).all(jobId);
+
+  // All-phases metrics (unfiltered)
+  const all = computeMetrics(jobId);
+
+  // Per-phase metrics keyed by long type name
+  const by_type = {};
+  for (const phase of phases) {
+    const typeName = REVERSE_TYPE_CODES[phase.job_type_code] || phase.job_type;
+    by_type[typeName] = computeMetrics(jobId, {
+      estimate_type: typeName,
+      phase_id: phase.id
+    });
+  }
+
+  return { all, by_type };
+}
+
+// ============================================
+// DATES
+// ============================================
+
+function updateJobDates(jobId, dates, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  const allowedDateFields = [
+    'contacted_date', 'inspection_date', 'work_auth_date',
+    'start_date', 'cos_date', 'completion_date'
+  ];
+
+  const updates = [];
+  const values = [];
+
+  for (const field of allowedDateFields) {
+    if (dates[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      values.push(dates[field]);
+    }
+  }
+
+  if (updates.length === 0) return getJobById(jobId, userId);
+
+  updates.push("updated_at = datetime('now')");
+  values.push(jobId, userId);
+
+  db.prepare(
+    `UPDATE apex_jobs SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`
+  ).run(...values);
+
+  logActivity(jobId, {
+    event_type: 'status',
+    description: `Milestone dates updated: ${Object.keys(dates).filter(k => allowedDateFields.includes(k)).join(', ')}`,
+    entity_type: 'job',
+    entity_id: jobId,
+    actor_id: userId
+  });
+
+  return getJobById(jobId, userId);
+}
+
+// ============================================
+// READY TO INVOICE
+// ============================================
+
+function toggleReadyToInvoice(jobId, ready, userId) {
+  const job = db.prepare('SELECT id FROM apex_jobs WHERE id = ? AND user_id = ?').get(jobId, userId);
+  if (!job) return null;
+
+  db.prepare(
+    "UPDATE apex_jobs SET ready_to_invoice = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?"
+  ).run(ready ? 1 : 0, jobId, userId);
+
+  logActivity(jobId, {
+    event_type: 'status',
+    description: `Invoice status: ${ready ? 'Ready to invoice' : 'Not ready to invoice'}`,
+    entity_type: 'job',
+    entity_id: jobId,
+    actor_id: userId
+  });
+
+  return getJobById(jobId, userId);
+}
+
 module.exports = {
   TYPE_CODES,
   generateJobNumber,
@@ -299,5 +1159,44 @@ module.exports = {
   updateJob,
   updatePhase,
   archiveJob,
-  getJobStats
+  getJobStats,
+  // Activity
+  logActivity,
+  getActivityByJob,
+  // Notes
+  createNote,
+  getNotesByJob,
+  deleteNote,
+  // Estimates
+  createEstimate,
+  getEstimatesByJob,
+  updateEstimate,
+  // Payments
+  createPayment,
+  getPaymentsByJob,
+  // Labor
+  createLaborEntry,
+  getLaborByJob,
+  updateLaborEntry,
+  deleteLaborEntry,
+  // Receipts
+  createReceipt,
+  getReceiptsByJob,
+  updateReceipt,
+  deleteReceipt,
+  // Work Orders
+  createWorkOrder,
+  getWorkOrdersByJob,
+  updateWorkOrder,
+  deleteWorkOrder,
+  // Contacts
+  assignContact,
+  removeContact,
+  getContactsByJob,
+  // Accounting
+  getAccountingSummary,
+  // Dates
+  updateJobDates,
+  // Invoice
+  toggleReadyToInvoice
 };
