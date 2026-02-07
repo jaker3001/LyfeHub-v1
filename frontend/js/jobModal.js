@@ -283,17 +283,40 @@ const jobModal = {
     collectFormData() {
         const formData = new FormData(this.form);
         const data = {};
-        
+
+        // Handle multi-select fields: FormData emits duplicate keys
+        // for <select multiple>, so accumulate them into arrays
         for (const [key, value] of formData.entries()) {
-            data[key] = value;
+            if (key === "contact_search") continue; // Skip UI-only field
+            if (data[key] !== undefined) {
+                if (!Array.isArray(data[key])) {
+                    data[key] = [data[key]];
+                }
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
         }
-        
+
+        // Ensure assignment fields are always arrays
+        const multiFields = ["mitigation_pm", "reconstruction_pm", "estimator", "project_coordinator", "mitigation_techs"];
+        multiFields.forEach(f => {
+            if (data[f] && !Array.isArray(data[f])) {
+                data[f] = [data[f]];
+            } else if (!data[f]) {
+                data[f] = [];
+            }
+        });
+
+        // Explicit urgent checkbox handling
+        data.urgent = !!document.getElementById("job-urgent")?.checked;
+
         // Add same_as_client flag
         data.same_as_client = this.isSameAsClient;
-        
+
         // Add job types
         data.job_types = Array.from(this.selectedJobTypes);
-        
+
         return data;
     },
 
