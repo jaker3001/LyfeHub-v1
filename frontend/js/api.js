@@ -374,6 +374,73 @@ const api = {
             method: 'DELETE',
         });
     },
+
+    // ========================================
+    // APEX JOBS
+    // ========================================
+
+    /**
+     * Apex Jobs: Get all jobs
+     */
+    async getApexJobs() {
+        return this.request('/apex-jobs');
+    },
+
+    /**
+     * Apex Jobs: Get single job by ID
+     */
+    async getApexJob(id) {
+        return this.request(`/apex-jobs/${id}`);
+    },
+
+    /**
+     * Apex Jobs: Create new job
+     */
+    async createApexJob(data) {
+        return this.request('/apex-jobs', {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Jobs: Update existing job
+     */
+    async updateApexJob(id, data) {
+        return this.request(`/apex-jobs/${id}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Jobs: Update job status
+     */
+    async updateApexJobStatus(id, status) {
+        return this.request(`/apex-jobs/${id}/status`, {
+            method: 'PATCH',
+            body: { status },
+        });
+    },
+
+    /**
+     * Apex Jobs: Update a phase within a job
+     */
+    async updateApexJobPhase(jobId, phaseId, data) {
+        return this.request(`/apex-jobs/${jobId}/phases/${phaseId}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
+
+    /**
+     * Apex Jobs: Archive (soft delete) a job
+     */
+    async archiveApexJob(id) {
+        return this.request(`/apex-jobs/${id}`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // Make available globally
