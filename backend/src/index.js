@@ -6,6 +6,7 @@ const path = require('path');
 // Initialize database (creates tables if not exist)
 require('./db/schema');
 require('./db/bases'); // Initialize bases tables
+require('./db/apexSchema'); // Initialize apex jobs tables
 
 // Import routes
 const authRoutes = require('./routes/auth');
