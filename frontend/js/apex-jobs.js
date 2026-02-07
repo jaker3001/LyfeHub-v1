@@ -104,13 +104,12 @@ const apexJobs = {
         if (indicator) indicator.classList.add('spinning');
 
         try {
-            const response = await fetch('/api/apex-jobs');
-            const data = await response.json();
-            
+            const data = await api.getApexJobs();
+
             this.jobs = data.projects || [];
             this.stats = data.stats || {};
             this.syncedAt = data.syncedAt;
-            
+
             this.updateSyncInfo();
             this.populateFilters();
             this.renderCurrentView();
@@ -234,14 +233,20 @@ const apexJobs = {
         const taskTotal = job.taskSummary?.total || job.tasks?.length || 0;
         const taskComplete = job.taskSummary?.completed || job.tasks?.filter(t => t.completed).length || 0;
         const progress = taskTotal > 0 ? Math.round((taskComplete / taskTotal) * 100) : 0;
-        
+
         const lossTypeClass = (job.lossType || 'unknown').toLowerCase().replace(/\s+/g, '-');
-        
+
+        // Phase badges
+        const phaseBadges = (job.phases || []).map(p =>
+            `<span class="apex-phase-badge phase-${p.job_type_code.toLowerCase()}">${this.escapeHtml(p.job_type_code)}</span>`
+        ).join('');
+
         return `
             <div class="apex-job-card" data-id="${job.id}">
                 <div class="apex-job-header">
                     <span class="apex-job-title">${this.escapeHtml(job.name || 'Unnamed Job')}</span>
                 </div>
+                ${phaseBadges ? `<div class="apex-phase-badges">${phaseBadges}</div>` : ''}
                 <div class="apex-job-client">${this.escapeHtml(job.client?.name || job.clientName || '')}</div>
                 <div class="apex-job-meta">
                     <span class="apex-loss-badge loss-${lossTypeClass}">${this.escapeHtml(job.lossType || 'Unknown')}</span>
@@ -325,10 +330,17 @@ const apexJobs = {
             const taskTotal = job.taskSummary?.total || job.tasks?.length || 0;
             const taskComplete = job.taskSummary?.completed || 0;
             const lossTypeClass = (job.lossType || 'unknown').toLowerCase().replace(/\s+/g, '-');
-            
+
+            const phaseBadges = (job.phases || []).map(p =>
+                `<span class="apex-phase-badge phase-${p.job_type_code.toLowerCase()}">${this.escapeHtml(p.job_type_code)}</span>`
+            ).join('');
+
             return `
                 <tr data-id="${job.id}">
-                    <td class="title-cell">${this.escapeHtml(job.name || 'Unnamed')}</td>
+                    <td class="title-cell">
+                        ${this.escapeHtml(job.name || 'Unnamed')}
+                        ${phaseBadges ? `<div class="apex-phase-badges">${phaseBadges}</div>` : ''}
+                    </td>
                     <td>${this.escapeHtml(job.client?.name || job.clientName || '')}</td>
                     <td><span class="apex-loss-badge loss-${lossTypeClass}">${this.escapeHtml(job.lossType || '-')}</span></td>
                     <td>${taskComplete}/${taskTotal}</td>
@@ -381,9 +393,14 @@ const apexJobs = {
         const taskComplete = job.taskSummary?.completed || 0;
         const progress = taskTotal > 0 ? Math.round((taskComplete / taskTotal) * 100) : 0;
         const lossTypeClass = (job.lossType || 'unknown').toLowerCase().replace(/\s+/g, '-');
-        
+
         // Format address
         const address = job.client?.address?.replace(/\r?\n/g, ', ').replace(/,\s*,/g, ',') || '';
+
+        // Phase badges
+        const phaseBadges = (job.phases || []).map(p =>
+            `<span class="apex-phase-badge phase-${p.job_type_code.toLowerCase()}">${this.escapeHtml(p.job_type_code)}</span>`
+        ).join('');
 
         return `
             <div class="apex-project-card loss-border-${lossTypeClass}" data-id="${job.id}">
@@ -391,6 +408,7 @@ const apexJobs = {
                     <span class="apex-project-title">${this.escapeHtml(job.name || 'Unnamed Job')}</span>
                     <span class="apex-loss-badge loss-${lossTypeClass}">${this.escapeHtml(job.lossType || 'Unknown')}</span>
                 </div>
+                ${phaseBadges ? `<div class="apex-phase-badges">${phaseBadges}</div>` : ''}
                 <div class="apex-project-client">
                     <strong>${this.escapeHtml(job.client?.name || job.clientName || '')}</strong>
                     ${address ? `<div class="apex-address">${this.escapeHtml(address)}</div>` : ''}
@@ -416,59 +434,254 @@ const apexJobs = {
         const modal = document.getElementById('apex-job-modal');
         if (!modal) return;
 
-        // Populate modal content
         document.getElementById('apex-modal-title').textContent = job.name || 'Job Details';
         document.getElementById('apex-modal-status').textContent = this.formatStatus(job.status);
         document.getElementById('apex-modal-status').className = `apex-status-badge status-${job.status}`;
 
-        // Client info
-        document.getElementById('apex-client-name').textContent = job.client?.name || job.clientName || '-';
-        document.getElementById('apex-client-phone').textContent = this.formatPhone(job.client?.phone) || '-';
-        document.getElementById('apex-client-email').textContent = job.client?.email || '-';
-        document.getElementById('apex-client-address').textContent = (job.client?.address || '').replace(/\r?\n/g, ', ') || '-';
+        const body = modal.querySelector('.modal-body');
 
-        // Insurance info
-        document.getElementById('apex-insurance-carrier').textContent = job.insurance?.carrier || '-';
-        document.getElementById('apex-insurance-claim').textContent = job.insurance?.claimNumber || '-';
-        document.getElementById('apex-insurance-adjuster').textContent = job.insurance?.adjusterName || '-';
-        document.getElementById('apex-insurance-adjuster-email').textContent = job.insurance?.adjusterEmail || '-';
-
-        // Job details
-        document.getElementById('apex-detail-loss').textContent = job.lossType || '-';
-        document.getElementById('apex-detail-mit').textContent = job.jobNumbers?.mitigation || '-';
-        document.getElementById('apex-detail-repair').textContent = job.jobNumbers?.repair || '-';
-        document.getElementById('apex-detail-owner').textContent = job.owner?.name || '-';
-        document.getElementById('apex-detail-created').textContent = job.createdAt || '-';
-
-        // Tasks
-        this.renderTaskList(job.tasks || []);
+        if (job.phases && job.phases.length > 0) {
+            body.innerHTML = this.renderTabbedDetailView(job);
+            this.bindTabEvents(body);
+        } else {
+            body.innerHTML = this.renderLegacyDetailView(job);
+        }
 
         modal.classList.add('open');
     },
 
-    renderTaskList(tasks) {
-        // Update task count in section header
-        const taskSection = document.querySelector('#apex-job-modal .apex-modal-section:last-child .apex-section-title');
-        if (taskSection) {
-            const completed = tasks.filter(t => t.completed).length;
-            taskSection.innerHTML = `Tasks <span class="task-count">${completed}/${tasks.length}</span>`;
-        }
+    renderTabbedDetailView(job) {
+        const clientAddress = job.client?.address || [job.client_street, job.client_city, job.client_state, job.client_zip].filter(Boolean).join(', ') || '-';
 
-        const container = document.getElementById('apex-tasks-list');
-        if (!container) return;
+        // Shared info
+        const sharedInfo = `
+            <div class="apex-modal-section">
+                <h3 class="apex-section-title">Client Information</h3>
+                <div class="apex-detail-grid">
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Name</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.client?.name || job.clientName || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Phone</span>
+                        <span class="apex-detail-value">${this.formatPhone(job.client?.phone) || '-'}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Email</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.client?.email || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item full-width">
+                        <span class="apex-detail-label">Address</span>
+                        <span class="apex-detail-value">${this.escapeHtml(clientAddress)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="apex-modal-section">
+                <h3 class="apex-section-title">Insurance</h3>
+                <div class="apex-detail-grid">
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Carrier</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.carrier || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Claim #</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.claimNumber || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Adjuster</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.adjusterName || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Loss Type</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.lossType || '-')}</span>
+                    </div>
+                </div>
+            </div>
+        `;
 
+        // Phase tabs
+        const tabBar = `
+            <div class="apex-phase-tabs">
+                ${job.phases.map((phase, i) => `
+                    <button class="apex-phase-tab ${i === 0 ? 'active' : ''}" data-phase-idx="${i}">
+                        <span class="apex-phase-badge phase-${phase.job_type_code.toLowerCase()}">${this.escapeHtml(phase.job_type_code)}</span>
+                        <span class="phase-tab-number">${this.escapeHtml(phase.job_number)}</span>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+
+        // Phase panels
+        const panels = job.phases.map((phase, i) => `
+            <div class="apex-phase-panel ${i === 0 ? 'active' : ''}" data-phase-idx="${i}">
+                <div class="apex-phase-header">
+                    <span class="apex-phase-job-number">${this.escapeHtml(phase.job_number)}</span>
+                    <span class="apex-status-badge phase-status-${phase.phase_status || 'not_started'}">${this.formatPhaseStatus(phase.phase_status)}</span>
+                </div>
+
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Documents</h4>
+                    <div class="apex-empty-state">No documents yet</div>
+                </div>
+
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Photos</h4>
+                    <div class="apex-empty-state">No photos yet</div>
+                </div>
+
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Estimates</h4>
+                    <div class="apex-empty-state">No estimates yet</div>
+                </div>
+
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Payments</h4>
+                    <div class="apex-empty-state">No payments yet</div>
+                </div>
+
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Labor Log</h4>
+                    <div class="apex-empty-state">No labor entries yet</div>
+                </div>
+
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Materials</h4>
+                    <div class="apex-empty-state">No materials yet</div>
+                </div>
+
+                ${phase.job_type_code === 'MIT' ? `
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Drying Logs</h4>
+                    <div class="apex-empty-state">No drying log entries yet</div>
+                </div>
+                ` : ''}
+
+                <div class="apex-phase-section">
+                    <h4 class="apex-phase-section-title">Notes</h4>
+                    <div class="apex-empty-state">${this.escapeHtml(phase.notes) || 'No notes yet'}</div>
+                </div>
+            </div>
+        `).join('');
+
+        return sharedInfo + tabBar + panels;
+    },
+
+    renderLegacyDetailView(job) {
+        const clientAddress = (job.client?.address || '').replace(/\r?\n/g, ', ') || '-';
+        return `
+            <div class="apex-modal-section">
+                <h3 class="apex-section-title">Client Information</h3>
+                <div class="apex-detail-grid">
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Name</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.client?.name || job.clientName || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Phone</span>
+                        <span class="apex-detail-value">${this.formatPhone(job.client?.phone) || '-'}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Email</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.client?.email || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item full-width">
+                        <span class="apex-detail-label">Address</span>
+                        <span class="apex-detail-value">${this.escapeHtml(clientAddress)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="apex-modal-section">
+                <h3 class="apex-section-title">Insurance Information</h3>
+                <div class="apex-detail-grid">
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Carrier</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.carrier || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Claim #</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.claimNumber || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Adjuster</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.adjusterName || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Adjuster Email</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.insurance?.adjusterEmail || '-')}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="apex-modal-section">
+                <h3 class="apex-section-title">Job Details</h3>
+                <div class="apex-detail-grid">
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Loss Type</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.lossType || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Mitigation Job #</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.jobNumbers?.mitigation || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Repair Job #</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.jobNumbers?.repair || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Owner</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.owner?.name || '-')}</span>
+                    </div>
+                    <div class="apex-detail-item">
+                        <span class="apex-detail-label">Created</span>
+                        <span class="apex-detail-value">${this.escapeHtml(job.createdAt || '-')}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="apex-modal-section">
+                <h3 class="apex-section-title">Tasks</h3>
+                <div class="apex-tasks-container">
+                    ${this.renderTaskListHtml(job.tasks || [])}
+                </div>
+            </div>
+        `;
+    },
+
+    renderTaskListHtml(tasks) {
         if (tasks.length === 0) {
-            container.innerHTML = '<p class="no-tasks">No tasks found</p>';
-            return;
+            return '<p class="no-tasks">No tasks found</p>';
         }
-
-        container.innerHTML = tasks.map(task => `
+        return tasks.map(task => `
             <div class="apex-task-item ${task.completed ? 'completed' : ''}">
                 <span class="apex-task-check">${task.completed ? '✓' : '○'}</span>
                 <span class="apex-task-name">${this.escapeHtml(task.name)}</span>
                 ${task.assignees?.length ? `<span class="apex-task-assignees">${task.assignees.join(', ')}</span>` : ''}
             </div>
         `).join('');
+    },
+
+    bindTabEvents(container) {
+        container.querySelectorAll('.apex-phase-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const idx = tab.dataset.phaseIdx;
+                // Update active tab
+                container.querySelectorAll('.apex-phase-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // Update active panel
+                container.querySelectorAll('.apex-phase-panel').forEach(p => p.classList.remove('active'));
+                const panel = container.querySelector(`.apex-phase-panel[data-phase-idx="${idx}"]`);
+                if (panel) panel.classList.add('active');
+            });
+        });
+    },
+
+    formatPhaseStatus(status) {
+        const labels = {
+            'not_started': 'Not Started',
+            'in_progress': 'In Progress',
+            'pending_approval': 'Pending Approval',
+            'approved': 'Approved',
+            'complete': 'Complete'
+        };
+        return labels[status] || status || 'Not Started';
     },
 
     closeJobModal() {

@@ -899,5 +899,184 @@
     }
 }
 
+/* ========================================
+   Phase Badges
+   ======================================== */
+.apex-phase-badges {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.apex-phase-badge {
+    padding: 0.125rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+}
+
+.apex-phase-badge.phase-mit {
+    background: rgba(0, 170, 255, 0.2);
+    color: var(--neon-blue);
+    border: 1px solid rgba(0, 170, 255, 0.3);
+}
+
+.apex-phase-badge.phase-rpr {
+    background: rgba(5, 255, 161, 0.2);
+    color: var(--neon-green);
+    border: 1px solid rgba(5, 255, 161, 0.3);
+}
+
+.apex-phase-badge.phase-rmd {
+    background: rgba(191, 90, 242, 0.2);
+    color: var(--neon-purple);
+    border: 1px solid rgba(191, 90, 242, 0.3);
+}
+
+.apex-phase-badge.phase-abt {
+    background: rgba(255, 230, 109, 0.2);
+    color: var(--neon-yellow);
+    border: 1px solid rgba(255, 230, 109, 0.3);
+}
+
+.apex-phase-badge.phase-rem {
+    background: rgba(255, 107, 53, 0.2);
+    color: var(--neon-orange);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+/* ========================================
+   Phase Tabs (Detail Modal)
+   ======================================== */
+.apex-phase-tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--glass-border);
+    overflow-x: auto;
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem;
+}
+
+.apex-phase-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+}
+
+.apex-phase-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.apex-phase-tab.active {
+    color: var(--neon-cyan);
+    border-bottom-color: var(--neon-cyan);
+}
+
+.apex-phase-tab .phase-tab-number {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.apex-phase-panel {
+    display: none;
+    padding: 1.25rem 0;
+}
+
+.apex-phase-panel.active {
+    display: block;
+}
+
+.apex-phase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.apex-phase-job-number {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--neon-cyan);
+    font-family: monospace;
+}
+
+/* Phase status badges */
+.phase-status-not_started {
+    background: rgba(128, 128, 128, 0.15);
+    color: var(--text-muted);
+}
+
+.phase-status-in_progress {
+    background: rgba(5, 255, 161, 0.15);
+    color: var(--neon-green);
+}
+
+.phase-status-pending_approval {
+    background: rgba(255, 230, 109, 0.15);
+    color: var(--neon-yellow);
+}
+
+.phase-status-approved {
+    background: rgba(0, 170, 255, 0.15);
+    color: var(--neon-blue);
+}
+
+.phase-status-complete {
+    background: rgba(191, 90, 242, 0.15);
+    color: var(--neon-purple);
+}
+
+/* Phase sections within panels */
+.apex-phase-section {
+    margin-bottom: 1.25rem;
+}
+
+.apex-phase-section:last-child {
+    margin-bottom: 0;
+}
+
+.apex-phase-section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.apex-empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 1.5rem;
+    font-size: 0.85rem;
+    font-style: italic;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+/* Wider modal for tabbed view */
+#apex-job-modal .modal-content {
+    max-width: 900px;
+}
+
 /* =====================================================
    NEW JOB MODAL - Wide Grid Layout
