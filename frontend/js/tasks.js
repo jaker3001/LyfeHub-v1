@@ -975,15 +975,13 @@ const taskModal = {
 
     async toggleComplete(id) {
         try {
-        console.log("[TOGGLE] Starting toggle for id:", id);
             const response = await fetch(`/api/task-items/${id}/toggle`, {
                 method: 'POST',
                 credentials: 'include'
-            console.log("[TOGGLE] Fetch completed, response.ok:", response.ok);
             });
-            
+
             if (!response.ok) throw new Error('Failed to toggle task');
-            
+
             this.loadTasks();
             this.loadCounts();
         } catch (err) {
