@@ -2779,12 +2779,26 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       const hasUrl = !isPending && file.url;
       const fileUrl = hasUrl ? `/api${file.url}` : '';
       const mimeType = file.type || '';
-      const isViewable = mimeType.startsWith('image/') || mimeType === 'application/pdf';
+      const isImage = mimeType.startsWith('image/');
+      const isViewable = isImage || mimeType === 'application/pdf';
+      
+      // Determine what to show: thumbnail for images, icon for others
+      let iconHtml;
+      if (isImage && hasUrl) {
+        // Uploaded image - show thumbnail with the file URL
+        iconHtml = `<img src="${escapeHtml(fileUrl)}" class="file-thumbnail" alt="${escapeHtml(fileName)}" />`;
+      } else if (isImage && isPending) {
+        // Pending image - placeholder that will be replaced with FileReader preview
+        iconHtml = `<span class="file-icon file-thumbnail-placeholder" data-file-index="${index}">${fileIcon}</span>`;
+      } else {
+        // Non-image file - show icon
+        iconHtml = `<span class="file-icon">${fileIcon}</span>`;
+      }
       
       return `
         <div class="file-item ${isPending ? 'pending' : ''}" data-index="${index}" data-pending="${isPending}">
           <div class="file-item-info">
-            <span class="file-icon">${fileIcon}</span>
+            ${iconHtml}
             <div class="file-details">
               ${hasUrl 
                 ? `<span class="file-name clickable" data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}" title="Click to ${isViewable ? 'view' : 'download'}">${escapeHtml(fileName)}</span>`
@@ -2800,6 +2814,25 @@ function showFileUploadModal(cell, prop, record, currentValue) {
         </div>
       `;
     }).join('');
+    
+    // Generate thumbnails for pending image files using FileReader
+    pendingFiles.forEach((file, pendingIdx) => {
+      if (file.type && file.type.startsWith('image/') && file.file) {
+        const actualIndex = files.length + pendingIdx;
+        const placeholder = fileList.querySelector(`.file-thumbnail-placeholder[data-file-index="${actualIndex}"]`);
+        if (placeholder) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'file-thumbnail';
+            img.alt = file.name;
+            placeholder.replaceWith(img);
+          };
+          reader.readAsDataURL(file.file);
+        }
+      }
+    });
     
     // Attach delete handlers
     fileList.querySelectorAll('.delete-file').forEach(btn => {

@@ -8853,6 +8853,22 @@ body.column-dragging .base-table {
   flex-shrink: 0;
 }
 
+.file-thumbnail {
+  max-width: 40px;
+  max-height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.file-thumbnail-placeholder {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .file-details {
   display: flex;
   flex-direction: column;
