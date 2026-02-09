@@ -50,6 +50,7 @@ function createPerson(data, userId) {
       date_met, how_relationship_evolved, past_conflicts,
       gift_ideas, favorite_things, allergies_dislikes,
       relationship_goals, how_i_can_support, how_they_support_me,
+      organization_id,
       created_at, updated_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
@@ -65,6 +66,7 @@ function createPerson(data, userId) {
       ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?,
+      ?,
       ?, ?
     )
   `);
@@ -128,6 +130,7 @@ function createPerson(data, userId) {
     data.relationship_goals || '',
     data.how_i_can_support || '',
     data.how_they_support_me || '',
+    data.organization_id || null,
     now, now
   );
 
@@ -202,6 +205,7 @@ function updatePerson(id, data, userId) {
       relationship_goals = ?,
       how_i_can_support = ?,
       how_they_support_me = ?,
+      organization_id = ?,
       updated_at = ?
     WHERE id = ? AND user_id = ?
   `);
@@ -272,6 +276,7 @@ function updatePerson(id, data, userId) {
     val('relationship_goals'),
     val('how_i_can_support'),
     val('how_they_support_me'),
+    data.organization_id !== undefined ? data.organization_id : existing.organization_id,
     now,
     id, userId
   );
