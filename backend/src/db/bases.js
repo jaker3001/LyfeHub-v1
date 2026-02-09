@@ -826,7 +826,20 @@ module.exports = {
   // Views
   getViewsByBase: (baseId, userId) => getViewsByBase.all(baseId, userId),
   getViewById: (id) => getViewById.get(id),
-  insertView: (id, baseId, userId, name, config, position) => insertView.run(id, baseId, userId, name, JSON.stringify(config), position),
+  insertView: (id, baseId, userId, name, config, position) => {
+    // Core bases (e.g., 'core-notes') aren't in the bases table, so we need to
+    // temporarily disable foreign key checks for them
+    if (baseId.startsWith('core-')) {
+      db.exec('PRAGMA foreign_keys = OFF');
+      try {
+        insertView.run(id, baseId, userId, name, JSON.stringify(config), position);
+      } finally {
+        db.exec('PRAGMA foreign_keys = ON');
+      }
+    } else {
+      insertView.run(id, baseId, userId, name, JSON.stringify(config), position);
+    }
+  },
   updateView: (id, name, config, position) => updateView.run(name, JSON.stringify(config), position, id),
   deleteView: (id) => deleteView.run(id),
 
