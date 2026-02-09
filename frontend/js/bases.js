@@ -2700,10 +2700,120 @@ function attachRelationPillClickHandlers() {
 // File Upload Modal
 // ============================================
 
+// Constants for file upload
+const LARGE_FILE_WARNING_SIZE = 100 * 1024 * 1024; // 100MB - warn about large files
+const UPLOAD_TIMEOUT_MS = 120000; // 2 minutes timeout
+
+// Upload status enum
+const UploadStatus = {
+  PENDING: 'pending',
+  UPLOADING: 'uploading',
+  SUCCESS: 'success',
+  ERROR: 'error'
+};
+
+// Classify error types for better messaging
+function classifyUploadError(error, response = null) {
+  // Check for network/offline errors
+  if (!navigator.onLine) {
+    return {
+      type: 'network',
+      title: 'No Internet Connection',
+      message: 'Please check your internet connection and try again.',
+      icon: '📡',
+      canRetry: true
+    };
+  }
+  
+  if (error.name === 'TypeError' && error.message.includes('fetch')) {
+    return {
+      type: 'network',
+      title: 'Network Error',
+      message: 'Could not connect to the server. Please check your connection.',
+      icon: '🌐',
+      canRetry: true
+    };
+  }
+  
+  if (error.name === 'AbortError' || error.message.includes('timeout')) {
+    return {
+      type: 'timeout',
+      title: 'Upload Timed Out',
+      message: 'The upload took too long. Try uploading smaller files or check your connection.',
+      icon: '⏱️',
+      canRetry: true
+    };
+  }
+  
+  // Check for server errors based on status code
+  if (response) {
+    if (response.status >= 500) {
+      return {
+        type: 'server',
+        title: 'Server Error',
+        message: `The server encountered an error (${response.status}). Please try again later.`,
+        icon: '🖥️',
+        canRetry: true
+      };
+    }
+    
+    if (response.status === 413) {
+      return {
+        type: 'size',
+        title: 'File Too Large',
+        message: 'The file(s) exceed the maximum allowed size.',
+        icon: '📦',
+        canRetry: false
+      };
+    }
+    
+    if (response.status === 415 || (error.message && error.message.includes('not allowed'))) {
+      return {
+        type: 'filetype',
+        title: 'File Type Not Allowed',
+        message: error.message || 'This file type is not supported for upload.',
+        icon: '🚫',
+        canRetry: false
+      };
+    }
+    
+    if (response.status === 401 || response.status === 403) {
+      return {
+        type: 'auth',
+        title: 'Authentication Error',
+        message: 'Your session may have expired. Please refresh the page and try again.',
+        icon: '🔒',
+        canRetry: false
+      };
+    }
+  }
+  
+  // Check error message for file type issues
+  if (error.message && error.message.includes('not allowed')) {
+    return {
+      type: 'filetype',
+      title: 'File Type Not Allowed',
+      message: error.message,
+      icon: '🚫',
+      canRetry: false
+    };
+  }
+  
+  // Generic error
+  return {
+    type: 'unknown',
+    title: 'Upload Failed',
+    message: error.message || 'An unexpected error occurred. Please try again.',
+    icon: '⚠️',
+    canRetry: true
+  };
+}
+
 function showFileUploadModal(cell, prop, record, currentValue) {
   const files = Array.isArray(currentValue) ? [...currentValue] : [];
-  let pendingFiles = []; // Files waiting to be uploaded
+  let pendingFiles = []; // Files waiting to be uploaded: { name, size, type, file, status, error }
   let isUploading = false;
+  let hasErrors = false; // Track if any files have errors
   
   // Create modal
   const modal = document.createElement('div');
@@ -2730,6 +2840,8 @@ function showFileUploadModal(cell, prop, record, currentValue) {
             <span>Drop files to upload</span>
           </div>
         </div>
+        
+        <div class="upload-status-banner" id="upload-status-banner" style="display: none;"></div>
         
         <div class="upload-progress" id="upload-progress" style="display: none;">
           <div class="upload-progress-bar">
@@ -2760,11 +2872,56 @@ function showFileUploadModal(cell, prop, record, currentValue) {
   const fileList = modal.querySelector('#file-list');
   const fileCount = modal.querySelector('#file-count');
   const uploadProgress = modal.querySelector('#upload-progress');
+  const statusBanner = modal.querySelector('#upload-status-banner');
+  
+  // Show a status banner (for warnings, errors)
+  function showStatusBanner(type, message, showRetryAll = false) {
+    const icons = { warning: '⚠️', error: '❌', success: '✅', info: 'ℹ️' };
+    statusBanner.className = `upload-status-banner ${type}`;
+    statusBanner.innerHTML = `
+      <span class="status-icon">${icons[type] || 'ℹ️'}</span>
+      <span class="status-message">${escapeHtml(message)}</span>
+      ${showRetryAll ? '<button class="btn btn-small btn-secondary retry-all-btn">Retry All Failed</button>' : ''}
+    `;
+    statusBanner.style.display = 'flex';
+    
+    if (showRetryAll) {
+      statusBanner.querySelector('.retry-all-btn').addEventListener('click', retryAllFailed);
+    }
+  }
+  
+  function hideStatusBanner() {
+    statusBanner.style.display = 'none';
+  }
+  
+  // Retry all failed files
+  function retryAllFailed() {
+    const failedFiles = pendingFiles.filter(f => f.status === UploadStatus.ERROR && f.file);
+    if (failedFiles.length > 0) {
+      // Reset their status
+      failedFiles.forEach(f => {
+        f.status = UploadStatus.PENDING;
+        f.error = null;
+      });
+      hideStatusBanner();
+      renderFileList();
+      uploadPendingFiles();
+    }
+  }
   
   // Render current files
   function renderFileList() {
-    const allFiles = [...files, ...pendingFiles.map(f => ({ ...f, pending: true }))];
-    fileCount.textContent = `(${allFiles.length})`;
+    const allFiles = [...files, ...pendingFiles];
+    const successCount = files.length + pendingFiles.filter(f => f.status === UploadStatus.SUCCESS).length;
+    const pendingCount = pendingFiles.filter(f => f.status === UploadStatus.PENDING || f.status === UploadStatus.UPLOADING).length;
+    const errorCount = pendingFiles.filter(f => f.status === UploadStatus.ERROR).length;
+    
+    // Update count with status indicators
+    let countText = `(${successCount}`;
+    if (pendingCount > 0) countText += ` + ${pendingCount} uploading`;
+    if (errorCount > 0) countText += ` · ${errorCount} failed`;
+    countText += ')';
+    fileCount.textContent = countText;
     
     if (allFiles.length === 0) {
       fileList.innerHTML = '<p class="no-files">No files attached</p>';
@@ -2772,45 +2929,94 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     }
     
     fileList.innerHTML = allFiles.map((file, index) => {
-      const isPending = file.pending;
+      const isPending = pendingFiles.includes(file);
+      const isUploaded = files.includes(file);
       const fileName = file.filename || file.name;
       const fileSize = formatFileSize(file.size);
       const fileIcon = getFileIcon(fileName);
-      const hasUrl = !isPending && file.url;
+      const hasUrl = isUploaded && file.url;
       const fileUrl = hasUrl ? `/api${file.url}` : '';
       const mimeType = file.type || '';
       const isImage = mimeType.startsWith('image/');
       const isViewable = isImage || mimeType === 'application/pdf';
       
+      // Check for large file warning
+      const isLargeFile = file.size && file.size > LARGE_FILE_WARNING_SIZE;
+      const sizeWarning = isLargeFile && isPending && file.status !== UploadStatus.SUCCESS;
+      
+      // Status-based classes
+      let statusClass = '';
+      let statusIndicator = '';
+      if (isPending) {
+        switch (file.status) {
+          case UploadStatus.UPLOADING:
+            statusClass = 'uploading';
+            statusIndicator = '<span class="file-status-indicator uploading">⏳</span>';
+            break;
+          case UploadStatus.ERROR:
+            statusClass = 'error';
+            statusIndicator = '<span class="file-status-indicator error">❌</span>';
+            break;
+          case UploadStatus.SUCCESS:
+            statusClass = 'success';
+            statusIndicator = '<span class="file-status-indicator success">✓</span>';
+            break;
+          default:
+            statusClass = 'pending';
+            statusIndicator = '<span class="file-status-indicator pending">⏸</span>';
+        }
+      }
+      
       // Determine what to show: thumbnail for images, icon for others
       let iconHtml;
       if (isImage && hasUrl) {
-        // Uploaded image - show thumbnail with the file URL
         iconHtml = `<img src="${escapeHtml(fileUrl)}" class="file-thumbnail" alt="${escapeHtml(fileName)}" />`;
       } else if (isImage && isPending) {
-        // Pending image - placeholder that will be replaced with FileReader preview
         iconHtml = `<span class="file-icon file-thumbnail-placeholder" data-file-index="${index}">${fileIcon}</span>`;
       } else {
-        // Non-image file - show icon
         iconHtml = `<span class="file-icon">${fileIcon}</span>`;
       }
       
+      // Error message row if there's an error
+      const errorRow = file.error ? `
+        <div class="file-error-row">
+          <span class="file-error-icon">${file.error.icon || '⚠️'}</span>
+          <span class="file-error-message">${escapeHtml(file.error.message)}</span>
+          ${file.error.canRetry ? `<button class="btn btn-small btn-secondary file-retry-btn" data-index="${index}">Retry</button>` : ''}
+        </div>
+      ` : '';
+      
+      // Size warning row
+      const warningRow = sizeWarning ? `
+        <div class="file-warning-row">
+          <span class="file-warning-icon">⚠️</span>
+          <span class="file-warning-message">Large file - upload may take a while</span>
+        </div>
+      ` : '';
+      
+      const pendingIndex = isPending ? pendingFiles.indexOf(file) : -1;
+      
       return `
-        <div class="file-item ${isPending ? 'pending' : ''}" data-index="${index}" data-pending="${isPending}">
-          <div class="file-item-info">
-            ${iconHtml}
-            <div class="file-details">
-              ${hasUrl 
-                ? `<span class="file-name clickable" data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}" title="Click to ${isViewable ? 'view' : 'download'}">${escapeHtml(fileName)}</span>`
-                : `<span class="file-name">${escapeHtml(fileName)}</span>`
-              }
-              <span class="file-size">${fileSize}</span>
+        <div class="file-item ${statusClass}" data-index="${index}" data-pending="${isPending}" data-pending-index="${pendingIndex}">
+          <div class="file-item-main">
+            <div class="file-item-info">
+              ${statusIndicator}
+              ${iconHtml}
+              <div class="file-details">
+                ${hasUrl 
+                  ? `<span class="file-name clickable" data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}" title="Click to ${isViewable ? 'view' : 'download'}">${escapeHtml(fileName)}</span>`
+                  : `<span class="file-name">${escapeHtml(fileName)}</span>`
+                }
+                <span class="file-size">${fileSize}</span>
+              </div>
+            </div>
+            <div class="file-item-actions">
+              ${hasUrl ? `<button class="file-action view-file" data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}" title="${isViewable ? 'View' : 'Download'}">👁️</button>` : ''}
+              <button class="file-action delete-file" data-index="${index}" data-pending="${isPending}" data-pending-index="${pendingIndex}" title="Remove">×</button>
             </div>
           </div>
-          <div class="file-item-actions">
-            ${hasUrl ? `<button class="file-action view-file" data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}" title="${isViewable ? 'View' : 'Download'}">👁️</button>` : ''}
-            <button class="file-action delete-file" data-index="${index}" data-pending="${isPending}" title="Remove">×</button>
-          </div>
+          ${errorRow}
+          ${warningRow}
         </div>
       `;
     }).join('');
@@ -2834,19 +3040,38 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       }
     });
     
+    // Attach retry handlers for individual files
+    fileList.querySelectorAll('.file-retry-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index);
+        const pendingIdx = idx - files.length;
+        if (pendingIdx >= 0 && pendingIdx < pendingFiles.length) {
+          const file = pendingFiles[pendingIdx];
+          if (file.file) {
+            file.status = UploadStatus.PENDING;
+            file.error = null;
+            renderFileList();
+            await uploadSingleFile(file, pendingIdx);
+          }
+        }
+      });
+    });
+    
     // Attach delete handlers
     fileList.querySelectorAll('.delete-file').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const idx = parseInt(btn.dataset.index);
         const isPending = btn.dataset.pending === 'true';
+        const pendingIdx = parseInt(btn.dataset.pendingIndex);
         
-        if (isPending) {
+        if (isPending && pendingIdx >= 0) {
           // Pending files haven't been uploaded yet, just remove from array
-          const pendingIdx = idx - files.length;
           pendingFiles.splice(pendingIdx, 1);
+          updateErrorState();
           renderFileList();
-        } else {
+        } else if (!isPending) {
           // Uploaded files - confirm and delete from server
           const file = files[idx];
           const fileName = file.filename || file.name || 'this file';
@@ -2910,6 +3135,21 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     });
   }
   
+  // Update error state and banner
+  function updateErrorState() {
+    const errorFiles = pendingFiles.filter(f => f.status === UploadStatus.ERROR);
+    hasErrors = errorFiles.length > 0;
+    
+    if (hasErrors) {
+      const message = errorFiles.length === 1 
+        ? '1 file failed to upload' 
+        : `${errorFiles.length} files failed to upload`;
+      showStatusBanner('error', message, true);
+    } else {
+      hideStatusBanner();
+    }
+  }
+  
   // Delete file from server
   async function deleteFileFromServer(filePath) {
     const response = await fetch('/api/uploads', {
@@ -2932,7 +3172,8 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     if (!bytes) return '';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   }
   
   // Get file icon based on extension
@@ -2960,100 +3201,152 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     
     const fileArray = Array.from(selectedFiles);
     
-    // Add files to pending list with metadata
+    // Check for large files and show warning
+    const largeFiles = fileArray.filter(f => f.size > LARGE_FILE_WARNING_SIZE);
+    if (largeFiles.length > 0) {
+      const totalSize = fileArray.reduce((sum, f) => sum + f.size, 0);
+      showStatusBanner('warning', `Large files detected (${formatFileSize(totalSize)} total) - upload may take a while`);
+    }
+    
+    // Add files to pending list with metadata and status
     for (const file of fileArray) {
       pendingFiles.push({
         name: file.name,
         size: file.size,
         type: file.type,
         file: file, // Keep the File object for upload
-        pending: true
+        status: UploadStatus.PENDING,
+        error: null
       });
     }
     
     renderFileList();
     
-    // Upload files (placeholder - T8 will implement actual upload)
-    await uploadFiles(fileArray);
+    // Upload files
+    await uploadPendingFiles();
   }
   
-  // Upload files to API
-  async function uploadFiles(filesToUpload) {
+  // Upload a single file
+  async function uploadSingleFile(fileObj, pendingIdx) {
+    if (!fileObj.file) return;
+    
+    fileObj.status = UploadStatus.UPLOADING;
+    renderFileList();
+    
+    // Check online status before upload
+    if (!navigator.onLine) {
+      fileObj.status = UploadStatus.ERROR;
+      fileObj.error = classifyUploadError(new Error('No internet connection'));
+      updateErrorState();
+      renderFileList();
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('files', fileObj.file);
+      
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+      
+      const response = await fetch('/api/uploads', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const error = new Error(errorData.error || `Upload failed (${response.status})`);
+        fileObj.status = UploadStatus.ERROR;
+        fileObj.error = classifyUploadError(error, response);
+        updateErrorState();
+        renderFileList();
+        return;
+      }
+      
+      const result = await response.json();
+      
+      // Success - move to files array
+      if (result.files && result.files.length > 0) {
+        const uploadedFile = result.files[0];
+        files.push({
+          id: uploadedFile.id,
+          filename: uploadedFile.originalName || uploadedFile.filename,
+          size: uploadedFile.size,
+          type: uploadedFile.mimeType,
+          url: uploadedFile.path,
+          path: uploadedFile.path,
+          uploaded_at: uploadedFile.uploadedAt
+        });
+        
+        // Remove from pending
+        const idx = pendingFiles.indexOf(fileObj);
+        if (idx !== -1) {
+          pendingFiles.splice(idx, 1);
+        }
+      }
+      
+      updateErrorState();
+      renderFileList();
+      
+    } catch (error) {
+      console.error('Upload failed for file:', fileObj.name, error);
+      fileObj.status = UploadStatus.ERROR;
+      fileObj.error = classifyUploadError(error);
+      updateErrorState();
+      renderFileList();
+    }
+  }
+  
+  // Upload all pending files
+  async function uploadPendingFiles() {
+    const filesToUpload = pendingFiles.filter(f => f.status === UploadStatus.PENDING && f.file);
     if (filesToUpload.length === 0) return;
     
     isUploading = true;
     uploadProgress.style.display = 'block';
     dropZone.classList.add('disabled');
     
-    // Clear any previous error
-    const existingError = modal.querySelector('.upload-error');
-    if (existingError) existingError.remove();
+    // Update progress text
+    const progressText = uploadProgress.querySelector('.upload-progress-text');
+    const progressFill = uploadProgress.querySelector('.upload-progress-fill');
     
-    try {
-      // Build FormData with files
-      const formData = new FormData();
-      for (const file of filesToUpload) {
-        formData.append('files', file);
-      }
+    let completed = 0;
+    const total = filesToUpload.length;
+    
+    // Upload files one by one to track individual progress
+    for (const fileObj of filesToUpload) {
+      const pendingIdx = pendingFiles.indexOf(fileObj);
+      progressText.textContent = `Uploading ${completed + 1} of ${total}...`;
+      progressFill.style.width = `${(completed / total) * 100}%`;
       
-      // Upload to API
-      const response = await fetch('/api/uploads', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'  // for cookie auth
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Upload failed (${response.status})`);
-      }
-      
-      const result = await response.json();
-      
-      // Add returned file metadata to files array
-      for (const uploadedFile of result.files) {
-        files.push({
-          id: uploadedFile.id,
-          filename: uploadedFile.originalName || uploadedFile.filename,
-          size: uploadedFile.size,
-          type: uploadedFile.mimeType,
-          url: uploadedFile.path,  // API returns path for download URL
-          uploaded_at: uploadedFile.uploadedAt
-        });
-      }
-      
-      // Clear pending files on success
-      pendingFiles = [];
-      
-    } catch (error) {
-      console.error('Upload failed:', error);
-      
-      // Show error message
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'upload-error';
-      errorDiv.innerHTML = `
-        <span class="error-icon">⚠️</span>
-        <span class="error-text">${escapeHtml(error.message)}</span>
-        <button class="error-retry btn btn-secondary btn-small">Retry</button>
-      `;
-      uploadProgress.insertAdjacentElement('afterend', errorDiv);
-      
-      // Retry button handler
-      errorDiv.querySelector('.error-retry').addEventListener('click', () => {
-        errorDiv.remove();
-        // Retry upload with the pending files
-        const retryFiles = pendingFiles.map(p => p.file).filter(Boolean);
-        if (retryFiles.length > 0) {
-          uploadFiles(retryFiles);
-        }
-      });
-      
-      // Keep pending files so user can retry
+      await uploadSingleFile(fileObj, pendingIdx);
+      completed++;
     }
+    
+    progressFill.style.width = '100%';
+    progressText.textContent = 'Complete!';
+    
+    // Brief delay to show completion
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     isUploading = false;
     uploadProgress.style.display = 'none';
     dropZone.classList.remove('disabled');
+    
+    // Show final status
+    const errorFiles = pendingFiles.filter(f => f.status === UploadStatus.ERROR);
+    if (errorFiles.length > 0) {
+      updateErrorState();
+    } else {
+      hideStatusBanner();
+    }
+    
     renderFileList();
   }
   
@@ -3103,21 +3396,36 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     }
   });
   
-  // Close modal handlers
-  const closeModal = () => {
+  // Close modal handler - prevent closing if there are errors
+  const closeModal = (force = false) => {
+    // Check if there are failed uploads
+    const hasFailedUploads = pendingFiles.some(f => f.status === UploadStatus.ERROR);
+    
+    if (hasFailedUploads && !force) {
+      const confirmClose = confirm('Some files failed to upload. Are you sure you want to close? Failed files will be lost.');
+      if (!confirmClose) return;
+    }
+    
     modal.remove();
     closeEditor();
   };
   
-  modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
-  modal.querySelector('.modal-close-corner').addEventListener('click', closeModal);
-  modal.querySelector('.modal-cancel').addEventListener('click', closeModal);
+  modal.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(false));
+  modal.querySelector('.modal-close-corner').addEventListener('click', () => closeModal(false));
+  modal.querySelector('.modal-cancel').addEventListener('click', () => closeModal(true)); // Cancel always closes
   
   // Save button
   modal.querySelector('#save-files-btn').addEventListener('click', async () => {
     if (isUploading) return;
     
-    // Update the record with the files array
+    // Check for pending uploads with errors
+    const failedFiles = pendingFiles.filter(f => f.status === UploadStatus.ERROR);
+    if (failedFiles.length > 0) {
+      const confirmSave = confirm(`${failedFiles.length} file(s) failed to upload. Save anyway? Failed files will not be included.`);
+      if (!confirmSave) return;
+    }
+    
+    // Update the record with the files array (only successfully uploaded files)
     const recordId = record.id;
     const propId = prop.id;
     

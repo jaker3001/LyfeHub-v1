@@ -8782,6 +8782,165 @@ body.column-dragging .base-table {
   font-size: 0.75rem;
 }
 
+/* Upload Status Banner */
+.upload-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.upload-status-banner.warning {
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+  color: #ffaa00;
+}
+
+.upload-status-banner.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.upload-status-banner.success {
+  background: rgba(5, 255, 161, 0.1);
+  border: 1px solid rgba(5, 255, 161, 0.3);
+  color: var(--neon-mint);
+}
+
+.upload-status-banner.info {
+  background: rgba(0, 170, 255, 0.1);
+  border: 1px solid rgba(0, 170, 255, 0.3);
+  color: var(--neon-cyan);
+}
+
+.upload-status-banner .status-icon {
+  flex-shrink: 0;
+}
+
+.upload-status-banner .status-message {
+  flex: 1;
+}
+
+.upload-status-banner .retry-all-btn {
+  flex-shrink: 0;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* File Status Indicators */
+.file-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.file-status-indicator.uploading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.file-status-indicator.error {
+  color: var(--danger);
+}
+
+.file-status-indicator.success {
+  color: var(--neon-mint);
+}
+
+.file-status-indicator.pending {
+  color: var(--text-muted);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* File Item States */
+.file-item.uploading {
+  border-color: rgba(191, 90, 242, 0.4);
+  background: rgba(191, 90, 242, 0.08);
+}
+
+.file-item.error {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.file-item.success {
+  border-color: rgba(5, 255, 161, 0.3);
+  background: rgba(5, 255, 161, 0.05);
+}
+
+/* File Item Layout for Error/Warning Rows */
+.file-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.file-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* File Error Row */
+.file-error-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(239, 68, 68, 0.2);
+  font-size: 0.75rem;
+}
+
+.file-error-icon {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+
+.file-error-message {
+  flex: 1;
+  color: var(--danger);
+}
+
+.file-retry-btn {
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem !important;
+  font-size: 0.7rem !important;
+}
+
+/* File Warning Row */
+.file-warning-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 170, 0, 0.2);
+  font-size: 0.75rem;
+}
+
+.file-warning-icon {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+
+.file-warning-message {
+  flex: 1;
+  color: #ffaa00;
+}
+
 /* File List Section */
 .file-list-section {
   margin-top: 0.5rem;
@@ -8838,6 +8997,10 @@ body.column-dragging .base-table {
 .file-item.pending {
   border-color: rgba(191, 90, 242, 0.3);
   background: rgba(191, 90, 242, 0.05);
+}
+
+.file-item.error:hover {
+  background: rgba(239, 68, 68, 0.12);
 }
 
 .file-item-info {
