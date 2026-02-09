@@ -463,7 +463,8 @@ The Notes base is your central hub for capturing and organizing all types of wri
       { id: 'favorite', name: 'Favorite', type: 'checkbox', position: 6, width: 100 },
       { id: 'archived', name: 'Archived', type: 'checkbox', position: 7, width: 100 },
       { id: 'tags', name: 'Tags', type: 'multi_select', position: 8, width: 200, options: [] },
-      { id: 'project_id', name: 'Project', type: 'text', position: 9, width: 150 }
+      { id: 'project_id', name: 'Project', type: 'text', position: 9, width: 150 },
+      { id: 'attachments', name: 'Attachments', type: 'files', position: 10, width: 200 }
     ]
   },
   'core-projects': {
@@ -833,7 +834,8 @@ function mapNoteToValues(note) {
     favorite: !!note.favorite,
     archived: !!note.archived,
     tags: safeJsonParse(note.tags, []),
-    project_id: note.project_id || ''
+    project_id: note.project_id || '',
+    attachments: safeJsonParse(note.attachments, [])
   };
 }
 
