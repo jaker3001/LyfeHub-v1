@@ -3334,21 +3334,30 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     let completed = 0;
     const total = filesToUpload.length;
     
+    // Use indeterminate animation style (full width with pulse)
+    progressFill.style.width = '100%';
+    progressFill.classList.add('indeterminate');
+    
     // Upload files one by one to track individual progress
     for (const fileObj of filesToUpload) {
       const pendingIdx = pendingFiles.indexOf(fileObj);
       progressText.textContent = `Uploading ${completed + 1} of ${total}...`;
-      progressFill.style.width = `${(completed / total) * 100}%`;
       
       await uploadSingleFile(fileObj, pendingIdx);
       completed++;
+      
+      // Update text for multi-file uploads
+      if (completed < total) {
+        progressText.textContent = `Uploading ${completed + 1} of ${total}...`;
+      }
     }
     
+    progressFill.classList.remove('indeterminate');
     progressFill.style.width = '100%';
     progressText.textContent = 'Complete!';
     
     // Brief delay to show completion
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     isUploading = false;
     uploadProgress.style.display = 'none';

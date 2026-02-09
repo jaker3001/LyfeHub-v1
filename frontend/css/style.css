@@ -8738,15 +8738,22 @@ body.column-dragging .base-table {
 
 .upload-progress-fill {
   height: 100%;
-  width: 100%;
+  width: 0%;
   background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
   border-radius: 2px;
-  animation: progress-pulse 1.5s ease-in-out infinite;
+  transition: width 0.3s ease;
 }
 
-@keyframes progress-pulse {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+.upload-progress-fill.indeterminate {
+  width: 100% !important;
+  background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan), var(--neon-purple));
+  background-size: 200% 100%;
+  animation: progress-slide 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 .upload-progress-text {
@@ -9215,7 +9222,17 @@ body.column-dragging .base-table {
   
   /* Upload progress */
   .upload-progress {
-    padding: 0.625rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .upload-progress-bar {
+    height: 8px;
+  }
+  
+  .upload-progress-text {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
   }
   
   /* Upload error */
