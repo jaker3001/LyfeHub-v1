@@ -20,6 +20,7 @@ const calendarsRoutes = require('./routes/calendars');
 const peopleRoutes = require('./routes/people');
 
 const apexJobsRoutes = require('./routes/apexJobs');
+const apiKeysRoutes = require('./routes/apiKeys');
 
 
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/calendars', calendarsRoutes);
 app.use('/api/people', peopleRoutes);
 
 app.use('/api/apex-jobs', apexJobsRoutes);
+app.use('/api/api-keys', apiKeysRoutes);
 
 
 // Health check endpoint
