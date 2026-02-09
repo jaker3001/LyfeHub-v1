@@ -78,6 +78,38 @@
         </div>
         
         <!-- Danger Zone -->
+        
+        <!-- API Keys -->
+        <div class="profile-card">
+            <h2>API Keys</h2>
+            <p class="text-muted" style="margin-bottom: 1rem;">Create API keys to connect external tools and agents.</p>
+            
+            <div id="api-keys-list" style="margin-bottom: 1rem;">
+                <p class="text-muted">Loading...</p>
+            </div>
+            
+            <div style="border-top: 1px solid #333; padding-top: 1rem; margin-top: 1rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Create New Key</h3>
+                <form id="create-key-form">
+                    <div class="form-group">
+                        <label for="key-name">Key Name</label>
+                        <input type="text" id="key-name" placeholder="e.g., My Agent" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="key-expires">Expires (optional)</label>
+                        <input type="date" id="key-expires">
+                    </div>
+                    <div id="key-error" class="auth-error"></div>
+                    <button type="submit" class="btn btn-primary">Generate Key</button>
+                </form>
+            </div>
+            
+            <div id="new-key-display" style="display: none; margin-top: 1rem; padding: 1rem; background: #1a1a2e; border-radius: 8px; border: 1px solid #00aaff;">
+                <p style="color: #00aaff; font-weight: bold; margin-bottom: 0.5rem;">⚠️ Copy this key now - it won't be shown again!</p>
+                <code id="new-key-value" style="display: block; padding: 0.5rem; background: #000; border-radius: 4px; word-break: break-all; margin-bottom: 0.5rem;"></code>
+                <button type="button" class="btn btn-secondary" onclick="copyKey()">Copy to Clipboard</button>
+            </div>
+        </div>
         <div class="profile-card danger-zone">
             <h2>Session</h2>
             <p class="text-muted" style="margin-bottom: 1rem;">Sign out of your account on this device.</p>
@@ -87,7 +119,9 @@
         </div>
     </div>
     
+        // API Keys functions loaded
     <script src="js/particles.js"></script>
+        // API Keys functions loaded
     <script src="js/api.js"></script>
     <script>
         // Load user info
@@ -143,6 +177,90 @@
         });
         
         loadUser();
+
+        // API Keys functions
+        let currentNewKey = '';
+        
+        async function loadApiKeys() {
+            const container = document.getElementById('api-keys-list');
+            try {
+                const res = await fetch('/api/api-keys', { credentials: 'include' });
+                const data = await res.json();
+                
+                if (!data.keys || data.keys.length === 0) {
+                    container.innerHTML = '<p class="text-muted">No API keys yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = data.keys.map(key => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #1a1a2e; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong>${key.name}</strong>
+                            <span style="color: #666; margin-left: 0.5rem;">${key.keyPrefix}...</span>
+                            ${key.isExpired ? '<span style="color: #ff4444; margin-left: 0.5rem;">Expired</span>' : ''}
+                            ${key.expiresAt ? '<span style="color: #888; margin-left: 0.5rem;">Expires: ' + new Date(key.expiresAt).toLocaleDateString() + '</span>' : ''}
+                        </div>
+                        <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="revokeKey('${key.id}')">Revoke</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = '<p class="text-muted">Failed to load keys.</p>';
+            }
+        }
+        
+        document.getElementById('create-key-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('key-error');
+            errorEl.textContent = '';
+            
+            const name = document.getElementById('key-name').value;
+            const expires = document.getElementById('key-expires').value;
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            
+            try {
+                const res = await fetch('/api/api-keys', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, expiresAt: expires || null })
+                });
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.error);
+                
+                currentNewKey = data.key.key;
+                document.getElementById('new-key-value').textContent = currentNewKey;
+                document.getElementById('new-key-display').style.display = 'block';
+                e.target.reset();
+                loadApiKeys();
+            } catch (err) {
+                errorEl.textContent = err.message || 'Failed to create key';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate Key';
+            }
+        });
+        
+        async function revokeKey(keyId) {
+            if (!confirm('Revoke this API key? Any tools using it will stop working.')) return;
+            try {
+                await fetch('/api/api-keys/' + keyId, { method: 'DELETE', credentials: 'include' });
+                loadApiKeys();
+            } catch (err) {
+                alert('Failed to revoke key');
+            }
+        }
+        
+        function copyKey() {
+            navigator.clipboard.writeText(currentNewKey);
+            alert('Key copied to clipboard!');
+        }
+        
+        loadApiKeys();
+        // API Keys functions loaded
     </script>
 </body>
 </html>
