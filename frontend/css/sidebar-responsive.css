@@ -195,36 +195,52 @@
     display: flex;
   }
 
-  /* Hide text-based elements in collapsed state */
+  /* ===== COLLAPSED STATE: HIDE ALL TEXT ===== */
+  
+  /* New Base / New Person buttons - icon only */
   .bases-sidebar .sidebar-new-base-btn,
   .people-sidebar .sidebar-new-person-btn {
     width: 36px;
     height: 36px;
     padding: 0;
-    margin: 6px;
+    margin: 6px auto;
     border-radius: 50%;
-    font-size: 1.2rem;
+    font-size: 0 !important;          /* Hide all text */
+    color: transparent;               /* Extra safety */
     overflow: hidden;
-    white-space: nowrap;
-  }
-
-  /* Show only the "+" part */
-  .bases-sidebar .sidebar-new-base-btn::after,
-  .people-sidebar .sidebar-new-person-btn::after {
-    content: '+';
-    display: block;
-  }
-
-  /* Hide the original text, show icon version */
-  .bases-sidebar .sidebar-new-base-btn,
-  .people-sidebar .sidebar-new-person-btn {
-    font-size: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .bases-sidebar .sidebar-new-base-btn::before,
   .people-sidebar .sidebar-new-person-btn::before {
     content: '+';
     font-size: 1.25rem;
+    color: var(--text-primary, #fff);
+  }
+
+  /* Add Group buttons - icon only */
+  .bases-sidebar .sidebar-add-group-btn,
+  .people-sidebar .sidebar-add-group-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin: 0 auto;
+    border-radius: 50%;
+    font-size: 0 !important;          /* Hide all text */
+    color: transparent;               /* Extra safety */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .bases-sidebar .sidebar-add-group-btn::before,
+  .people-sidebar .sidebar-add-group-btn::before {
+    content: '+';
+    font-size: 1.1rem;
+    color: var(--text-primary, #fff);
   }
 
   /* Collapse sidebar header */
@@ -235,43 +251,38 @@
     gap: 0.25rem;
   }
 
-  .bases-sidebar .sidebar-add-group-btn,
-  .people-sidebar .sidebar-add-group-btn {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    margin: 0 auto;
-    border-radius: 50%;
-    font-size: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .bases-sidebar .sidebar-add-group-btn::before,
-  .people-sidebar .sidebar-add-group-btn::before {
-    content: '+';
-    font-size: 1.1rem;
-  }
-
   /* Hide toggle groups button in collapsed state */
   .bases-sidebar .toggle-groups-btn,
   .people-sidebar .toggle-groups-btn {
     display: none;
   }
 
-  /* Sidebar items - show only icons */
+  /* Hide ALL text labels in collapsed state */
+  .bases-sidebar .sidebar-group-name,
+  .bases-sidebar .sidebar-base-name,
+  .bases-sidebar .person-name,
+  .people-sidebar .sidebar-group-name,
+  .people-sidebar .sidebar-base-name,
+  .people-sidebar .person-name,
+  .calendar-sidebar .sidebar-group-name {
+    display: none !important;
+  }
+
+  /* Hide empty state messages completely */
+  .bases-sidebar .sidebar-empty,
+  .people-sidebar .sidebar-empty,
+  .calendar-sidebar .sidebar-empty,
+  .bases-sidebar .text-muted,
+  .people-sidebar .text-muted {
+    display: none !important;
+  }
+
+  /* Sidebar items - show only icons, centered */
   .sidebar-group-header,
   .sidebar-base-item,
   .sidebar-person-item {
     padding: 0.5rem;
     justify-content: center;
-  }
-
-  .sidebar-group-name,
-  .sidebar-base-name,
-  .person-name {
-    display: none;
   }
 
   /* Show icons/avatars centered */
@@ -284,7 +295,54 @@
   .sidebar-core-bases-container {
     padding: 0.25rem;
   }
+  
+  /* Calendar sidebar - hide labels */
+  .calendar-sidebar .calendar-sidebar-label,
+  .calendar-sidebar .calendar-filter-label {
+    display: none !important;
+  }
 
+  /* Calendar sidebar - New Calendar button icon only */
+  .calendar-sidebar .sidebar-new-calendar-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin: 6px auto;
+    border-radius: 50%;
+    font-size: 0 !important;          /* Hide all text */
+    color: transparent;               /* Extra safety */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .calendar-sidebar .sidebar-new-calendar-btn::before {
+    content: '+';
+    font-size: 1.25rem;
+    color: var(--text-primary, #fff);
+  }
+
+  /* Calendar sidebar toggle buttons - icon only */
+  .calendar-sidebar .calendar-sidebar-toggle {
+    font-size: 0 !important;
+    color: transparent;
+    padding: 0.5rem;
+    justify-content: center;
+  }
+
+  .calendar-sidebar .calendar-sidebar-toggle .toggle-chevron {
+    font-size: initial;
+    color: var(--text-primary, #fff);
+  }
+
+  .calendar-sidebar .calendar-sidebar-toggle span,
+  .calendar-sidebar .section-count {
+    display: none !important;
+  }
+
+  /* ===== EXPANDED STATE: SHOW ALL TEXT ===== */
+  
   /* Expanded state on hover or when .sidebar-expanded is set */
   .bases-sidebar.sidebar-expanded,
   .people-sidebar.sidebar-expanded,
@@ -296,7 +354,7 @@
     min-width: var(--sidebar-width-full);
   }
 
-  /* Show text when expanded */
+  /* Show text when expanded - New Base/Person buttons */
   .bases-sidebar.sidebar-expanded .sidebar-new-base-btn,
   .people-sidebar.sidebar-expanded .sidebar-new-person-btn,
   .bases-sidebar:hover .sidebar-new-base-btn,
@@ -305,7 +363,8 @@
     height: auto;
     padding: 0.6rem 1rem;
     border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: 0.8rem !important;      /* Restore text */
+    color: var(--text-primary, #fff);  /* Restore text color */
   }
 
   .bases-sidebar.sidebar-expanded .sidebar-new-base-btn::before,
@@ -323,6 +382,7 @@
     padding: 1rem;
   }
 
+  /* Add Group buttons - restore text */
   .bases-sidebar.sidebar-expanded .sidebar-add-group-btn,
   .people-sidebar.sidebar-expanded .sidebar-add-group-btn,
   .bases-sidebar:hover .sidebar-add-group-btn,
@@ -330,7 +390,8 @@
     width: auto;
     padding: 0.4rem 0.75rem;
     border-radius: 6px;
-    font-size: 0.75rem;
+    font-size: 0.75rem !important;     /* Restore text */
+    color: var(--text-primary, #fff);  /* Restore text color */
   }
 
   .bases-sidebar.sidebar-expanded .sidebar-add-group-btn::before,
@@ -347,6 +408,7 @@
     display: flex;
   }
 
+  /* Show all text labels when expanded */
   .bases-sidebar.sidebar-expanded .sidebar-group-name,
   .bases-sidebar.sidebar-expanded .sidebar-base-name,
   .bases-sidebar.sidebar-expanded .person-name,
@@ -358,8 +420,64 @@
   .bases-sidebar:hover .person-name,
   .people-sidebar:hover .sidebar-group-name,
   .people-sidebar:hover .sidebar-base-name,
-  .people-sidebar:hover .person-name {
-    display: block;
+  .people-sidebar:hover .person-name,
+  .calendar-sidebar.sidebar-expanded .sidebar-group-name,
+  .calendar-sidebar:hover .sidebar-group-name {
+    display: block !important;
+  }
+
+  /* Show empty state and muted text when expanded */
+  .bases-sidebar.sidebar-expanded .sidebar-empty,
+  .people-sidebar.sidebar-expanded .sidebar-empty,
+  .calendar-sidebar.sidebar-expanded .sidebar-empty,
+  .bases-sidebar:hover .sidebar-empty,
+  .people-sidebar:hover .sidebar-empty,
+  .calendar-sidebar:hover .sidebar-empty,
+  .bases-sidebar.sidebar-expanded .text-muted,
+  .people-sidebar.sidebar-expanded .text-muted,
+  .bases-sidebar:hover .text-muted,
+  .people-sidebar:hover .text-muted {
+    display: block !important;
+  }
+
+  /* Calendar sidebar - show labels when expanded */
+  .calendar-sidebar.sidebar-expanded .calendar-sidebar-label,
+  .calendar-sidebar:hover .calendar-sidebar-label,
+  .calendar-sidebar.sidebar-expanded .calendar-filter-label,
+  .calendar-sidebar:hover .calendar-filter-label {
+    display: block !important;
+  }
+
+  /* Calendar sidebar - restore New Calendar button text */
+  .calendar-sidebar.sidebar-expanded .sidebar-new-calendar-btn,
+  .calendar-sidebar:hover .sidebar-new-calendar-btn {
+    width: calc(100% - 1.5rem);
+    height: auto;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem !important;
+    color: var(--text-primary, #fff);
+  }
+
+  .calendar-sidebar.sidebar-expanded .sidebar-new-calendar-btn::before,
+  .calendar-sidebar:hover .sidebar-new-calendar-btn::before {
+    content: none;
+  }
+
+  /* Calendar sidebar toggle - restore text */
+  .calendar-sidebar.sidebar-expanded .calendar-sidebar-toggle,
+  .calendar-sidebar:hover .calendar-sidebar-toggle {
+    font-size: inherit !important;
+    color: var(--text-primary, #fff);
+    padding: 0.5rem 0.75rem;
+    justify-content: flex-start;
+  }
+
+  .calendar-sidebar.sidebar-expanded .calendar-sidebar-toggle span,
+  .calendar-sidebar:hover .calendar-sidebar-toggle span,
+  .calendar-sidebar.sidebar-expanded .section-count,
+  .calendar-sidebar:hover .section-count {
+    display: inline !important;
   }
 
   .bases-sidebar.sidebar-expanded .sidebar-group-header,
