@@ -1618,7 +1618,7 @@ function showEditGroupModal(groupId) {
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-cancel">Cancel</button>
-        <button class="btn btn-primary" id="save-group-btn">Save</button>
+        <button class="btn btn-primary" id="save-group-btn">Confirm</button>
       </div>
     </div>
   `;
@@ -2859,7 +2859,7 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-cancel">Cancel</button>
-        <button class="btn btn-primary" id="save-files-btn">Save</button>
+        <button class="btn btn-primary" id="save-files-btn">Confirm</button>
       </div>
     </div>
   `;
@@ -3475,7 +3475,7 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     const failedFiles = pendingFiles.filter(f => f.status === UploadStatus.ERROR);
     if (failedFiles.length > 0) {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save';
+      saveBtn.textContent = 'Confirm';
       const confirmSave = confirm(`${failedFiles.length} file(s) failed to upload. Save anyway? Failed files will not be included.`);
       if (!confirmSave) return;
       saveBtn.disabled = true;
@@ -3495,7 +3495,7 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       console.error('Failed to save attachments:', error);
       alert('Failed to save attachments. Please try again.');
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save';
+      saveBtn.textContent = 'Confirm';
     }
   });
   
@@ -4706,7 +4706,7 @@ function showOptionsEditorModal(propId) {
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-cancel">Cancel</button>
-        <button class="btn btn-primary" id="save-options-btn">Save</button>
+        <button class="btn btn-primary" id="save-options-btn">Confirm</button>
       </div>
     </div>
   `;
