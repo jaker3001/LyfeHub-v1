@@ -6897,6 +6897,16 @@ body.column-dragging .base-table {
     box-shadow: 0 0 8px rgba(191, 90, 242, 0.3);
 }
 
+.cell-file-pill.clickable:hover {
+    background: rgba(0, 170, 255, 0.2);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 8px rgba(0, 170, 255, 0.3);
+}
+
+.cell-file-pill.clickable:hover .file-name {
+    text-decoration: underline;
+}
+
 .cell-file-pill .file-icon {
     font-size: 0.85rem;
     line-height: 1;
@@ -8856,6 +8866,17 @@ body.column-dragging .base-table {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.file-name.clickable {
+  color: var(--neon-cyan);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.file-name.clickable:hover {
+  color: #fff;
+  text-decoration: underline;
 }
 
 .file-size {

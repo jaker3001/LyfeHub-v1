@@ -2285,6 +2285,31 @@ function attachTableListeners() {
       await updateCellValue(recordId, propId, checkbox.checked);
     });
   });
+  
+  // File pill click handlers - open/download files
+  container.querySelectorAll('.cell-file-pill.clickable').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const fileUrl = pill.dataset.fileUrl;
+      const fileName = pill.dataset.fileName;
+      const isViewable = pill.dataset.viewable === 'true';
+      
+      if (!fileUrl) return;
+      
+      if (isViewable) {
+        // Images and PDFs - open in new tab
+        window.open(fileUrl, '_blank');
+      } else {
+        // Other files - trigger download
+        const a = document.createElement('a');
+        a.href = fileUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    });
+  });
 }
 
 // ============================================
@@ -2751,18 +2776,25 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       const fileName = file.filename || file.name;
       const fileSize = formatFileSize(file.size);
       const fileIcon = getFileIcon(fileName);
+      const hasUrl = !isPending && file.url;
+      const fileUrl = hasUrl ? `/api${file.url}` : '';
+      const mimeType = file.type || '';
+      const isViewable = mimeType.startsWith('image/') || mimeType === 'application/pdf';
       
       return `
         <div class="file-item ${isPending ? 'pending' : ''}" data-index="${index}" data-pending="${isPending}">
           <div class="file-item-info">
             <span class="file-icon">${fileIcon}</span>
             <div class="file-details">
-              <span class="file-name">${escapeHtml(fileName)}</span>
+              ${hasUrl 
+                ? `<span class="file-name clickable" data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}" title="Click to ${isViewable ? 'view' : 'download'}">${escapeHtml(fileName)}</span>`
+                : `<span class="file-name">${escapeHtml(fileName)}</span>`
+              }
               <span class="file-size">${fileSize}</span>
             </div>
           </div>
           <div class="file-item-actions">
-            ${!isPending && file.url ? `<a href="${escapeHtml(file.url)}" target="_blank" class="file-action view-file" title="View/Download">👁️</a>` : ''}
+            ${hasUrl ? `<button class="file-action view-file" data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}" title="${isViewable ? 'View' : 'Download'}">👁️</button>` : ''}
             <button class="file-action delete-file" data-index="${index}" data-pending="${isPending}" title="Remove">×</button>
           </div>
         </div>
@@ -2805,6 +2837,42 @@ function showFileUploadModal(cell, prop, record, currentValue) {
           files.splice(idx, 1);
           renderFileList();
         }
+      });
+    });
+    
+    // Attach file open/download handlers (for both file name and view button)
+    const handleFileClick = (el) => {
+      const fileUrl = el.dataset.fileUrl;
+      const fileName = el.dataset.fileName;
+      const isViewable = el.dataset.viewable === 'true';
+      
+      if (!fileUrl) return;
+      
+      if (isViewable) {
+        // Images and PDFs - open in new tab
+        window.open(fileUrl, '_blank');
+      } else {
+        // Other files - trigger download with original name
+        const a = document.createElement('a');
+        a.href = fileUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    };
+    
+    fileList.querySelectorAll('.file-name.clickable').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleFileClick(el);
+      });
+    });
+    
+    fileList.querySelectorAll('.view-file').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleFileClick(btn);
       });
     });
   }
