@@ -2763,20 +2763,59 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     
     // Attach delete handlers
     fileList.querySelectorAll('.delete-file').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const idx = parseInt(btn.dataset.index);
         const isPending = btn.dataset.pending === 'true';
         
         if (isPending) {
+          // Pending files haven't been uploaded yet, just remove from array
           const pendingIdx = idx - files.length;
           pendingFiles.splice(pendingIdx, 1);
+          renderFileList();
         } else {
+          // Uploaded files - confirm and delete from server
+          const file = files[idx];
+          const fileName = file.filename || file.name || 'this file';
+          
+          if (!confirm(`Delete "${fileName}"? This cannot be undone.`)) {
+            return;
+          }
+          
+          // If file has a path (was uploaded to server), delete from server
+          if (file.path) {
+            try {
+              await deleteFileFromServer(file.path);
+            } catch (error) {
+              console.error('Failed to delete file from server:', error);
+              alert('Failed to delete file. Please try again.');
+              return;
+            }
+          }
+          
+          // Remove from local array
           files.splice(idx, 1);
+          renderFileList();
         }
-        renderFileList();
       });
     });
+  }
+  
+  // Delete file from server
+  async function deleteFileFromServer(filePath) {
+    const response = await fetch('/api/uploads', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: filePath }),
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Delete failed' }));
+      throw new Error(error.error || 'Delete failed');
+    }
+    
+    return true;
   }
   
   // Format file size
@@ -2829,7 +2868,7 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     await uploadFiles(fileArray);
   }
   
-  // Placeholder upload function - T8 will wire to API
+  // Upload files to API
   async function uploadFiles(filesToUpload) {
     if (filesToUpload.length === 0) return;
     
@@ -2837,21 +2876,71 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     uploadProgress.style.display = 'block';
     dropZone.classList.add('disabled');
     
-    // TODO: Wire to actual upload API in T8
-    // For now, simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Clear any previous error
+    const existingError = modal.querySelector('.upload-error');
+    if (existingError) existingError.remove();
     
-    // After upload, move pending files to files array with metadata
-    for (const pending of pendingFiles) {
-      files.push({
-        filename: pending.name,
-        size: pending.size,
-        type: pending.type,
-        url: null, // Will be set by actual upload
-        uploaded_at: new Date().toISOString()
+    try {
+      // Build FormData with files
+      const formData = new FormData();
+      for (const file of filesToUpload) {
+        formData.append('files', file);
+      }
+      
+      // Upload to API
+      const response = await fetch('/api/uploads', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'  // for cookie auth
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed (${response.status})`);
+      }
+      
+      const result = await response.json();
+      
+      // Add returned file metadata to files array
+      for (const uploadedFile of result.files) {
+        files.push({
+          id: uploadedFile.id,
+          filename: uploadedFile.originalName || uploadedFile.filename,
+          size: uploadedFile.size,
+          type: uploadedFile.mimeType,
+          url: uploadedFile.path,  // API returns path for download URL
+          uploaded_at: uploadedFile.uploadedAt
+        });
+      }
+      
+      // Clear pending files on success
+      pendingFiles = [];
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      
+      // Show error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'upload-error';
+      errorDiv.innerHTML = `
+        <span class="error-icon">⚠️</span>
+        <span class="error-text">${escapeHtml(error.message)}</span>
+        <button class="error-retry btn btn-secondary btn-small">Retry</button>
+      `;
+      uploadProgress.insertAdjacentElement('afterend', errorDiv);
+      
+      // Retry button handler
+      errorDiv.querySelector('.error-retry').addEventListener('click', () => {
+        errorDiv.remove();
+        // Retry upload with the pending files
+        const retryFiles = pendingFiles.map(p => p.file).filter(Boolean);
+        if (retryFiles.length > 0) {
+          uploadFiles(retryFiles);
+        }
+      });
+      
+      // Keep pending files so user can retry
     }
-    pendingFiles = [];
     
     isUploading = false;
     uploadProgress.style.display = 'none';
