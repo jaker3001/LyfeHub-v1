@@ -2211,12 +2211,20 @@ function renderCellContent(prop, value) {
     case 'files':
       const files = Array.isArray(value) ? value : [];
       if (files.length === 0) return '<span class="cell-placeholder">Add files...</span>';
-      return files.map(f => `
-        <span class="cell-file-pill">
-          <span class="file-icon">${getFileIcon(f.mimeType)}</span>
-          <span class="file-name">${escapeHtml(f.originalName || f.filename)}</span>
-        </span>
-      `).join(' ');
+      return files.map(f => {
+        const hasUrl = f.url || f.path;
+        const fileName = f.originalName || f.filename;
+        const fileUrl = hasUrl ? `/api${f.url || f.path}` : '';
+        const mimeType = f.mimeType || f.type || '';
+        const isViewable = mimeType.startsWith('image/') || mimeType === 'application/pdf';
+        return `
+          <span class="cell-file-pill ${hasUrl ? 'clickable' : ''}" 
+                ${hasUrl ? `data-file-url="${escapeHtml(fileUrl)}" data-file-name="${escapeHtml(fileName)}" data-viewable="${isViewable}"` : ''}>
+            <span class="file-icon">${getFileIcon(mimeType)}</span>
+            <span class="file-name">${escapeHtml(fileName)}</span>
+          </span>
+        `;
+      }).join(' ');
     
     case 'text':
     default:

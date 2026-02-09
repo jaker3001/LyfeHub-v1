@@ -8744,6 +8744,34 @@ body.column-dragging .base-table {
   color: var(--text-secondary);
 }
 
+/* Upload Error */
+.upload-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--danger);
+}
+
+.upload-error .error-icon {
+  flex-shrink: 0;
+}
+
+.upload-error .error-text {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.upload-error .error-retry {
+  flex-shrink: 0;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+}
+
 /* File List Section */
 .file-list-section {
   margin-top: 0.5rem;
