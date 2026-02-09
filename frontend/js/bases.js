@@ -2834,7 +2834,7 @@ function showFileUploadModal(cell, prop, record, currentValue) {
             <p class="drop-zone-text">Drag & drop files here</p>
             <p class="drop-zone-subtext">or</p>
             <button class="btn btn-secondary browse-btn" id="browse-files-btn">Browse Files</button>
-            <input type="file" id="file-input" multiple accept="*/*" style="display: none;" />
+            <input type="file" id="file-input" multiple accept="*/*" style="position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px;" />
           </div>
           <div class="drop-zone-overlay">
             <span>Drop files to upload</span>
@@ -3384,8 +3384,18 @@ function showFileUploadModal(cell, prop, record, currentValue) {
   });
   
   // Browse button click
-  browseBtn.addEventListener('click', () => {
+  browseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     fileInput.click();
+  });
+  
+  // Also make the entire drop zone clickable (better for mobile)
+  dropZone.addEventListener('click', (e) => {
+    // Only trigger if clicking the zone itself, not the button (button has its own handler)
+    if (e.target === dropZone || e.target.closest('.file-drop-zone') && !e.target.closest('.browse-btn')) {
+      fileInput.click();
+    }
   });
   
   // File input change
