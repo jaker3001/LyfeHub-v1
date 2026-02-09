@@ -4,6 +4,31 @@
 
 const db = require('./schema');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Delete attachment files from disk
+ * @param {Array} attachments - Array of attachment objects with path property
+ */
+function deleteNoteFiles(attachments) {
+  if (!Array.isArray(attachments)) return;
+  
+  for (const file of attachments) {
+    if (!file || !file.path) continue;
+    
+    const fullPath = path.join('/data', file.path);
+    try {
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+        console.log(`Deleted attachment file: ${fullPath}`);
+      }
+    } catch (err) {
+      // Log but don't fail - file may already be deleted
+      console.warn(`Failed to delete attachment file ${fullPath}:`, err.message);
+    }
+  }
+}
 
 /**
  * Get all notes for a user
@@ -119,9 +144,24 @@ function updateNote(id, data, userId) {
 }
 
 /**
- * Delete a note
+ * Delete a note and its attachment files
  */
 function deleteNote(id, userId) {
+  // First, fetch the note to get attachments
+  const note = getNoteById(id, userId);
+  if (!note) return false;
+  
+  // Parse and delete attachment files from disk
+  let attachments = [];
+  try {
+    attachments = JSON.parse(note.attachments || '[]');
+  } catch (e) {
+    // Ignore parse errors
+  }
+  
+  deleteNoteFiles(attachments);
+  
+  // Now delete the note record
   const stmt = db.prepare(`
     DELETE FROM notes
     WHERE id = ? AND user_id = ?
