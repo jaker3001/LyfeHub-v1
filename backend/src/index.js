@@ -18,6 +18,7 @@ const basesRoutes = require('./routes/bases');
 const calendarsRoutes = require('./routes/calendars');
 
 const peopleRoutes = require('./routes/people');
+const uploadsRoutes = require('./routes/uploads');
 
 const apexJobsRoutes = require('./routes/apexJobs');
 const apiKeysRoutes = require('./routes/apiKeys');
@@ -52,6 +53,7 @@ app.use('/api/bases', basesRoutes);
 app.use('/api/calendars', calendarsRoutes);
 
 app.use('/api/people', peopleRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 app.use('/api/apex-jobs', apexJobsRoutes);
 app.use('/api/api-keys', apiKeysRoutes);
