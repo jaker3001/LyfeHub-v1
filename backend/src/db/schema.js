@@ -412,6 +412,14 @@ try {
   // Column already exists, ignore
 }
 
+// Add zip column to people if it doesn't exist
+try {
+  db.exec(`ALTER TABLE people ADD COLUMN zip TEXT DEFAULT ''`);
+  console.log('Added zip column to people');
+} catch (e) {
+  // Column already exists, ignore
+}
+
 console.log('Database initialized at', dbPath);
 
 
