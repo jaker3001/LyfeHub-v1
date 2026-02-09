@@ -1,6 +1,9 @@
 /* =============================================
    Calendar Feature Styles
    Matches neon glassmorphic theme from style.css
+   
+   Breakpoints standardized: 640px (sm), 768px (md), 1024px (lg), 1280px (xl)
+   (Already using correct breakpoints: 1024px and 768px)
    ============================================= */
 
 /* Calendar Layout (Bases-style sidebar + main) */

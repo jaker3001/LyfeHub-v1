@@ -1,0 +1,449 @@
+/**
+ * Sidebar Responsive Behavior
+ * ===========================
+ * Unified responsive handling for both .bases-sidebar and .people-sidebar
+ * 
+ * Breakpoints:
+ *   Mobile (≤768px)  - Hidden by default, overlay when shown
+ *   Tablet (769-1024px) - Collapsed to 48px icon rail
+ *   Desktop (>1024px) - Full 240px width
+ */
+
+/* ==========================================================================
+   CSS Custom Properties for Sidebars
+   ========================================================================== */
+
+:root {
+  --sidebar-width-full: 240px;
+  --sidebar-width-collapsed: 48px;
+  --sidebar-transition: 0.3s ease;
+  --sidebar-backdrop-color: rgba(0, 0, 0, 0.5);
+  --sidebar-z-index: 100;
+  --sidebar-backdrop-z-index: 99;
+}
+
+
+/* ==========================================================================
+   Sidebar Toggle Buttons
+   ========================================================================== */
+
+/* Mobile hamburger toggle - hidden by default, shown on mobile */
+.sidebar-toggle-btn {
+  display: none;
+  position: fixed;
+  top: 70px; /* Below main nav */
+  left: 12px;
+  z-index: calc(var(--sidebar-z-index) + 1);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(15, 15, 25, 0.9);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  color: var(--text-primary, #fff);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: var(--sidebar-transition);
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(30, 30, 50, 0.95);
+  border-color: var(--neon-cyan, #00f5d4);
+}
+
+.sidebar-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Tablet expand button - shown in collapsed state */
+.sidebar-expand-btn {
+  display: none;
+  width: 100%;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #888);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: var(--sidebar-transition);
+}
+
+.sidebar-expand-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #fff);
+}
+
+.sidebar-expand-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+
+/* ==========================================================================
+   Sidebar Backdrop (Mobile Overlay)
+   ========================================================================== */
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--sidebar-backdrop-color);
+  z-index: var(--sidebar-backdrop-z-index);
+  opacity: 0;
+  transition: opacity var(--sidebar-transition);
+}
+
+.sidebar-backdrop.visible {
+  display: block;
+  opacity: 1;
+}
+
+
+/* ==========================================================================
+   Shared Sidebar Base Styles (ensure consistency)
+   ========================================================================== */
+
+.bases-sidebar,
+.people-sidebar,
+.calendar-sidebar {
+  transition: width var(--sidebar-transition), 
+              min-width var(--sidebar-transition),
+              transform var(--sidebar-transition);
+}
+
+
+/* ==========================================================================
+   Mobile (≤768px) - Hidden by default, slide-in overlay
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Show toggle button on mobile */
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+
+  /* Position based on which sidebar's parent is active */
+  .bases-layout .sidebar-toggle-btn {
+    display: flex;
+  }
+  
+  .people-layout .sidebar-toggle-btn {
+    display: flex;
+  }
+
+  /* Sidebar base mobile styles */
+  .bases-sidebar,
+  .people-sidebar,
+  .calendar-sidebar {
+    position: fixed;
+    top: 60px; /* Below main nav */
+    left: 0;
+    height: calc(100vh - 60px);
+    width: var(--sidebar-width-full);
+    min-width: var(--sidebar-width-full);
+    z-index: var(--sidebar-z-index);
+    transform: translateX(-100%);
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Show sidebar when .sidebar-open is on the layout */
+  .bases-layout.sidebar-open .bases-sidebar,
+  .people-layout.sidebar-open .people-sidebar,
+  .calendar-layout.sidebar-open .calendar-sidebar {
+    transform: translateX(0);
+  }
+
+  /* Adjust main content to take full width on mobile */
+  .bases-main-content,
+  .people-main-content,
+  .calendar-main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  /* Hide certain sidebar elements on mobile if needed */
+  .bases-sidebar .sidebar-header,
+  .people-sidebar .sidebar-header,
+  .calendar-sidebar .calendar-sidebar-group {
+    padding: 0.75rem;
+  }
+}
+
+
+/* ==========================================================================
+   Tablet Portrait (769px - 1024px) - Collapsed icon rail
+   ========================================================================== */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Collapsed sidebar state */
+  .bases-sidebar,
+  .people-sidebar,
+  .calendar-sidebar {
+    width: var(--sidebar-width-collapsed);
+    min-width: var(--sidebar-width-collapsed);
+    overflow: hidden;
+  }
+
+  /* Show expand button */
+  .sidebar-expand-btn {
+    display: flex;
+  }
+
+  /* Hide text-based elements in collapsed state */
+  .bases-sidebar .sidebar-new-base-btn,
+  .people-sidebar .sidebar-new-person-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin: 6px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* Show only the "+" part */
+  .bases-sidebar .sidebar-new-base-btn::after,
+  .people-sidebar .sidebar-new-person-btn::after {
+    content: '+';
+    display: block;
+  }
+
+  /* Hide the original text, show icon version */
+  .bases-sidebar .sidebar-new-base-btn,
+  .people-sidebar .sidebar-new-person-btn {
+    font-size: 0;
+  }
+
+  .bases-sidebar .sidebar-new-base-btn::before,
+  .people-sidebar .sidebar-new-person-btn::before {
+    content: '+';
+    font-size: 1.25rem;
+  }
+
+  /* Collapse sidebar header */
+  .bases-sidebar .sidebar-header,
+  .people-sidebar .sidebar-header {
+    flex-direction: column;
+    padding: 0.5rem 0;
+    gap: 0.25rem;
+  }
+
+  .bases-sidebar .sidebar-add-group-btn,
+  .people-sidebar .sidebar-add-group-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin: 0 auto;
+    border-radius: 50%;
+    font-size: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bases-sidebar .sidebar-add-group-btn::before,
+  .people-sidebar .sidebar-add-group-btn::before {
+    content: '+';
+    font-size: 1.1rem;
+  }
+
+  /* Hide toggle groups button in collapsed state */
+  .bases-sidebar .toggle-groups-btn,
+  .people-sidebar .toggle-groups-btn {
+    display: none;
+  }
+
+  /* Sidebar items - show only icons */
+  .sidebar-group-header,
+  .sidebar-base-item,
+  .sidebar-person-item {
+    padding: 0.5rem;
+    justify-content: center;
+  }
+
+  .sidebar-group-name,
+  .sidebar-base-name,
+  .person-name {
+    display: none;
+  }
+
+  /* Show icons/avatars centered */
+  .sidebar-base-icon,
+  .sidebar-person-avatar {
+    margin: 0 auto;
+  }
+
+  /* Core bases container in collapsed mode */
+  .sidebar-core-bases-container {
+    padding: 0.25rem;
+  }
+
+  /* Expanded state on hover or when .sidebar-expanded is set */
+  .bases-sidebar.sidebar-expanded,
+  .people-sidebar.sidebar-expanded,
+  .calendar-sidebar.sidebar-expanded,
+  .bases-sidebar:hover,
+  .people-sidebar:hover,
+  .calendar-sidebar:hover {
+    width: var(--sidebar-width-full);
+    min-width: var(--sidebar-width-full);
+  }
+
+  /* Show text when expanded */
+  .bases-sidebar.sidebar-expanded .sidebar-new-base-btn,
+  .people-sidebar.sidebar-expanded .sidebar-new-person-btn,
+  .bases-sidebar:hover .sidebar-new-base-btn,
+  .people-sidebar:hover .sidebar-new-person-btn {
+    width: calc(100% - 1.5rem);
+    height: auto;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+
+  .bases-sidebar.sidebar-expanded .sidebar-new-base-btn::before,
+  .people-sidebar.sidebar-expanded .sidebar-new-person-btn::before,
+  .bases-sidebar:hover .sidebar-new-base-btn::before,
+  .people-sidebar:hover .sidebar-new-person-btn::before {
+    content: none;
+  }
+
+  .bases-sidebar.sidebar-expanded .sidebar-header,
+  .people-sidebar.sidebar-expanded .sidebar-header,
+  .bases-sidebar:hover .sidebar-header,
+  .people-sidebar:hover .sidebar-header {
+    flex-direction: row;
+    padding: 1rem;
+  }
+
+  .bases-sidebar.sidebar-expanded .sidebar-add-group-btn,
+  .people-sidebar.sidebar-expanded .sidebar-add-group-btn,
+  .bases-sidebar:hover .sidebar-add-group-btn,
+  .people-sidebar:hover .sidebar-add-group-btn {
+    width: auto;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+  }
+
+  .bases-sidebar.sidebar-expanded .sidebar-add-group-btn::before,
+  .people-sidebar.sidebar-expanded .sidebar-add-group-btn::before,
+  .bases-sidebar:hover .sidebar-add-group-btn::before,
+  .people-sidebar:hover .sidebar-add-group-btn::before {
+    content: none;
+  }
+
+  .bases-sidebar.sidebar-expanded .toggle-groups-btn,
+  .people-sidebar.sidebar-expanded .toggle-groups-btn,
+  .bases-sidebar:hover .toggle-groups-btn,
+  .people-sidebar:hover .toggle-groups-btn {
+    display: flex;
+  }
+
+  .bases-sidebar.sidebar-expanded .sidebar-group-name,
+  .bases-sidebar.sidebar-expanded .sidebar-base-name,
+  .bases-sidebar.sidebar-expanded .person-name,
+  .people-sidebar.sidebar-expanded .sidebar-group-name,
+  .people-sidebar.sidebar-expanded .sidebar-base-name,
+  .people-sidebar.sidebar-expanded .person-name,
+  .bases-sidebar:hover .sidebar-group-name,
+  .bases-sidebar:hover .sidebar-base-name,
+  .bases-sidebar:hover .person-name,
+  .people-sidebar:hover .sidebar-group-name,
+  .people-sidebar:hover .sidebar-base-name,
+  .people-sidebar:hover .person-name {
+    display: block;
+  }
+
+  .bases-sidebar.sidebar-expanded .sidebar-group-header,
+  .bases-sidebar.sidebar-expanded .sidebar-base-item,
+  .bases-sidebar.sidebar-expanded .sidebar-person-item,
+  .people-sidebar.sidebar-expanded .sidebar-group-header,
+  .people-sidebar.sidebar-expanded .sidebar-base-item,
+  .people-sidebar.sidebar-expanded .sidebar-person-item,
+  .bases-sidebar:hover .sidebar-group-header,
+  .bases-sidebar:hover .sidebar-base-item,
+  .bases-sidebar:hover .sidebar-person-item,
+  .people-sidebar:hover .sidebar-group-header,
+  .people-sidebar:hover .sidebar-base-item,
+  .people-sidebar:hover .sidebar-person-item {
+    padding: 0.5rem 0.75rem;
+    justify-content: flex-start;
+  }
+
+  .bases-sidebar.sidebar-expanded .sidebar-base-icon,
+  .bases-sidebar.sidebar-expanded .sidebar-person-avatar,
+  .people-sidebar.sidebar-expanded .sidebar-base-icon,
+  .people-sidebar.sidebar-expanded .sidebar-person-avatar,
+  .bases-sidebar:hover .sidebar-base-icon,
+  .bases-sidebar:hover .sidebar-person-avatar,
+  .people-sidebar:hover .sidebar-base-icon,
+  .people-sidebar:hover .sidebar-person-avatar {
+    margin: 0;
+    margin-right: 0.5rem;
+  }
+}
+
+
+/* ==========================================================================
+   Desktop (>1024px) - Full width, standard behavior
+   ========================================================================== */
+
+@media (min-width: 1025px) {
+  .bases-sidebar,
+  .people-sidebar,
+  .calendar-sidebar {
+    width: var(--sidebar-width-full);
+    min-width: var(--sidebar-width-full);
+  }
+
+  /* Hide mobile/tablet controls on desktop */
+  .sidebar-toggle-btn,
+  .sidebar-expand-btn {
+    display: none;
+  }
+}
+
+
+/* ==========================================================================
+   Landscape Orientation Handling
+   ========================================================================== */
+
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  /* On tablet landscape, show full sidebar if there's enough room */
+  .bases-sidebar,
+  .people-sidebar,
+  .calendar-sidebar {
+    width: var(--sidebar-width-full);
+    min-width: var(--sidebar-width-full);
+  }
+
+  /* Show all text elements */
+  .sidebar-group-name,
+  .sidebar-base-name,
+  .person-name {
+    display: block;
+  }
+
+  /* Normal button styles */
+  .bases-sidebar .sidebar-new-base-btn,
+  .people-sidebar .sidebar-new-person-btn {
+    width: calc(100% - 1.5rem);
+    height: auto;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+
+  .bases-sidebar .sidebar-new-base-btn::before,
+  .people-sidebar .sidebar-new-person-btn::before {
+    content: none;
+  }
+}

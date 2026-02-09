@@ -4,13 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/hamburger.css">
+    <link rel="stylesheet" href="css/drawer.css">
+    <link rel="stylesheet" href="css/header-mobile.css">
+    <link rel="stylesheet" href="css/sidebar-responsive.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/apex-jobs.css">
+    <link rel="stylesheet" href="css/table-cards.css">
+    <link rel="stylesheet" href="css/forms-mobile.css">
+    <link rel="stylesheet" href="css/touch-friendly.css">
+    <link rel="stylesheet" href="css/kanban-mobile.css">
     <!-- Marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <header class="header">
+        <!-- Hamburger Menu Button (mobile only) -->
+        <button id="hamburger-btn" 
+                class="hamburger-btn mobile-only" 
+                type="button" 
+                aria-label="Open menu" 
+                aria-expanded="false"
+                aria-controls="mobile-drawer">
+            <span class="hamburger-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </button>
+        <!-- App Logo/Title (visible on mobile) -->
+        <div class="header-logo">
+            <span class="header-logo-text">LyfeHub</span>
+        </div>
         <nav class="tabs">
             <button class="tab active" data-tab="projects">Projects</button>
             <button class="tab" data-tab="tasks">Tasks</button>
@@ -608,9 +634,9 @@
 
     <!-- Calendar Tab Content -->
     <main class="tab-content" data-tab="calendar">
-        <div class="calendar-layout">
+        <div id="calendar-layout" class="calendar-layout">
             <!-- Calendar Sidebar -->
-            <aside class="calendar-sidebar">
+            <aside id="calendar-sidebar" class="calendar-sidebar">
                 <!-- Calendars Section -->
                 <div class="calendar-sidebar-group calendars-group">
                     <button id="new-calendar-btn" class="sidebar-new-calendar-btn">+ New Calendar</button>
@@ -2048,15 +2074,22 @@
     }
     </script>
 
+    <script src="js/mobile-utils.js"></script>
+    <script src="js/touch-actions.js"></script>
+    <script src="js/sidebar-collapse.js"></script>
+    <script src="js/hamburger.js"></script>
+    <script src="js/drawer.js"></script>
     <script src="js/particles.js"></script>
     <script src="js/api.js"></script>
     <script src="js/modal.js"></script>
     <script src="js/kanban.js"></script>
+    <script src="js/kanban-mobile.js"></script>
     <script src="js/tasks.js"></script>
     <script src="js/bases.js"></script>
     <script src="js/people.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/apex-jobs.js"></script>
+    <script src="js/table-cards.js"></script>
     <script src="js/jobDetailTabs.js"></script>
     <script src="js/jobDetailModals.js"></script>
     <script src="js/jobModal.js"></script>

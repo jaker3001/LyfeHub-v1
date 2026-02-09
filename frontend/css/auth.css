@@ -1,4 +1,5 @@
 /* Auth Page Styles */
+/* BREAKPOINTS STANDARDIZED (2025-06-30): 640px (sm), 768px (md), 1024px (lg), 1280px (xl) */
 
 .login-page {
     display: flex;
@@ -324,7 +325,8 @@
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+/* Breakpoints standardized: 640px (sm), 768px (md), 1024px (lg), 1280px (xl) */
+@media (max-width: 640px) {
     .login-container {
         padding: 1.5rem;
     }

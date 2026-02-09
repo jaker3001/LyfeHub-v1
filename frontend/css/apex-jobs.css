@@ -1,5 +1,8 @@
 /* ========================================
    Apex Jobs - Neon Glassmorphic Styling
+   
+   BREAKPOINTS STANDARDIZED (2025-06-30)
+   640px (sm), 768px (md), 1024px (lg), 1280px (xl)
    ======================================== */
 
 /* Sub-tabs navigation */
@@ -854,13 +857,14 @@
 }
 
 /* Responsive */
-@media (max-width: 1400px) {
+/* Breakpoints standardized: 640px (sm), 768px (md), 1024px (lg), 1280px (xl) */
+@media (max-width: 1280px) {
     .apex-board {
         grid-template-columns: repeat(3, minmax(280px, 1fr));
     }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
     .apex-board {
         grid-template-columns: 1fr;
     }
@@ -875,7 +879,7 @@
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
     .apex-view-controls {
         flex-direction: column;
         gap: 1rem;
@@ -2354,7 +2358,7 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
     .dates-grid {
         grid-template-columns: 1fr;
     }
@@ -2382,7 +2386,7 @@
 @media (max-width: 768px) {
     .jdt-dates-grid { grid-template-columns: repeat(2, 1fr); }
 }
-@media (max-width: 480px) {
+@media (max-width: 640px) {
     .jdt-dates-grid { grid-template-columns: 1fr; }
 }
 
