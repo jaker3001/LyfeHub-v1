@@ -3250,6 +3250,10 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
       
+      // Update status to show we're sending
+      const progressText = document.querySelector('.upload-progress-text');
+      if (progressText) progressText.textContent = 'Sending file...';
+      
       const response = await fetch('/api/uploads', {
         method: 'POST',
         body: formData,
@@ -3258,6 +3262,9 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       });
       
       clearTimeout(timeoutId);
+      
+      // Update status to show we're processing response
+      if (progressText) progressText.textContent = 'Processing response...';
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -3269,7 +3276,15 @@ function showFileUploadModal(cell, prop, record, currentValue) {
         return;
       }
       
-      const result = await response.json();
+      // Get response as text first to avoid potential JSON parsing issues
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response:', responseText);
+        throw new Error('Invalid response from server');
+      }
       
       // Success - move to files array
       if (result.files && result.files.length > 0) {
