@@ -489,3 +489,151 @@ try {
   // Column already exists, ignore
 }
 module.exports = db;
+
+// ============================================
+// NOTES TABLE
+// ============================================
+const notesTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notes'").get();
+if (!notesTable) {
+  console.log('Creating notes table...');
+  db.exec(`
+    CREATE TABLE notes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      name TEXT NOT NULL,
+      type TEXT DEFAULT '',
+      archived INTEGER DEFAULT 0,
+      favorite INTEGER DEFAULT 0,
+      note_date TEXT,
+      review_date TEXT,
+      url TEXT DEFAULT '',
+      content TEXT DEFAULT '',
+      tags TEXT DEFAULT '[]',
+      project_id TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_notes_user_id ON notes(user_id)`);
+  db.exec(`CREATE INDEX idx_notes_type ON notes(type)`);
+  db.exec(`CREATE INDEX idx_notes_archived ON notes(archived)`);
+  db.exec(`CREATE INDEX idx_notes_favorite ON notes(favorite)`);
+  db.exec(`CREATE INDEX idx_notes_note_date ON notes(note_date)`);
+  console.log('Notes table created');
+}
+
+// ============================================
+// PROJECTS TABLE
+// ============================================
+const projectsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").get();
+if (!projectsTable) {
+  console.log('Creating projects table...');
+  db.exec(`
+    CREATE TABLE projects (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      name TEXT NOT NULL,
+      status TEXT DEFAULT 'planned' CHECK(status IN ('planned', 'on_hold', 'doing', 'ongoing', 'done')),
+      target_deadline TEXT,
+      completed_date TEXT,
+      archived INTEGER DEFAULT 0,
+      review_notes TEXT DEFAULT '',
+      tag_id TEXT,
+      goal_id TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_projects_user_id ON projects(user_id)`);
+  db.exec(`CREATE INDEX idx_projects_status ON projects(status)`);
+  db.exec(`CREATE INDEX idx_projects_archived ON projects(archived)`);
+  console.log('Projects table created');
+}
+
+// ============================================
+// TAGS TABLE
+// ============================================
+const tagsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tags'").get();
+if (!tagsTable) {
+  console.log('Creating tags table...');
+  db.exec(`
+    CREATE TABLE tags (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      name TEXT NOT NULL,
+      type TEXT DEFAULT 'resource' CHECK(type IN ('area', 'resource', 'entity')),
+      archived INTEGER DEFAULT 0,
+      favorite INTEGER DEFAULT 0,
+      parent_tag_id TEXT REFERENCES tags(id),
+      url TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_tags_user_id ON tags(user_id)`);
+  db.exec(`CREATE INDEX idx_tags_type ON tags(type)`);
+  db.exec(`CREATE INDEX idx_tags_archived ON tags(archived)`);
+  db.exec(`CREATE INDEX idx_tags_favorite ON tags(favorite)`);
+  db.exec(`CREATE INDEX idx_tags_parent_tag_id ON tags(parent_tag_id)`);
+  console.log('Tags table created');
+}
+
+// ============================================
+// TASK ITEMS - NEW COLUMNS (Phase A Migration)
+// ============================================
+
+// Add my_day column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN my_day INTEGER DEFAULT 0`);
+  console.log('Added my_day column');
+} catch (e) { /* Column exists */ }
+
+// Add status column (todo/doing/done)
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN status TEXT DEFAULT 'todo'`);
+  console.log('Added status column');
+} catch (e) { /* Column exists */ }
+
+// Add priority column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN priority TEXT`);
+  console.log('Added priority column');
+} catch (e) { /* Column exists */ }
+
+// Add snooze_date column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN snooze_date TEXT`);
+  console.log('Added snooze_date column');
+} catch (e) { /* Column exists */ }
+
+// Add project_id column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN project_id TEXT`);
+  console.log('Added project_id column');
+} catch (e) { /* Column exists */ }
+
+// Add energy column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN energy TEXT`);
+  console.log('Added energy column');
+} catch (e) { /* Column exists */ }
+
+// Add location column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN location TEXT`);
+  console.log('Added location column');
+} catch (e) { /* Column exists */ }
+
+// Add list_id column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN list_id TEXT`);
+  console.log('Added list_id column');
+} catch (e) { /* Column exists */ }
+
+// Create indexes for new columns
+db.exec(`CREATE INDEX IF NOT EXISTS idx_task_items_my_day ON task_items(my_day)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_task_items_status ON task_items(status)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_task_items_priority ON task_items(priority)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_task_items_snooze_date ON task_items(snooze_date)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_task_items_project_id ON task_items(project_id)`);

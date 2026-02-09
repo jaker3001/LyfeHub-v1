@@ -6,6 +6,9 @@ const db = require('./schema');
 const taskItemsDb = require('./taskItems');
 const peopleDb = require('./people');
 const organizationsDb = require('./organizations');
+const notesDb = require('./notes');
+const projectsDb = require('./projects');
+const tagsDb = require('./tags');
 
 // Core base definitions - these are defined in code, not in the database
 const CORE_BASES = {
@@ -356,22 +359,186 @@ Track notable people you admire - authors, thought leaders, etc. Note what you c
     properties: [
       { id: 'title', name: 'Title', type: 'text', position: 0, width: 250 },
       { id: 'description', name: 'Description', type: 'text', position: 1, width: 300 },
-      { id: 'due_date', name: 'Due Date', type: 'date', position: 2, width: 120 },
-      { id: 'due_time', name: 'Due Time', type: 'time', position: 3, width: 100 },
-      { id: 'important', name: 'Important', type: 'checkbox', position: 4, width: 100 },
-      { id: 'completed', name: 'Completed', type: 'checkbox', position: 5, width: 100 },
-      { id: 'recurring', name: 'Recurring', type: 'select', position: 6, width: 120, options: [
+      { id: 'status', name: 'Status', type: 'select', position: 2, width: 120, options: [
+        { value: 'todo', label: 'To Do' },
+        { value: 'doing', label: 'Doing' },
+        { value: 'done', label: 'Done' }
+      ]},
+      { id: 'my_day', name: 'My Day', type: 'checkbox', position: 3, width: 100 },
+      { id: 'due_date', name: 'Due Date', type: 'date', position: 4, width: 120 },
+      { id: 'due_time', name: 'Due Time', type: 'time', position: 5, width: 100 },
+      { id: 'due_time_end', name: 'End Time', type: 'time', position: 6, width: 100 },
+      { id: 'snooze_date', name: 'Snooze Until', type: 'date', position: 7, width: 120 },
+      { id: 'priority', name: 'Priority', type: 'select', position: 8, width: 120, options: [
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' }
+      ]},
+      { id: 'energy', name: 'Energy', type: 'select', position: 9, width: 100, options: [
+        { value: 'low', label: 'Low' },
+        { value: 'high', label: 'High' }
+      ]},
+      { id: 'location', name: 'Location', type: 'select', position: 10, width: 120, options: [
+        { value: 'home', label: 'Home' },
+        { value: 'office', label: 'Office' },
+        { value: 'errand', label: 'Errand' }
+      ]},
+      { id: 'important', name: 'Important', type: 'checkbox', position: 11, width: 100 },
+      { id: 'completed', name: 'Completed', type: 'checkbox', position: 12, width: 100 },
+      { id: 'completed_at', name: 'Completed At', type: 'date', position: 13, width: 120 },
+      { id: 'recurring', name: 'Recurring', type: 'select', position: 14, width: 120, options: [
         { value: 'daily', label: 'Daily' },
         { value: 'weekdays', label: 'Weekdays' },
         { value: 'weekly', label: 'Weekly' },
         { value: 'biweekly', label: 'Biweekly' },
         { value: 'monthly', label: 'Monthly' },
         { value: 'yearly', label: 'Yearly' }
-      ]}
+      ]},
+      { id: 'recurring_days', name: 'Recurring Days', type: 'multi_select', position: 15, width: 150, options: [
+        { value: 'sun', label: 'Sun' },
+        { value: 'mon', label: 'Mon' },
+        { value: 'tue', label: 'Tue' },
+        { value: 'wed', label: 'Wed' },
+        { value: 'thu', label: 'Thu' },
+        { value: 'fri', label: 'Fri' },
+        { value: 'sat', label: 'Sat' }
+      ]},
+      { id: 'project_id', name: 'Project', type: 'relation', position: 16, width: 150, options: {
+        relatedBaseId: 'core-projects',
+        displayProperty: 'name'
+      }},
+      { id: 'list_id', name: 'List', type: 'text', position: 17, width: 150 },
+      { id: 'subtasks', name: 'Subtasks', type: 'text', position: 18, width: 200 }
+    ]
+  },
+  'core-notes': {
+    id: 'core-notes',
+    name: 'Notes',
+    description: 'Capture ideas, meeting notes, web clips, and more',
+    icon: '📝',
+    is_core: true,
+    table_name: 'notes',
+    readme: `# Notes Base Guide
+
+## Overview
+The Notes base is your central hub for capturing and organizing all types of written content.
+
+## Note Types
+- **Journal**: Personal reflections and daily entries
+- **Meeting**: Notes from meetings and calls
+- **Web Clip**: Saved content from the web
+- **Reference**: Reference material and documentation
+- **Idea**: Quick ideas and brainstorms
+- **Plan**: Plans and strategies
+
+## Tips
+- Use Review Date for notes you want to revisit
+- Archive notes instead of deleting them
+- Use Tags to create cross-cutting categories
+- Favorite your most-referenced notes`,
+    properties: [
+      { id: 'name', name: 'Name', type: 'text', position: 0, width: 250 },
+      { id: 'type', name: 'Type', type: 'select', position: 1, width: 120, options: [
+        { value: 'journal', label: 'Journal' },
+        { value: 'meeting', label: 'Meeting' },
+        { value: 'web_clip', label: 'Web Clip' },
+        { value: 'reference', label: 'Reference' },
+        { value: 'idea', label: 'Idea' },
+        { value: 'plan', label: 'Plan' }
+      ]},
+      { id: 'content', name: 'Content', type: 'text', position: 2, width: 400 },
+      { id: 'url', name: 'URL', type: 'url', position: 3, width: 200 },
+      { id: 'note_date', name: 'Note Date', type: 'date', position: 4, width: 120 },
+      { id: 'review_date', name: 'Review Date', type: 'date', position: 5, width: 120 },
+      { id: 'favorite', name: 'Favorite', type: 'checkbox', position: 6, width: 100 },
+      { id: 'archived', name: 'Archived', type: 'checkbox', position: 7, width: 100 },
+      { id: 'tags', name: 'Tags', type: 'multi_select', position: 8, width: 200, options: [] },
+      { id: 'project_id', name: 'Project', type: 'text', position: 9, width: 150 }
+    ]
+  },
+  'core-projects': {
+    id: 'core-projects',
+    name: 'Projects',
+    description: 'Track projects with status, deadlines, and goals',
+    icon: '🚀',
+    is_core: true,
+    table_name: 'projects',
+    readme: `# Projects Base Guide
+
+## Overview
+The Projects base helps you track all your projects from inception to completion.
+
+## Status Options
+- **Planned**: Not started yet
+- **On Hold**: Paused for now
+- **Doing**: Actively working on it
+- **Ongoing**: Maintenance or perpetual projects
+- **Done**: Completed!
+
+## Tips
+- Set target deadlines to stay accountable
+- Use review notes for project retrospectives
+- Archive completed projects to keep your list clean
+- Link projects to goals for bigger-picture tracking`,
+    properties: [
+      { id: 'name', name: 'Name', type: 'text', position: 0, width: 250 },
+      { id: 'status', name: 'Status', type: 'select', position: 1, width: 120, options: [
+        { value: 'planned', label: 'Planned' },
+        { value: 'on_hold', label: 'On Hold' },
+        { value: 'doing', label: 'Doing' },
+        { value: 'ongoing', label: 'Ongoing' },
+        { value: 'done', label: 'Done' }
+      ]},
+      { id: 'target_deadline', name: 'Target Deadline', type: 'date', position: 2, width: 140 },
+      { id: 'completed_date', name: 'Completed Date', type: 'date', position: 3, width: 140 },
+      { id: 'archived', name: 'Archived', type: 'checkbox', position: 4, width: 100 },
+      { id: 'review_notes', name: 'Review Notes', type: 'text', position: 5, width: 300 },
+      { id: 'tag_id', name: 'Tag', type: 'text', position: 6, width: 150 },
+      { id: 'goal_id', name: 'Goal', type: 'text', position: 7, width: 150 }
+    ]
+  },
+  'core-tags': {
+    id: 'core-tags',
+    name: 'Tags',
+    description: 'Organize with Areas, Resources, and Entities (PARA method)',
+    icon: '🏷️',
+    is_core: true,
+    table_name: 'tags',
+    readme: `# Tags Base Guide
+
+## Overview
+Tags help you organize and categorize your content using the PARA method.
+
+## Tag Types (PARA Method)
+
+### Areas
+Ongoing spheres of responsibility (Home, Work, Health)
+
+### Resources
+Topics of ongoing interest (Programming, Cooking, Finance)
+
+### Entities
+Meta-collections or specific things (Apps, Books, Essays)
+
+## Tips
+- Use Favorite to surface frequently-used tags
+- Archive tags instead of deleting
+- Add URLs to link to external resources`,
+    properties: [
+      { id: 'name', name: 'Name', type: 'text', position: 0, width: 250 },
+      { id: 'type', name: 'Type', type: 'select', position: 1, width: 120, options: [
+        { value: 'area', label: 'Area' },
+        { value: 'resource', label: 'Resource' },
+        { value: 'entity', label: 'Entity' }
+      ]},
+      { id: 'description', name: 'Description', type: 'text', position: 2, width: 300 },
+      { id: 'url', name: 'URL', type: 'url', position: 3, width: 200 },
+      { id: 'parent_tag_id', name: 'Parent Tag', type: 'text', position: 4, width: 150 },
+      { id: 'favorite', name: 'Favorite', type: 'checkbox', position: 5, width: 100 },
+      { id: 'archived', name: 'Archived', type: 'checkbox', position: 6, width: 100 }
     ]
   }
 };
-
 /**
  * Get all core bases available to a user
  */
@@ -406,6 +573,15 @@ function getRecordCount(baseId, userId) {
   if (baseId === 'core-organizations') {
     return organizationsDb.getOrganizationCount(userId);
   }
+  if (baseId === 'core-notes') {
+    return notesDb.getNoteCount(userId);
+  }
+  if (baseId === 'core-projects') {
+    return projectsDb.getProjectCount(userId);
+  }
+  if (baseId === 'core-tags') {
+    return tagsDb.getTagCount(userId);
+  }
   return 0;
 }
 
@@ -415,8 +591,9 @@ function getRecordCount(baseId, userId) {
 function getCoreBaseRecords(baseId, userId) {
   if (baseId === 'core-tasks') {
     const stmt = db.prepare(`
-      SELECT id, title, description, due_date, due_time, recurring, recurring_days,
-             important, completed, completed_at, subtasks, user_id, created_at, updated_at
+      SELECT id, title, description, status, my_day, due_date, due_time, due_time_end,
+             snooze_date, priority, energy, location, important, completed, completed_at,
+             recurring, recurring_days, project_id, list_id, subtasks, user_id, created_at, updated_at
       FROM task_items
       WHERE user_id = ?
       ORDER BY created_at DESC
@@ -434,11 +611,23 @@ function getCoreBaseRecords(baseId, userId) {
       values: {
         title: row.title || '',
         description: row.description || '',
+        status: row.status || 'todo',
+        my_day: !!row.my_day,
         due_date: row.due_date || '',
         due_time: row.due_time || '',
+        due_time_end: row.due_time_end || '',
+        snooze_date: row.snooze_date || '',
+        priority: row.priority || '',
+        energy: row.energy || '',
+        location: row.location || '',
         important: !!row.important,
         completed: !!row.completed,
-        recurring: row.recurring || ''
+        completed_at: row.completed_at || '',
+        recurring: row.recurring || '',
+        recurring_days: safeJsonParse(row.recurring_days, []),
+        project_id: row.project_id || '',
+        list_id: row.list_id || '',
+        subtasks: safeJsonParse(row.subtasks, [])
       }
     }));
   }
@@ -553,6 +742,57 @@ function getCoreBaseRecords(baseId, userId) {
   }
 
 
+
+  if (baseId === 'core-notes') {
+    const rows = notesDb.getAllNotes(userId);
+    
+    return rows.map((row, index) => ({
+      id: row.id,
+      base_id: baseId,
+      global_id: index + 1,
+      position: index,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      values: mapNoteToValues(row)
+    }));
+  }
+
+  if (baseId === 'core-projects') {
+    const rows = projectsDb.getAllProjects(userId);
+    
+    return rows.map((row, index) => ({
+      id: row.id,
+      base_id: baseId,
+      global_id: index + 1,
+      position: index,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      values: mapProjectToValues(row)
+    }));
+  }
+
+  if (baseId === 'core-tags') {
+    const rows = tagsDb.getAllTags(userId);
+    
+    return rows.map((row, index) => ({
+      id: row.id,
+      base_id: baseId,
+      global_id: index + 1,
+      position: index,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      values: {
+        name: row.name || '',
+        type: row.type || 'resource',
+        description: row.description || '',
+        url: row.url || '',
+        parent_tag_id: row.parent_tag_id || '',
+        favorite: !!row.favorite,
+        archived: !!row.archived
+      }
+    }));
+  }
+
   return [];
 }
 
@@ -567,6 +807,40 @@ function safeJsonParse(str, defaultVal) {
     return defaultVal;
   }
 }
+/**
+ * Map note database row to values object
+ */
+function mapNoteToValues(note) {
+  return {
+    name: note.name || '',
+    type: note.type || '',
+    content: note.content || '',
+    url: note.url || '',
+    note_date: note.note_date || '',
+    review_date: note.review_date || '',
+    favorite: !!note.favorite,
+    archived: !!note.archived,
+    tags: safeJsonParse(note.tags, []),
+    project_id: note.project_id || ''
+  };
+}
+
+/**
+ * Map project database row to values object
+ */
+function mapProjectToValues(project) {
+  return {
+    name: project.name || '',
+    status: project.status || 'planned',
+    target_deadline: project.target_deadline || '',
+    completed_date: project.completed_date || '',
+    archived: !!project.archived,
+    review_notes: project.review_notes || '',
+    tag_id: project.tag_id || '',
+    goal_id: project.goal_id || ''
+  };
+}
+
 
 /**
  * Create a record in a core base
@@ -576,10 +850,20 @@ function createCoreBaseRecord(baseId, values, userId) {
     const task = taskItemsDb.createTaskItem({
       title: values.title || 'Untitled Task',
       description: values.description || '',
+      status: values.status || 'todo',
+      my_day: values.my_day || false,
       due_date: values.due_date || null,
       due_time: values.due_time || null,
+      due_time_end: values.due_time_end || null,
+      snooze_date: values.snooze_date || null,
+      priority: values.priority || null,
+      energy: values.energy || null,
+      location: values.location || null,
+      important: values.important || false,
       recurring: values.recurring || null,
-      important: values.important || false
+      recurring_days: values.recurring_days || [],
+      project_id: values.project_id || null,
+      list_id: values.list_id || null
     }, userId);
 
     return {
@@ -591,12 +875,24 @@ function createCoreBaseRecord(baseId, values, userId) {
       updated_at: task.updated_at,
       values: {
         title: task.title,
-        description: task.description,
+        description: task.description || '',
+        status: task.status || 'todo',
+        my_day: !!task.my_day,
         due_date: task.due_date || '',
         due_time: task.due_time || '',
-        important: task.important,
-        completed: task.completed,
-        recurring: task.recurring || ''
+        due_time_end: task.due_time_end || '',
+        snooze_date: task.snooze_date || '',
+        priority: task.priority || '',
+        energy: task.energy || '',
+        location: task.location || '',
+        important: !!task.important,
+        completed: !!task.completed,
+        completed_at: task.completed_at || '',
+        recurring: task.recurring || '',
+        recurring_days: task.recurring_days || [],
+        project_id: task.project_id || '',
+        list_id: task.list_id || '',
+        subtasks: task.subtasks || []
       }
     };
   }
@@ -708,6 +1004,84 @@ function createCoreBaseRecord(baseId, values, userId) {
     };
   }
 
+  if (baseId === 'core-tags') {
+    const tag = tagsDb.createTag({
+      name: values.name || 'Untitled Tag',
+      type: values.type || 'resource',
+      description: values.description || '',
+      url: values.url || '',
+      parent_tag_id: values.parent_tag_id || null,
+      favorite: values.favorite || false,
+      archived: values.archived || false
+    }, userId);
+
+    return {
+      id: tag.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: tag.created_at,
+      updated_at: tag.updated_at,
+      values: {
+        name: tag.name,
+        type: tag.type,
+        description: tag.description || '',
+        url: tag.url || '',
+        parent_tag_id: tag.parent_tag_id || '',
+        favorite: !!tag.favorite,
+        archived: !!tag.archived
+      }
+    };
+  }
+
+  if (baseId === 'core-notes') {
+    const note = notesDb.createNote({
+      name: values.name || 'Untitled Note',
+      type: values.type || 'reference',
+      content: values.content || '',
+      url: values.url || '',
+      note_date: values.note_date || null,
+      review_date: values.review_date || null,
+      favorite: values.favorite || false,
+      archived: values.archived || false,
+      tags: values.tags || [],
+      project_id: values.project_id || null
+    }, userId);
+
+    return {
+      id: note.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: note.created_at,
+      updated_at: note.updated_at,
+      values: mapNoteToValues(note)
+    };
+  }
+
+  if (baseId === 'core-projects') {
+    const project = projectsDb.createProject({
+      name: values.name || 'Untitled Project',
+      status: values.status || 'planned',
+      target_deadline: values.target_deadline || null,
+      completed_date: values.completed_date || null,
+      archived: values.archived || false,
+      review_notes: values.review_notes || '',
+      tag_id: values.tag_id || null,
+      goal_id: values.goal_id || null
+    }, userId);
+
+    return {
+      id: project.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: project.created_at,
+      updated_at: project.updated_at,
+      values: mapProjectToValues(project)
+    };
+  }
+
   return null;
 }
 
@@ -813,11 +1187,21 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
     const task = taskItemsDb.updateTaskItem(recordId, {
       title: values.title,
       description: values.description,
+      status: values.status,
+      my_day: values.my_day,
       due_date: values.due_date || null,
       due_time: values.due_time || null,
-      recurring: values.recurring || null,
+      due_time_end: values.due_time_end || null,
+      snooze_date: values.snooze_date || null,
+      priority: values.priority || null,
+      energy: values.energy || null,
+      location: values.location || null,
       important: values.important,
-      completed: values.completed
+      completed: values.completed,
+      recurring: values.recurring || null,
+      recurring_days: values.recurring_days,
+      project_id: values.project_id || null,
+      list_id: values.list_id || null
     }, userId);
 
     if (!task) return null;
@@ -831,12 +1215,24 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
       updated_at: task.updated_at,
       values: {
         title: task.title,
-        description: task.description,
+        description: task.description || '',
+        status: task.status || 'todo',
+        my_day: !!task.my_day,
         due_date: task.due_date || '',
         due_time: task.due_time || '',
-        important: task.important,
-        completed: task.completed,
-        recurring: task.recurring || ''
+        due_time_end: task.due_time_end || '',
+        snooze_date: task.snooze_date || '',
+        priority: task.priority || '',
+        energy: task.energy || '',
+        location: task.location || '',
+        important: !!task.important,
+        completed: !!task.completed,
+        completed_at: task.completed_at || '',
+        recurring: task.recurring || '',
+        recurring_days: task.recurring_days || [],
+        project_id: task.project_id || '',
+        list_id: task.list_id || '',
+        subtasks: task.subtasks || []
       }
     };
   }
@@ -873,6 +1269,63 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
     };
   }
 
+
+  if (baseId === 'core-notes') {
+    const note = notesDb.updateNote(recordId, values, userId);
+
+    if (!note) return null;
+
+    return {
+      id: note.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: note.created_at,
+      updated_at: note.updated_at,
+      values: mapNoteToValues(note)
+    };
+  }
+
+  if (baseId === 'core-projects') {
+    const project = projectsDb.updateProject(recordId, values, userId);
+
+    if (!project) return null;
+
+    return {
+      id: project.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: project.created_at,
+      updated_at: project.updated_at,
+      values: mapProjectToValues(project)
+    };
+  }
+
+  if (baseId === 'core-tags') {
+    const tag = tagsDb.updateTag(recordId, values, userId);
+
+    if (!tag) return null;
+
+    return {
+      id: tag.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: tag.created_at,
+      updated_at: tag.updated_at,
+      values: {
+        name: tag.name,
+        type: tag.type,
+        description: tag.description || '',
+        url: tag.url || '',
+        parent_tag_id: tag.parent_tag_id || '',
+        favorite: !!tag.favorite,
+        archived: !!tag.archived
+      }
+    };
+  }
+
   return null;
 }
 
@@ -889,6 +1342,15 @@ function deleteCoreBaseRecord(baseId, recordId, userId) {
 
   if (baseId === 'core-organizations') {
     return organizationsDb.deleteOrganization(recordId, userId);
+  }
+  if (baseId === 'core-notes') {
+    return notesDb.deleteNote(recordId, userId);
+  }
+  if (baseId === 'core-projects') {
+    return projectsDb.deleteProject(recordId, userId);
+  }
+  if (baseId === 'core-tags') {
+    return tagsDb.deleteTag(recordId, userId);
   }
   return false;
 }

@@ -202,7 +202,7 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, description, due_date, due_time, recurring, recurring_days, important, subtasks, calendar_ids } = req.body;
+    const { title, description, status, my_day, due_date, due_time, due_time_end, snooze_date, priority, energy, location, recurring, recurring_days, important, subtasks, project_id, list_id, calendar_ids } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
@@ -211,12 +211,21 @@ router.post('/', (req, res) => {
     const item = createTaskItem({
       title: title.trim(),
       description,
+      status,
+      my_day,
       due_date,
       due_time,
+      due_time_end,
+      snooze_date,
+      priority,
+      energy,
+      location,
       recurring,
       recurring_days,
       important,
-      subtasks
+      subtasks,
+      project_id,
+      list_id
     }, userId);
 
     // Set calendar associations - default to Tasks calendar if none provided

@@ -69,6 +69,7 @@ function getAllTaskItems(userId, view = 'all', userDate = null) {
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
     completed: !!item.completed,
+    my_day: !!item.my_day,
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
@@ -122,6 +123,7 @@ function getTaskItemById(id, userId) {
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
     completed: !!item.completed,
+    my_day: !!item.my_day,
     calendar_ids: getTaskItemCalendarIds(id)
   };
 }
@@ -134,19 +136,28 @@ function createTaskItem(data, userId) {
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
-    INSERT INTO task_items (id, title, description, due_date, due_time, recurring, recurring_days, important, subtasks, user_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO task_items (id, title, description, status, my_day, due_date, due_time, due_time_end, snooze_date, priority, energy, location, important, recurring, recurring_days, project_id, list_id, subtasks, user_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
     id,
     data.title,
     data.description || '',
+    data.status || 'todo',
+    data.my_day ? 1 : 0,
     data.due_date || null,
     data.due_time || null,
+    data.due_time_end || null,
+    data.snooze_date || null,
+    data.priority || null,
+    data.energy || null,
+    data.location || null,
+    data.important ? 1 : 0,
     data.recurring || null,
     JSON.stringify(data.recurring_days || []),
-    data.important ? 1 : 0,
+    data.project_id || null,
+    data.list_id || null,
     JSON.stringify(data.subtasks || []),
     userId,
     now,
@@ -174,14 +185,22 @@ function updateTaskItem(id, data, userId) {
     UPDATE task_items SET
       title = ?,
       description = ?,
+      status = ?,
+      my_day = ?,
       due_date = ?,
       due_time = ?,
       due_time_end = ?,
-      recurring = ?,
-      recurring_days = ?,
+      snooze_date = ?,
+      priority = ?,
+      energy = ?,
+      location = ?,
       important = ?,
       completed = ?,
       completed_at = ?,
+      recurring = ?,
+      recurring_days = ?,
+      project_id = ?,
+      list_id = ?,
       subtasks = ?,
       updated_at = ?
     WHERE id = ? AND user_id = ?
@@ -192,14 +211,22 @@ function updateTaskItem(id, data, userId) {
   stmt.run(
     data.title ?? existing.title,
     data.description ?? existing.description,
+    data.status ?? existing.status ?? 'todo',
+    data.my_day !== undefined ? (data.my_day ? 1 : 0) : (existing.my_day ? 1 : 0),
     data.due_date ?? existing.due_date,
     data.due_time ?? existing.due_time,
     data.due_time_end ?? existing.due_time_end,
-    data.recurring ?? existing.recurring,
-    JSON.stringify(data.recurring_days ?? existing.recurring_days),
+    data.snooze_date ?? existing.snooze_date,
+    data.priority ?? existing.priority,
+    data.energy ?? existing.energy,
+    data.location ?? existing.location,
     data.important !== undefined ? (data.important ? 1 : 0) : (existing.important ? 1 : 0),
     data.completed !== undefined ? (data.completed ? 1 : 0) : (existing.completed ? 1 : 0),
     completedAt,
+    data.recurring ?? existing.recurring,
+    JSON.stringify(data.recurring_days ?? existing.recurring_days),
+    data.project_id ?? existing.project_id,
+    data.list_id ?? existing.list_id,
     JSON.stringify(data.subtasks ?? existing.subtasks),
     now,
     id,
@@ -337,6 +364,7 @@ function getTaskItemsForCalendar(userId, startDate, endDate, calendarIds = null)
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
     completed: !!item.completed,
+    my_day: !!item.my_day,
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
@@ -374,6 +402,7 @@ function getScheduledTaskItems(userId, calendarIds = null) {
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
     completed: !!item.completed,
+    my_day: !!item.my_day,
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
@@ -411,6 +440,7 @@ function getUnscheduledTaskItems(userId, calendarIds = null) {
     recurring_days: JSON.parse(item.recurring_days || '[]'),
     important: !!item.important,
     completed: !!item.completed,
+    my_day: !!item.my_day,
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
