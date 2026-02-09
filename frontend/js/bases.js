@@ -3222,8 +3222,8 @@ function showFileUploadModal(cell, prop, record, currentValue) {
     
     renderFileList();
     
-    // Upload files
-    await uploadPendingFiles();
+    // Don't upload yet - wait for Save button
+    // Files will be uploaded when user clicks Save
   }
   
   // Upload a single file
@@ -3461,22 +3461,27 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       return;
     }
     
+    // Disable button immediately
+    saveBtn.disabled = true;
+    
     // Check for files still pending upload
     const stillPending = pendingFiles.filter(f => f.status === UploadStatus.PENDING && f.file);
     if (stillPending.length > 0) {
-      // Try to upload them first
+      saveBtn.textContent = 'Uploading...';
       await uploadPendingFiles();
     }
     
     // Check for pending uploads with errors
     const failedFiles = pendingFiles.filter(f => f.status === UploadStatus.ERROR);
     if (failedFiles.length > 0) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
       const confirmSave = confirm(`${failedFiles.length} file(s) failed to upload. Save anyway? Failed files will not be included.`);
       if (!confirmSave) return;
+      saveBtn.disabled = true;
     }
     
-    // Disable button and show saving state
-    saveBtn.disabled = true;
+    // Show saving state
     saveBtn.textContent = 'Saving...';
     
     try {
