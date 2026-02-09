@@ -2834,7 +2834,7 @@ function showFileUploadModal(cell, prop, record, currentValue) {
             <p class="drop-zone-text">Drag & drop files here</p>
             <p class="drop-zone-subtext">or</p>
             <button class="btn btn-secondary browse-btn" id="browse-files-btn">Browse Files</button>
-            <input type="file" id="file-input" multiple style="display: none;" />
+            <input type="file" id="file-input" multiple accept="*/*" style="display: none;" />
           </div>
           <div class="drop-zone-overlay">
             <span>Drop files to upload</span>
