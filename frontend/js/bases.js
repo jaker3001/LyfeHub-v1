@@ -398,6 +398,30 @@ function normalizeOption(opt) {
   return { value: opt.value || opt, label: opt.label || opt.value || opt, color: opt.color || null };
 }
 
+// Helper to get file icon based on MIME type
+function getFileIcon(mimeType) {
+  if (!mimeType) return '📎';
+  
+  if (mimeType.startsWith('image/')) return '🖼️';
+  if (mimeType.startsWith('video/')) return '🎬';
+  if (mimeType.startsWith('audio/')) return '🎵';
+  if (mimeType === 'application/pdf') return '📄';
+  
+  // Word documents
+  if (mimeType === 'application/msword' || 
+      mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return '📝';
+  }
+  
+  // Excel spreadsheets
+  if (mimeType === 'application/vnd.ms-excel' || 
+      mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    return '📊';
+  }
+  
+  return '📎';
+}
+
 // Color palette for auto-selection
 const tagColors = [
   '#bf5af2', '#0af', '#ff6b35', '#05ffa1', '#ff2a6d', '#ffe66d',
@@ -2184,6 +2208,16 @@ function renderCellContent(prop, value) {
         return `<span class="cell-relation-pill" data-record-id="${escapeHtml(recordId)}" data-base-id="${escapeHtml(relatedBaseId || '')}">${cachedName ? escapeHtml(cachedName) : '...'}</span>`;
       }).join('');
     
+    case 'files':
+      const files = Array.isArray(value) ? value : [];
+      if (files.length === 0) return '<span class="cell-placeholder">Add files...</span>';
+      return files.map(f => `
+        <span class="cell-file-pill">
+          <span class="file-icon">${getFileIcon(f.mimeType)}</span>
+          <span class="file-name">${escapeHtml(f.originalName || f.filename)}</span>
+        </span>
+      `).join(' ');
+    
     case 'text':
     default:
       return value ? escapeHtml(value) : `<span class="cell-placeholder">Empty</span>`;
@@ -2317,6 +2351,11 @@ function startEditingCell(cell) {
       // For relations, we show a special picker modal
       showRelationPicker(cell, prop, record, value);
       return; // Don't set editorHtml, the picker handles everything
+    
+    case 'files':
+      // For files, we show the file upload modal
+      showFileUploadModal(cell, prop, record, value);
+      return; // Don't set editorHtml, the modal handles everything
     
     default:
       editorHtml = `<input type="text" class="cell-editor" value="${escapeHtml(value || '')}" />`;
@@ -2622,6 +2661,282 @@ function attachRelationPillClickHandlers() {
       }
     });
   });
+}
+
+// ============================================
+// File Upload Modal
+// ============================================
+
+function showFileUploadModal(cell, prop, record, currentValue) {
+  const files = Array.isArray(currentValue) ? [...currentValue] : [];
+  let pendingFiles = []; // Files waiting to be uploaded
+  let isUploading = false;
+  
+  // Create modal
+  const modal = document.createElement('div');
+  modal.className = 'modal open';
+  modal.id = 'file-upload-modal';
+  
+  modal.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-file-upload">
+      <button class="modal-close-corner" aria-label="Close">×</button>
+      <div class="modal-header">
+        <h2>📎 Attachments</h2>
+      </div>
+      <div class="modal-body">
+        <div class="file-drop-zone" id="file-drop-zone">
+          <div class="drop-zone-content">
+            <span class="drop-zone-icon">📁</span>
+            <p class="drop-zone-text">Drag & drop files here</p>
+            <p class="drop-zone-subtext">or</p>
+            <button class="btn btn-secondary browse-btn" id="browse-files-btn">Browse Files</button>
+            <input type="file" id="file-input" multiple style="display: none;" />
+          </div>
+          <div class="drop-zone-overlay">
+            <span>Drop files to upload</span>
+          </div>
+        </div>
+        
+        <div class="upload-progress" id="upload-progress" style="display: none;">
+          <div class="upload-progress-bar">
+            <div class="upload-progress-fill"></div>
+          </div>
+          <span class="upload-progress-text">Uploading...</span>
+        </div>
+        
+        <div class="file-list-section">
+          <h4 class="file-list-header">Attached Files <span class="file-count" id="file-count">(${files.length})</span></h4>
+          <div class="file-list" id="file-list">
+            ${files.length === 0 ? '<p class="no-files">No files attached</p>' : ''}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="save-files-btn">Save</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const dropZone = modal.querySelector('#file-drop-zone');
+  const fileInput = modal.querySelector('#file-input');
+  const browseBtn = modal.querySelector('#browse-files-btn');
+  const fileList = modal.querySelector('#file-list');
+  const fileCount = modal.querySelector('#file-count');
+  const uploadProgress = modal.querySelector('#upload-progress');
+  
+  // Render current files
+  function renderFileList() {
+    const allFiles = [...files, ...pendingFiles.map(f => ({ ...f, pending: true }))];
+    fileCount.textContent = `(${allFiles.length})`;
+    
+    if (allFiles.length === 0) {
+      fileList.innerHTML = '<p class="no-files">No files attached</p>';
+      return;
+    }
+    
+    fileList.innerHTML = allFiles.map((file, index) => {
+      const isPending = file.pending;
+      const fileName = file.filename || file.name;
+      const fileSize = formatFileSize(file.size);
+      const fileIcon = getFileIcon(fileName);
+      
+      return `
+        <div class="file-item ${isPending ? 'pending' : ''}" data-index="${index}" data-pending="${isPending}">
+          <div class="file-item-info">
+            <span class="file-icon">${fileIcon}</span>
+            <div class="file-details">
+              <span class="file-name">${escapeHtml(fileName)}</span>
+              <span class="file-size">${fileSize}</span>
+            </div>
+          </div>
+          <div class="file-item-actions">
+            ${!isPending && file.url ? `<a href="${escapeHtml(file.url)}" target="_blank" class="file-action view-file" title="View/Download">👁️</a>` : ''}
+            <button class="file-action delete-file" data-index="${index}" data-pending="${isPending}" title="Remove">×</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Attach delete handlers
+    fileList.querySelectorAll('.delete-file').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index);
+        const isPending = btn.dataset.pending === 'true';
+        
+        if (isPending) {
+          const pendingIdx = idx - files.length;
+          pendingFiles.splice(pendingIdx, 1);
+        } else {
+          files.splice(idx, 1);
+        }
+        renderFileList();
+      });
+    });
+  }
+  
+  // Format file size
+  function formatFileSize(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+  
+  // Get file icon based on extension
+  function getFileIcon(filename) {
+    const ext = (filename || '').split('.').pop().toLowerCase();
+    const icons = {
+      pdf: '📄',
+      doc: '📝', docx: '📝',
+      xls: '📊', xlsx: '📊',
+      ppt: '📽️', pptx: '📽️',
+      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️',
+      mp3: '🎵', wav: '🎵', ogg: '🎵',
+      mp4: '🎬', mov: '🎬', avi: '🎬', webm: '🎬',
+      zip: '📦', rar: '📦', '7z': '📦', tar: '📦', gz: '📦',
+      txt: '📄',
+      json: '📋', xml: '📋', csv: '📋',
+      js: '💻', ts: '💻', py: '💻', html: '💻', css: '💻',
+    };
+    return icons[ext] || '📎';
+  }
+  
+  // Handle file selection
+  async function handleFiles(selectedFiles) {
+    if (isUploading) return;
+    
+    const fileArray = Array.from(selectedFiles);
+    
+    // Add files to pending list with metadata
+    for (const file of fileArray) {
+      pendingFiles.push({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file: file, // Keep the File object for upload
+        pending: true
+      });
+    }
+    
+    renderFileList();
+    
+    // Upload files (placeholder - T8 will implement actual upload)
+    await uploadFiles(fileArray);
+  }
+  
+  // Placeholder upload function - T8 will wire to API
+  async function uploadFiles(filesToUpload) {
+    if (filesToUpload.length === 0) return;
+    
+    isUploading = true;
+    uploadProgress.style.display = 'block';
+    dropZone.classList.add('disabled');
+    
+    // TODO: Wire to actual upload API in T8
+    // For now, simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // After upload, move pending files to files array with metadata
+    for (const pending of pendingFiles) {
+      files.push({
+        filename: pending.name,
+        size: pending.size,
+        type: pending.type,
+        url: null, // Will be set by actual upload
+        uploaded_at: new Date().toISOString()
+      });
+    }
+    pendingFiles = [];
+    
+    isUploading = false;
+    uploadProgress.style.display = 'none';
+    dropZone.classList.remove('disabled');
+    renderFileList();
+  }
+  
+  // Drag and drop handlers
+  dropZone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('drag-over');
+  });
+  
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('drag-over');
+  });
+  
+  dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only remove class if leaving the drop zone entirely
+    if (!dropZone.contains(e.relatedTarget)) {
+      dropZone.classList.remove('drag-over');
+    }
+  });
+  
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove('drag-over');
+    
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles.length > 0) {
+      handleFiles(droppedFiles);
+    }
+  });
+  
+  // Browse button click
+  browseBtn.addEventListener('click', () => {
+    fileInput.click();
+  });
+  
+  // File input change
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      handleFiles(fileInput.files);
+      fileInput.value = ''; // Reset for next selection
+    }
+  });
+  
+  // Close modal handlers
+  const closeModal = () => {
+    modal.remove();
+    closeEditor();
+  };
+  
+  modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+  modal.querySelector('.modal-close-corner').addEventListener('click', closeModal);
+  modal.querySelector('.modal-cancel').addEventListener('click', closeModal);
+  
+  // Save button
+  modal.querySelector('#save-files-btn').addEventListener('click', async () => {
+    if (isUploading) return;
+    
+    // Update the record with the files array
+    const recordId = record.id;
+    const propId = prop.id;
+    
+    await updateCellValue(recordId, propId, files.length > 0 ? files : null);
+    modal.remove();
+  });
+  
+  // Keyboard handler
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Escape') {
+      closeModal();
+      document.removeEventListener('keydown', escHandler);
+    }
+  });
+  
+  // Initial render
+  renderFileList();
 }
 
 // ============================================

@@ -6868,6 +6868,46 @@ body.column-dragging .base-table {
     100% { transform: scale(1.05); }
 }
 
+/* ============================================
+   FILE PROPERTY STYLES
+   ============================================ */
+
+/* File Pills in cells */
+.cell-file-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(191, 90, 242, 0.15);
+    border: 1px solid rgba(191, 90, 242, 0.3);
+    color: var(--neon-purple);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-right: 0.25rem;
+    margin-bottom: 0.125rem;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cell-file-pill:hover {
+    background: rgba(191, 90, 242, 0.25);
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 8px rgba(191, 90, 242, 0.3);
+}
+
+.cell-file-pill .file-icon {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.cell-file-pill .file-name {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Relation Picker Modal */
 .relation-picker-modal {
     max-width: 450px;
