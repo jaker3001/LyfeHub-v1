@@ -515,6 +515,40 @@ function getCoreBaseRecords(baseId, userId) {
     }));
   }
 
+  if (baseId === 'core-organizations') {
+    const rows = organizationsDb.getAllOrganizations(userId);
+    
+    return rows.map((row, index) => ({
+      id: row.id,
+      base_id: baseId,
+      global_id: index + 1,
+      position: index,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      values: {
+        name: row.name || '',
+        type: row.type || '',
+        industry: row.industry || '',
+        description: row.description || '',
+        website: row.website || '',
+        linkedin: row.linkedin || '',
+        phone: row.phone || '',
+        email: row.email || '',
+        address: row.address || '',
+        city: row.city || '',
+        state: row.state || '',
+        country: row.country || '',
+        founded_year: row.founded_year || null,
+        employee_count: row.employee_count || null,
+        notes: row.notes || '',
+        tags: safeJsonParse(row.tags, []),
+        important: !!row.important,
+        people: organizationsDb.getPeopleByOrganization(row.id, userId).map(p => p.id)
+      }
+    }));
+  }
+
+
   return [];
 }
 
@@ -759,7 +793,8 @@ function mapPersonToValues(person) {
     allergies_dislikes: person.allergies_dislikes || '',
     relationship_goals: person.relationship_goals || '',
     how_i_can_support: person.how_i_can_support || '',
-    how_they_support_me: person.how_they_support_me || ''
+    how_they_support_me: person.how_they_support_me || '',
+    organization: person.organization_id || null
   };
 }
 
@@ -800,7 +835,7 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
   }
 
   if (baseId === 'core-people') {
-    const person = peopleDb.updatePerson(recordId, values, userId);
+    const updateData = { ...values }; if (values.organization !== undefined) { updateData.organization_id = values.organization; delete updateData.organization; } const person = peopleDb.updatePerson(recordId, updateData, userId);
 
     if (!person) return null;
 
