@@ -1145,13 +1145,7 @@
     <div id="task-item-modal" class="modal">
         <div class="modal-backdrop"></div>
         <div class="modal-content modal-task">
-            <div class="modal-header">
-                <!-- Date/time above title in reader view -->
-                <div id="task-header-datetime" class="task-header-datetime" style="display: none;">
-                    <span id="task-header-date" class="task-header-date"></span>
-                    <span id="task-header-time" class="task-header-time"></span>
-                    <span id="task-header-recurring" class="task-header-recurring"></span>
-                </div>
+            <div class="modal-header task-modal-header-redesign">
                 <div class="modal-title-row">
                     <button type="button" id="task-complete-btn" class="task-complete-btn" title="Mark complete">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1160,36 +1154,98 @@
                     </button>
                     <h2 id="task-reader-title" class="task-reader-title" style="display: none;"></h2>
                     <input type="text" id="task-item-title" class="modal-title-input" placeholder="Task title" />
+                    <div class="modal-header-actions">
+                        <button type="button" id="task-edit-mode-btn" class="edit-mode-btn" title="Edit task" style="display: none;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button type="button" id="task-important-btn" class="task-important-btn" title="Mark important">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                        </button>
+                        <button class="modal-close" aria-label="Close">&times;</button>
+                    </div>
                 </div>
-                <div class="modal-header-actions">
-                    <button type="button" id="task-edit-mode-btn" class="edit-mode-btn" title="Edit task" style="display: none;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <button type="button" id="task-important-btn" class="task-important-btn" title="Mark important">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
-                    </button>
-                    <button class="modal-close" aria-label="Close">&times;</button>
+                <!-- Date/time strip - shown in reader view, hidden in edit view -->
+                <div id="task-header-datetime" class="task-date-strip" style="display: none;">
+                    <span id="task-header-date" class="task-date-badge"></span>
+                    <span id="task-header-time" class="task-date-badge"></span>
+                    <span id="task-header-recurring" class="task-date-badge"></span>
                 </div>
             </div>
             
             <!-- Reader View -->
-            <div id="task-reader-view" class="modal-body" style="display: none;">
-                <div class="task-reader-meta">
-                    <span id="task-reader-due" class="task-reader-due"></span>
-                    <span id="task-reader-recurring" class="task-reader-recurring"></span>
+            <div id="task-reader-view" class="modal-body task-reader-body" style="display: none;">
+                <!-- List badge -->
+                <div id="task-reader-list-section" class="task-reader-list-section" style="display: none;">
+                    <span id="task-reader-list-badge" class="task-list-badge"></span>
                 </div>
+
+                <!-- Relations -->
+                <div id="task-reader-relations" class="task-reader-relations" style="display: none;">
+                    <div id="task-reader-project-row" class="task-relation-row" style="display: none;">
+                        <span class="task-relation-label">Project</span>
+                        <div id="task-reader-project-pills" class="task-relation-pills"></div>
+                    </div>
+                    <div id="task-reader-people-row" class="task-relation-row" style="display: none;">
+                        <span class="task-relation-label">People</span>
+                        <div id="task-reader-people-pills" class="task-relation-pills"></div>
+                    </div>
+                    <div id="task-reader-notes-row" class="task-relation-row" style="display: none;">
+                        <span class="task-relation-label">Notes</span>
+                        <div id="task-reader-notes-pills" class="task-relation-pills"></div>
+                    </div>
+                </div>
+
+                <!-- Description -->
                 <div id="task-reader-description-section" class="task-reader-section">
                     <h4>Description</h4>
                     <div id="task-reader-description" class="markdown-body"></div>
                 </div>
+
+                <!-- Subtasks -->
                 <div id="task-reader-subtasks-section" class="task-reader-section">
                     <h4>Subtasks</h4>
                     <div id="task-reader-subtasks"></div>
+                </div>
+
+                <!-- Hidden meta (kept for backwards compat) -->
+                <div class="task-reader-meta" style="display: none;">
+                    <span id="task-reader-due" class="task-reader-due"></span>
+                    <span id="task-reader-recurring" class="task-reader-recurring"></span>
+                </div>
+
+                <!-- Expandable metadata section -->
+                <div id="task-reader-more-details" class="task-more-details">
+                    <button type="button" id="task-more-details-toggle" class="task-more-details-toggle">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toggle-chevron">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        <span>More details</span>
+                    </button>
+                    <div id="task-more-details-content" class="task-more-details-content" style="display: none;">
+                        <div class="task-metadata-grid">
+                            <div class="task-metadata-item" id="task-reader-priority" style="display: none;">
+                                <span class="task-metadata-label">Priority</span>
+                                <span class="task-metadata-value" id="task-reader-priority-value"></span>
+                            </div>
+                            <div class="task-metadata-item" id="task-reader-energy" style="display: none;">
+                                <span class="task-metadata-label">Energy</span>
+                                <span class="task-metadata-value" id="task-reader-energy-value"></span>
+                            </div>
+                            <div class="task-metadata-item" id="task-reader-location" style="display: none;">
+                                <span class="task-metadata-label">Location</span>
+                                <span class="task-metadata-value" id="task-reader-location-value"></span>
+                            </div>
+                            <div class="task-metadata-item" id="task-reader-status" style="display: none;">
+                                <span class="task-metadata-label">Status</span>
+                                <span class="task-metadata-value" id="task-reader-status-value"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -1267,6 +1323,55 @@
                     </div>
                 </div>
 
+                <!-- List Assignment -->
+                <div class="task-item-section">
+                    <label class="task-item-section-label">List</label>
+                    <div class="task-list-selector-wrapper">
+                        <select id="task-list-selector" class="task-list-selector">
+                            <option value="">No list</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Relations -->
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Project</label>
+                    <div class="task-edit-relation" id="task-edit-project">
+                        <div class="task-edit-relation-pills" id="task-edit-project-pills"></div>
+                        <button type="button" class="task-relation-add-btn" data-relation-type="project" title="Link project">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="task-item-section">
+                    <label class="task-item-section-label">People</label>
+                    <div class="task-edit-relation" id="task-edit-people">
+                        <div class="task-edit-relation-pills" id="task-edit-people-pills"></div>
+                        <button type="button" class="task-relation-add-btn" data-relation-type="people" title="Link people">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Notes</label>
+                    <div class="task-edit-relation" id="task-edit-notes">
+                        <div class="task-edit-relation-pills" id="task-edit-notes-pills"></div>
+                        <button type="button" class="task-relation-add-btn" data-relation-type="notes" title="Link notes">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="task-item-section">
                     <label class="task-item-section-label">Description</label>
                     <div id="task-description-reader" class="reader-description markdown-body" style="display: none;"></div>
@@ -1299,7 +1404,35 @@
                         <input type="text" id="subtask-input" placeholder="+ Add subtask" />
                     </div>
                 </div>
-                
+
+                <!-- Metadata fields -->
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Priority</label>
+                    <div class="task-metadata-presets">
+                        <button type="button" class="task-metadata-preset" data-field="priority" data-value="">None</button>
+                        <button type="button" class="task-metadata-preset" data-field="priority" data-value="low">Low</button>
+                        <button type="button" class="task-metadata-preset" data-field="priority" data-value="medium">Medium</button>
+                        <button type="button" class="task-metadata-preset" data-field="priority" data-value="high">High</button>
+                    </div>
+                </div>
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Energy</label>
+                    <div class="task-metadata-presets">
+                        <button type="button" class="task-metadata-preset" data-field="energy" data-value="">None</button>
+                        <button type="button" class="task-metadata-preset" data-field="energy" data-value="low">Low</button>
+                        <button type="button" class="task-metadata-preset" data-field="energy" data-value="high">High</button>
+                    </div>
+                </div>
+                <div class="task-item-section">
+                    <label class="task-item-section-label">Location</label>
+                    <div class="task-metadata-presets">
+                        <button type="button" class="task-metadata-preset" data-field="location" data-value="">None</button>
+                        <button type="button" class="task-metadata-preset" data-field="location" data-value="home">Home</button>
+                        <button type="button" class="task-metadata-preset" data-field="location" data-value="office">Office</button>
+                        <button type="button" class="task-metadata-preset" data-field="location" data-value="errand">Errand</button>
+                    </div>
+                </div>
+
                 </div>
             
             <div class="modal-footer">

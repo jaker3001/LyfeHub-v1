@@ -408,7 +408,17 @@ Track notable people you admire - authors, thought leaders, etc. Note what you c
         displayProperty: 'name'
       }},
       { id: 'list_id', name: 'List', type: 'text', position: 17, width: 150 },
-      { id: 'subtasks', name: 'Subtasks', type: 'text', position: 18, width: 200 }
+      { id: 'subtasks', name: 'Subtasks', type: 'text', position: 18, width: 200 },
+      { id: 'people_ids', name: 'People', type: 'relation', position: 19, width: 200, options: {
+        relatedBaseId: 'core-people',
+        displayProperty: 'name',
+        allowMultiple: true
+      }},
+      { id: 'note_ids', name: 'Notes', type: 'relation', position: 20, width: 200, options: {
+        relatedBaseId: 'core-notes',
+        displayProperty: 'name',
+        allowMultiple: true
+      }}
     ]
   },
   'core-notes': {
@@ -593,7 +603,7 @@ function getCoreBaseRecords(baseId, userId) {
     const stmt = db.prepare(`
       SELECT id, title, description, status, my_day, due_date, due_time, due_time_end,
              snooze_date, priority, energy, location, important, completed, completed_at,
-             recurring, recurring_days, project_id, list_id, subtasks, user_id, created_at, updated_at
+             recurring, recurring_days, project_id, list_id, people_ids, note_ids, subtasks, user_id, created_at, updated_at
       FROM task_items
       WHERE user_id = ?
       ORDER BY created_at DESC
@@ -627,6 +637,8 @@ function getCoreBaseRecords(baseId, userId) {
         recurring_days: safeJsonParse(row.recurring_days, []),
         project_id: row.project_id || '',
         list_id: row.list_id || '',
+        people_ids: safeJsonParse(row.people_ids, []),
+        note_ids: safeJsonParse(row.note_ids, []),
         subtasks: safeJsonParse(row.subtasks, [])
       }
     }));
@@ -863,7 +875,9 @@ function createCoreBaseRecord(baseId, values, userId) {
       recurring: values.recurring || null,
       recurring_days: values.recurring_days || [],
       project_id: values.project_id || null,
-      list_id: values.list_id || null
+      list_id: values.list_id || null,
+      people_ids: values.people_ids || [],
+      note_ids: values.note_ids || []
     }, userId);
 
     return {
@@ -892,6 +906,8 @@ function createCoreBaseRecord(baseId, values, userId) {
         recurring_days: task.recurring_days || [],
         project_id: task.project_id || '',
         list_id: task.list_id || '',
+        people_ids: task.people_ids || [],
+        note_ids: task.note_ids || [],
         subtasks: task.subtasks || []
       }
     };
@@ -1201,7 +1217,9 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
       recurring: values.recurring || null,
       recurring_days: values.recurring_days,
       project_id: values.project_id || null,
-      list_id: values.list_id || null
+      list_id: values.list_id || null,
+      people_ids: values.people_ids,
+      note_ids: values.note_ids
     }, userId);
 
     if (!task) return null;
@@ -1232,6 +1250,8 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
         recurring_days: task.recurring_days || [],
         project_id: task.project_id || '',
         list_id: task.list_id || '',
+        people_ids: task.people_ids || [],
+        note_ids: task.note_ids || [],
         subtasks: task.subtasks || []
       }
     };

@@ -70,6 +70,8 @@ function getAllTaskItems(userId, view = 'all', userDate = null) {
     important: !!item.important,
     completed: !!item.completed,
     my_day: !!item.my_day,
+    people_ids: JSON.parse(item.people_ids || '[]'),
+    note_ids: JSON.parse(item.note_ids || '[]'),
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
@@ -124,6 +126,8 @@ function getTaskItemById(id, userId) {
     important: !!item.important,
     completed: !!item.completed,
     my_day: !!item.my_day,
+    people_ids: JSON.parse(item.people_ids || '[]'),
+    note_ids: JSON.parse(item.note_ids || '[]'),
     calendar_ids: getTaskItemCalendarIds(id)
   };
 }
@@ -136,8 +140,8 @@ function createTaskItem(data, userId) {
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
-    INSERT INTO task_items (id, title, description, status, my_day, due_date, due_time, due_time_end, snooze_date, priority, energy, location, important, recurring, recurring_days, project_id, list_id, subtasks, user_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO task_items (id, title, description, status, my_day, due_date, due_time, due_time_end, snooze_date, priority, energy, location, important, recurring, recurring_days, project_id, list_id, people_ids, note_ids, subtasks, user_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -158,6 +162,8 @@ function createTaskItem(data, userId) {
     JSON.stringify(data.recurring_days || []),
     data.project_id || null,
     data.list_id || null,
+    JSON.stringify(data.people_ids || []),
+    JSON.stringify(data.note_ids || []),
     JSON.stringify(data.subtasks || []),
     userId,
     now,
@@ -201,6 +207,8 @@ function updateTaskItem(id, data, userId) {
       recurring_days = ?,
       project_id = ?,
       list_id = ?,
+      people_ids = ?,
+      note_ids = ?,
       subtasks = ?,
       updated_at = ?
     WHERE id = ? AND user_id = ?
@@ -227,6 +235,8 @@ function updateTaskItem(id, data, userId) {
     JSON.stringify(data.recurring_days ?? existing.recurring_days),
     data.project_id ?? existing.project_id,
     data.list_id ?? existing.list_id,
+    JSON.stringify(data.people_ids ?? existing.people_ids ?? []),
+    JSON.stringify(data.note_ids ?? existing.note_ids ?? []),
     JSON.stringify(data.subtasks ?? existing.subtasks),
     now,
     id,
@@ -365,6 +375,8 @@ function getTaskItemsForCalendar(userId, startDate, endDate, calendarIds = null)
     important: !!item.important,
     completed: !!item.completed,
     my_day: !!item.my_day,
+    people_ids: JSON.parse(item.people_ids || '[]'),
+    note_ids: JSON.parse(item.note_ids || '[]'),
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
@@ -403,6 +415,8 @@ function getScheduledTaskItems(userId, calendarIds = null) {
     important: !!item.important,
     completed: !!item.completed,
     my_day: !!item.my_day,
+    people_ids: JSON.parse(item.people_ids || '[]'),
+    note_ids: JSON.parse(item.note_ids || '[]'),
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }
@@ -441,6 +455,8 @@ function getUnscheduledTaskItems(userId, calendarIds = null) {
     important: !!item.important,
     completed: !!item.completed,
     my_day: !!item.my_day,
+    people_ids: JSON.parse(item.people_ids || '[]'),
+    note_ids: JSON.parse(item.note_ids || '[]'),
     calendar_ids: getTaskItemCalendarIds(item.id)
   }));
 }

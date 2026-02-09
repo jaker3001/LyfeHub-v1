@@ -16,6 +16,21 @@ const taskModal = {
     calendars: [], // Available calendars for selection
     selectedCalendarIds: [], // Selected calendar IDs for current task
     isEditMode: true,
+
+    // Relation state
+    selectedProjectId: null,
+    selectedPeopleIds: [],
+    selectedNoteIds: [],
+    relationDisplayNames: {}, // { recordId: displayName }
+
+    // List state
+    selectedListId: null,
+
+    // Metadata state
+    selectedPriority: '',
+    selectedEnergy: '',
+    selectedLocation: '',
+
     displayMode: 'list', // 'list' or 'cards'
     cardSize: 'medium', // 'small', 'medium', 'large'
     sortMode: 'due', // 'due', 'created', 'custom'
@@ -31,6 +46,41 @@ const taskModal = {
         this.bindListEvents();
         this.bindDisplayToggle();
         
+        // More details toggle
+        const moreDetailsToggle = document.getElementById('task-more-details-toggle');
+        if (moreDetailsToggle) {
+            moreDetailsToggle.addEventListener('click', () => this.toggleMoreDetails());
+        }
+
+        // Metadata preset buttons
+        this.el.querySelectorAll('.task-metadata-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const field = btn.dataset.field;
+                const value = btn.dataset.value;
+                if (field === 'priority') this.selectedPriority = value;
+                else if (field === 'energy') this.selectedEnergy = value;
+                else if (field === 'location') this.selectedLocation = value;
+                this.updateMetadataPresets();
+            });
+        });
+
+        // List selector
+        const listSelector = document.getElementById('task-list-selector');
+        if (listSelector) {
+            listSelector.addEventListener('change', (e) => {
+                this.selectedListId = e.target.value || null;
+            });
+        }
+
+        // Relation add buttons
+        this.el.querySelectorAll('.task-relation-add-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const type = btn.dataset.relationType;
+                this.showRelationDropdown(type, btn);
+            });
+        });
+
         // Only load tasks if Tasks tab is active
         const tasksTab = document.querySelector('.tab-content[data-tab="tasks"]');
         if (tasksTab && tasksTab.classList.contains('active')) {
@@ -1076,6 +1126,29 @@ const taskModal = {
         // Clear created date
         document.getElementById('task-item-created').textContent = '';
 
+        // Reset relations
+        this.selectedProjectId = null;
+        this.selectedPeopleIds = [];
+        this.selectedNoteIds = [];
+        this.relationDisplayNames = {};
+        document.getElementById('task-edit-project-pills').innerHTML = '';
+        document.getElementById('task-edit-people-pills').innerHTML = '';
+        document.getElementById('task-edit-notes-pills').innerHTML = '';
+
+        // Reset list
+        this.selectedListId = null;
+        const listSelector = document.getElementById('task-list-selector');
+        if (listSelector) listSelector.value = '';
+
+        // Reset metadata
+        this.selectedPriority = '';
+        this.selectedEnergy = '';
+        this.selectedLocation = '';
+        this.updateMetadataPresets();
+
+        // Load lists for dropdown
+        this.loadListsForModal();
+
         // Load and render calendars
         this.loadCalendarsForModal();
 
@@ -1136,6 +1209,23 @@ const taskModal = {
             const date = new Date(task.created_at);
             document.getElementById('task-item-created').textContent = `Created ${date.toLocaleDateString()}`;
         }
+
+        // Load relations
+        this.selectedProjectId = task.project_id || null;
+        this.selectedPeopleIds = task.people_ids || [];
+        this.selectedNoteIds = task.note_ids || [];
+        this.relationDisplayNames = {};
+        this.loadRelationDisplayNames();
+
+        // Load list
+        this.selectedListId = task.list_id || null;
+        this.loadListsForModal();
+
+        // Load metadata
+        this.selectedPriority = task.priority || '';
+        this.selectedEnergy = task.energy || '';
+        this.selectedLocation = task.location || '';
+        this.updateMetadataPresets();
 
         // Load and render calendars
         this.loadCalendarsForModal();
@@ -1292,6 +1382,118 @@ const taskModal = {
             subtasksSection.style.display = '';
         } else {
             subtasksSection.style.display = 'none';
+        }
+
+        // List badge
+        const listSection = document.getElementById('task-reader-list-section');
+        const listBadge = document.getElementById('task-reader-list-badge');
+        if (task.list_id && this.lists) {
+            const list = this.lists.find(l => l.id === task.list_id);
+            if (list) {
+                listBadge.innerHTML = `<span class="list-color-dot" style="background: ${list.color || '#bf5af2'}"></span>${this.escapeHtml(list.name)}`;
+                listSection.style.display = '';
+            } else {
+                listSection.style.display = 'none';
+            }
+        } else {
+            listSection.style.display = 'none';
+        }
+
+        // Relations
+        const relationsSection = document.getElementById('task-reader-relations');
+        let hasRelations = false;
+
+        // Project
+        const projectRow = document.getElementById('task-reader-project-row');
+        const projectPills = document.getElementById('task-reader-project-pills');
+        if (task.project_id) {
+            const name = this.relationDisplayNames[task.project_id] || 'Loading...';
+            projectPills.innerHTML = `<span class="task-relation-pill">${this.escapeHtml(name)}</span>`;
+            projectRow.style.display = '';
+            hasRelations = true;
+        } else {
+            projectRow.style.display = 'none';
+        }
+
+        // People
+        const peopleRow = document.getElementById('task-reader-people-row');
+        const peoplePills = document.getElementById('task-reader-people-pills');
+        const peopleIds = task.people_ids || [];
+        if (peopleIds.length > 0) {
+            peoplePills.innerHTML = peopleIds.map(id => {
+                const name = this.relationDisplayNames[id] || 'Loading...';
+                return `<span class="task-relation-pill">${this.escapeHtml(name)}</span>`;
+            }).join('');
+            peopleRow.style.display = '';
+            hasRelations = true;
+        } else {
+            peopleRow.style.display = 'none';
+        }
+
+        // Notes
+        const notesRow = document.getElementById('task-reader-notes-row');
+        const notesPills = document.getElementById('task-reader-notes-pills');
+        const noteIds = task.note_ids || [];
+        if (noteIds.length > 0) {
+            notesPills.innerHTML = noteIds.map(id => {
+                const name = this.relationDisplayNames[id] || 'Loading...';
+                return `<span class="task-relation-pill">${this.escapeHtml(name)}</span>`;
+            }).join('');
+            notesRow.style.display = '';
+            hasRelations = true;
+        } else {
+            notesRow.style.display = 'none';
+        }
+
+        relationsSection.style.display = hasRelations ? '' : 'none';
+
+        // Metadata (More details)
+        const priorityItem = document.getElementById('task-reader-priority');
+        const priorityValue = document.getElementById('task-reader-priority-value');
+        if (task.priority) {
+            priorityValue.textContent = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
+            priorityValue.className = `task-metadata-value priority-${task.priority}`;
+            priorityItem.style.display = '';
+        } else {
+            priorityItem.style.display = 'none';
+        }
+
+        const energyItem = document.getElementById('task-reader-energy');
+        const energyValue = document.getElementById('task-reader-energy-value');
+        if (task.energy) {
+            energyValue.textContent = task.energy.charAt(0).toUpperCase() + task.energy.slice(1);
+            energyValue.className = `task-metadata-value energy-${task.energy}`;
+            energyItem.style.display = '';
+        } else {
+            energyItem.style.display = 'none';
+        }
+
+        const locationItem = document.getElementById('task-reader-location');
+        const locationValue = document.getElementById('task-reader-location-value');
+        if (task.location) {
+            locationValue.textContent = task.location.charAt(0).toUpperCase() + task.location.slice(1);
+            locationValue.className = 'task-metadata-value';
+            locationItem.style.display = '';
+        } else {
+            locationItem.style.display = 'none';
+        }
+
+        const statusItem = document.getElementById('task-reader-status');
+        const statusValue = document.getElementById('task-reader-status-value');
+        if (task.status && task.status !== 'todo') {
+            const statusLabels = { todo: 'To Do', doing: 'Doing', done: 'Done' };
+            statusValue.textContent = statusLabels[task.status] || task.status;
+            statusValue.className = 'task-metadata-value';
+            statusItem.style.display = '';
+        } else {
+            statusItem.style.display = 'none';
+        }
+
+        // Show/hide "More details" based on whether there's any metadata
+        const hasMetadata = task.priority || task.energy || task.location || (task.status && task.status !== 'todo');
+        const moreDetails = document.getElementById('task-reader-more-details');
+        if (moreDetails) {
+            moreDetails.style.display = hasMetadata ? '' : 'none';
         }
     },
 
@@ -1651,7 +1853,14 @@ const taskModal = {
             subtasks: this.subtasks,
             important: this.isImportant,
             completed: completeBtn.classList.contains('completed'),
-            calendar_ids: this.selectedCalendarIds
+            calendar_ids: this.selectedCalendarIds,
+            project_id: this.selectedProjectId,
+            people_ids: this.selectedPeopleIds,
+            note_ids: this.selectedNoteIds,
+            list_id: this.selectedListId,
+            priority: this.selectedPriority || null,
+            energy: this.selectedEnergy || null,
+            location: this.selectedLocation || null
         };
         
         try {
@@ -1736,6 +1945,320 @@ const taskModal = {
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+    },
+
+    async loadRelationDisplayNames() {
+        const allIds = [];
+        const idToBase = {};
+
+        if (this.selectedProjectId) {
+            allIds.push(this.selectedProjectId);
+            idToBase[this.selectedProjectId] = 'core-projects';
+        }
+        this.selectedPeopleIds.forEach(id => {
+            allIds.push(id);
+            idToBase[id] = 'core-people';
+        });
+        this.selectedNoteIds.forEach(id => {
+            allIds.push(id);
+            idToBase[id] = 'core-notes';
+        });
+
+        if (allIds.length === 0) return;
+
+        // Group by base
+        const byBase = {};
+        for (const [id, baseId] of Object.entries(idToBase)) {
+            if (!byBase[baseId]) byBase[baseId] = [];
+            byBase[baseId].push(id);
+        }
+
+        // Fetch each base's records
+        for (const [baseId, ids] of Object.entries(byBase)) {
+            try {
+                const resp = await fetch(`/api/bases/core/${baseId}/records`, { credentials: 'include' });
+                if (!resp.ok) continue;
+                const data = await resp.json();
+                const records = data.records || [];
+                records.forEach(r => {
+                    if (ids.includes(r.id)) {
+                        // Use 'name' or 'title' as display field
+                        this.relationDisplayNames[r.id] = r.values?.name || r.values?.title || `Record`;
+                    }
+                });
+            } catch (e) {
+                console.error(`Failed to load display names for ${baseId}:`, e);
+            }
+        }
+
+        // Re-render reader view if we're in reader mode
+        if (!this.isEditMode && this.currentTask) {
+            this.populateReaderView();
+        }
+
+        // Update edit view pills
+        this.renderEditRelationPills();
+    },
+
+    renderEditRelationPills() {
+        // Project
+        const projectPills = document.getElementById('task-edit-project-pills');
+        if (projectPills) {
+            if (this.selectedProjectId) {
+                const name = this.relationDisplayNames[this.selectedProjectId] || 'Loading...';
+                projectPills.innerHTML = `<span class="task-relation-pill">${this.escapeHtml(name)}<span class="pill-remove" onclick="taskModal.removeRelation('project', '${this.selectedProjectId}')">&times;</span></span>`;
+            } else {
+                projectPills.innerHTML = '';
+            }
+        }
+
+        // People
+        const peoplePills = document.getElementById('task-edit-people-pills');
+        if (peoplePills) {
+            peoplePills.innerHTML = this.selectedPeopleIds.map(id => {
+                const name = this.relationDisplayNames[id] || 'Loading...';
+                return `<span class="task-relation-pill">${this.escapeHtml(name)}<span class="pill-remove" onclick="taskModal.removeRelation('people', '${id}')">&times;</span></span>`;
+            }).join('');
+        }
+
+        // Notes
+        const notesPills = document.getElementById('task-edit-notes-pills');
+        if (notesPills) {
+            notesPills.innerHTML = this.selectedNoteIds.map(id => {
+                const name = this.relationDisplayNames[id] || 'Loading...';
+                return `<span class="task-relation-pill">${this.escapeHtml(name)}<span class="pill-remove" onclick="taskModal.removeRelation('notes', '${id}')">&times;</span></span>`;
+            }).join('');
+        }
+    },
+
+    removeRelation(type, recordId) {
+        if (type === 'project') {
+            this.selectedProjectId = null;
+        } else if (type === 'people') {
+            this.selectedPeopleIds = this.selectedPeopleIds.filter(id => id !== recordId);
+        } else if (type === 'notes') {
+            this.selectedNoteIds = this.selectedNoteIds.filter(id => id !== recordId);
+        }
+        this.renderEditRelationPills();
+    },
+
+    updateMetadataPresets() {
+        // Update active state for all metadata preset buttons
+        document.querySelectorAll('.task-metadata-preset').forEach(btn => {
+            const field = btn.dataset.field;
+            const value = btn.dataset.value;
+            let currentValue = '';
+            if (field === 'priority') currentValue = this.selectedPriority;
+            else if (field === 'energy') currentValue = this.selectedEnergy;
+            else if (field === 'location') currentValue = this.selectedLocation;
+            btn.classList.toggle('active', value === currentValue);
+        });
+    },
+
+    toggleMoreDetails() {
+        const content = document.getElementById('task-more-details-content');
+        const toggle = document.getElementById('task-more-details-toggle');
+        if (!content || !toggle) return;
+
+        const isExpanded = content.style.display !== 'none';
+        content.style.display = isExpanded ? 'none' : '';
+        toggle.classList.toggle('expanded', !isExpanded);
+    },
+
+    async loadListsForModal() {
+        try {
+            const resp = await fetch('/api/task-lists', { credentials: 'include' });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            this.lists = data.lists || [];
+
+            // Populate the dropdown
+            const selector = document.getElementById('task-list-selector');
+            if (selector) {
+                selector.innerHTML = '<option value="">No list</option>' +
+                    this.lists.map(l => `<option value="${l.id}" ${l.id === this.selectedListId ? 'selected' : ''}>${this.escapeHtml(l.name)}</option>`).join('');
+            }
+        } catch (e) {
+            console.error('Failed to load lists:', e);
+        }
+    },
+
+    async showRelationDropdown(type, anchorEl) {
+        // Close any existing dropdown
+        this.closeRelationDropdown();
+
+        // Determine which base to query
+        const baseMap = {
+            project: 'core-projects',
+            people: 'core-people',
+            notes: 'core-notes'
+        };
+        const baseId = baseMap[type];
+        if (!baseId) return;
+
+        // Fetch records
+        let records = [];
+        try {
+            const resp = await fetch(`/api/bases/core/${baseId}/records`, { credentials: 'include' });
+            if (resp.ok) {
+                const data = await resp.json();
+                records = (data.records || []).map(r => ({
+                    id: r.id,
+                    name: r.values?.name || r.values?.title || `Record #${r.global_id}`,
+                    globalId: r.global_id
+                }));
+            }
+        } catch (e) {
+            console.error('Failed to fetch records for dropdown:', e);
+        }
+
+        // Get currently selected IDs for this type
+        const getSelectedIds = () => {
+            if (type === 'project') return this.selectedProjectId ? [this.selectedProjectId] : [];
+            if (type === 'people') return [...this.selectedPeopleIds];
+            if (type === 'notes') return [...this.selectedNoteIds];
+            return [];
+        };
+
+        // Create dropdown element
+        const dropdown = document.createElement('div');
+        dropdown.className = 'task-relation-dropdown';
+        dropdown.id = 'active-relation-dropdown';
+
+        const isMulti = type !== 'project';
+        const labels = { project: 'projects', people: 'people', notes: 'notes' };
+
+        const renderList = (filter = '') => {
+            const selectedIds = getSelectedIds();
+            const filtered = filter
+                ? records.filter(r => r.name.toLowerCase().includes(filter.toLowerCase()))
+                : records;
+
+            const listEl = dropdown.querySelector('.task-relation-dropdown-list');
+            if (!listEl) return;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="task-relation-dropdown-empty">No ${labels[type]} found</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(r => {
+                const isSelected = selectedIds.includes(r.id);
+                return `<div class="task-relation-dropdown-item ${isSelected ? 'selected' : ''}" data-record-id="${r.id}">
+                    <span class="dropdown-check">${isSelected ? '✓' : ''}</span>
+                    <span>${this.escapeHtml(r.name)}</span>
+                </div>`;
+            }).join('');
+
+            // Attach click handlers
+            listEl.querySelectorAll('.task-relation-dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const recordId = item.dataset.recordId;
+                    const record = records.find(r => r.id === recordId);
+                    if (!record) return;
+
+                    if (type === 'project') {
+                        // Single select - toggle
+                        if (this.selectedProjectId === recordId) {
+                            this.selectedProjectId = null;
+                            delete this.relationDisplayNames[recordId];
+                        } else {
+                            // Clear old
+                            if (this.selectedProjectId) delete this.relationDisplayNames[this.selectedProjectId];
+                            this.selectedProjectId = recordId;
+                            this.relationDisplayNames[recordId] = record.name;
+                        }
+                    } else if (type === 'people') {
+                        const idx = this.selectedPeopleIds.indexOf(recordId);
+                        if (idx > -1) {
+                            this.selectedPeopleIds.splice(idx, 1);
+                            delete this.relationDisplayNames[recordId];
+                        } else {
+                            this.selectedPeopleIds.push(recordId);
+                            this.relationDisplayNames[recordId] = record.name;
+                        }
+                    } else if (type === 'notes') {
+                        const idx = this.selectedNoteIds.indexOf(recordId);
+                        if (idx > -1) {
+                            this.selectedNoteIds.splice(idx, 1);
+                            delete this.relationDisplayNames[recordId];
+                        } else {
+                            this.selectedNoteIds.push(recordId);
+                            this.relationDisplayNames[recordId] = record.name;
+                        }
+                    }
+
+                    // Re-render
+                    this.renderEditRelationPills();
+                    renderList(dropdown.querySelector('.task-relation-dropdown-search input')?.value || '');
+
+                    // For single-select, close after selection
+                    if (!isMulti) {
+                        this.closeRelationDropdown();
+                    }
+                });
+            });
+        };
+
+        dropdown.innerHTML = `
+            <div class="task-relation-dropdown-search">
+                <input type="text" placeholder="Search ${labels[type]}..." autocomplete="off" />
+            </div>
+            <div class="task-relation-dropdown-list"></div>
+        `;
+
+        // Position dropdown near the anchor button
+        const rect = anchorEl.getBoundingClientRect();
+        const modalContent = this.el.querySelector('.modal-content');
+        const modalRect = modalContent.getBoundingClientRect();
+
+        dropdown.style.position = 'absolute';
+        dropdown.style.top = (rect.bottom - modalRect.top + 4) + 'px';
+        dropdown.style.left = Math.min(rect.left - modalRect.left, modalRect.width - 290) + 'px';
+
+        modalContent.style.position = 'relative';
+        modalContent.appendChild(dropdown);
+
+        // Render initial list
+        renderList();
+
+        // Search input handler
+        const searchInput = dropdown.querySelector('input');
+        searchInput.addEventListener('input', (e) => {
+            renderList(e.target.value);
+        });
+        searchInput.focus();
+
+        // Close on click outside
+        setTimeout(() => {
+            this._dropdownClickOutside = (e) => {
+                if (!dropdown.contains(e.target) && !anchorEl.contains(e.target)) {
+                    this.closeRelationDropdown();
+                }
+            };
+            document.addEventListener('click', this._dropdownClickOutside);
+        }, 10);
+
+        // Close on Escape
+        this._dropdownEscape = (e) => {
+            if (e.key === 'Escape') {
+                this.closeRelationDropdown();
+            }
+        };
+        document.addEventListener('keydown', this._dropdownEscape);
+    },
+
+    closeRelationDropdown() {
+        const existing = document.getElementById('active-relation-dropdown');
+        if (existing) existing.remove();
+        if (this._dropdownClickOutside) {
+            document.removeEventListener('click', this._dropdownClickOutside);
+            this._dropdownClickOutside = null;
+        }
+        if (this._dropdownEscape) {
+            document.removeEventListener('keydown', this._dropdownEscape);
+            this._dropdownEscape = null;
+        }
     },
 
     escapeHtml(text) {

@@ -639,6 +639,18 @@ try {
   console.log('Added list_id column');
 } catch (e) { /* Column exists */ }
 
+// Add people_ids column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN people_ids TEXT DEFAULT '[]'`);
+  console.log('Added people_ids column');
+} catch (e) { /* Column exists */ }
+
+// Add note_ids column
+try {
+  db.exec(`ALTER TABLE task_items ADD COLUMN note_ids TEXT DEFAULT '[]'`);
+  console.log('Added note_ids column');
+} catch (e) { /* Column exists */ }
+
 // Create indexes for new columns
 db.exec(`CREATE INDEX IF NOT EXISTS idx_task_items_my_day ON task_items(my_day)`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_task_items_status ON task_items(status)`);
