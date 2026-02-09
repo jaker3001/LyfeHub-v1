@@ -3426,7 +3426,23 @@ function showFileUploadModal(cell, prop, record, currentValue) {
   
   // Save button
   modal.querySelector('#save-files-btn').addEventListener('click', async () => {
-    if (isUploading) return;
+    const saveBtn = modal.querySelector('#save-files-btn');
+    
+    // Prevent double-click
+    if (saveBtn.disabled) return;
+    
+    // Check if still uploading
+    if (isUploading) {
+      alert('Please wait for uploads to complete.');
+      return;
+    }
+    
+    // Check for files still pending upload
+    const stillPending = pendingFiles.filter(f => f.status === UploadStatus.PENDING && f.file);
+    if (stillPending.length > 0) {
+      // Try to upload them first
+      await uploadPendingFiles();
+    }
     
     // Check for pending uploads with errors
     const failedFiles = pendingFiles.filter(f => f.status === UploadStatus.ERROR);
@@ -3435,12 +3451,23 @@ function showFileUploadModal(cell, prop, record, currentValue) {
       if (!confirmSave) return;
     }
     
-    // Update the record with the files array (only successfully uploaded files)
-    const recordId = record.id;
-    const propId = prop.id;
+    // Disable button and show saving state
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
     
-    await updateCellValue(recordId, propId, files.length > 0 ? files : null);
-    modal.remove();
+    try {
+      // Update the record with the files array (only successfully uploaded files)
+      const recordId = record.id;
+      const propId = prop.id;
+      
+      await updateCellValue(recordId, propId, files.length > 0 ? files : null);
+      modal.remove();
+    } catch (error) {
+      console.error('Failed to save attachments:', error);
+      alert('Failed to save attachments. Please try again.');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
   });
   
   // Keyboard handler
