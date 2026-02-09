@@ -38,11 +38,11 @@ function createNote(data, userId) {
   const stmt = db.prepare(`
     INSERT INTO notes (
       id, user_id, name, type, archived, favorite,
-      note_date, review_date, url, content, tags, project_id,
+      note_date, review_date, url, content, tags, attachments, project_id,
       created_at, updated_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?
     )
   `);
@@ -58,6 +58,7 @@ function createNote(data, userId) {
     data.url || '',
     data.content || '',
     JSON.stringify(data.tags || []),
+    JSON.stringify(data.attachments || []),
     data.project_id || null,
     now, now
   );
@@ -85,6 +86,7 @@ function updateNote(id, data, userId) {
       url = ?,
       content = ?,
       tags = ?,
+      attachments = ?,
       project_id = ?,
       updated_at = ?
     WHERE id = ? AND user_id = ?
@@ -107,6 +109,7 @@ function updateNote(id, data, userId) {
     val('url'),
     val('content'),
     val('tags', true),
+    val('attachments', true),
     data.project_id !== undefined ? data.project_id : existing.project_id,
     now,
     id, userId

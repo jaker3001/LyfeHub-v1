@@ -517,6 +517,7 @@ if (!notesTable) {
       url TEXT DEFAULT '',
       content TEXT DEFAULT '',
       tags TEXT DEFAULT '[]',
+      attachments TEXT DEFAULT '[]',
       project_id TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
@@ -528,6 +529,14 @@ if (!notesTable) {
   db.exec(`CREATE INDEX idx_notes_favorite ON notes(favorite)`);
   db.exec(`CREATE INDEX idx_notes_note_date ON notes(note_date)`);
   console.log('Notes table created');
+}
+
+// Add attachments column to notes if it doesn't exist (migration for existing DBs)
+try {
+  db.exec(`ALTER TABLE notes ADD COLUMN attachments TEXT DEFAULT '[]'`);
+  console.log('Added attachments column to notes');
+} catch (e) {
+  // Column already exists, ignore
 }
 
 // ============================================
