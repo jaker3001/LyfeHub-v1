@@ -303,7 +303,8 @@ const propertyTypes = {
   datetime: { label: "Date & Time", icon: "📅" },
   checkbox: { label: 'Checkbox', icon: '☑' },
   url: { label: 'URL', icon: '🔗' },
-  relation: { label: 'Relation', icon: '↗' }
+  relation: { label: 'Relation', icon: '↗' },
+  files: { label: 'Files', icon: '📎' }
 };
 
 // ============================================
