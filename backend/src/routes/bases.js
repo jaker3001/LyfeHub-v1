@@ -180,6 +180,127 @@ router.get('/core/:id/readme', (req, res) => {
 });
 
 // ============================================
+// CORE BASE VIEWS (user-specific saved views for core bases)
+// ============================================
+
+// GET /api/bases/core/:id/views - List all views for a core base (user-specific)
+router.get('/core/:id/views', (req, res) => {
+  try {
+    const baseId = req.params.id;
+    const coreDef = coreBasesDb.getCoreBase(baseId);
+    
+    if (!coreDef) {
+      return res.status(404).json({ error: 'Core base not found' });
+    }
+    
+    // Use same view storage as regular bases, just with core base ID
+    const views = basesDb.getViewsByBase(baseId, req.user.id);
+    const parsedViews = views.map(v => ({
+      ...v,
+      config: JSON.parse(v.config || '{}')
+    }));
+    
+    res.json(parsedViews);
+  } catch (error) {
+    console.error('Error fetching core base views:', error);
+    res.status(500).json({ error: 'Failed to fetch views' });
+  }
+});
+
+// POST /api/bases/core/:id/views - Create new view for a core base
+router.post('/core/:id/views', (req, res) => {
+  try {
+    const baseId = req.params.id;
+    const coreDef = coreBasesDb.getCoreBase(baseId);
+    
+    if (!coreDef) {
+      return res.status(404).json({ error: 'Core base not found' });
+    }
+    
+    const { name, config = {} } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    // Get max position
+    const views = basesDb.getViewsByBase(baseId, req.user.id);
+    const maxPosition = views.reduce((max, v) => Math.max(max, v.position), -1);
+    
+    const viewId = uuidv4();
+    basesDb.insertView(viewId, baseId, req.user.id, name.trim(), config, maxPosition + 1);
+    
+    const view = basesDb.getViewById(viewId);
+    res.status(201).json({
+      ...view,
+      config: JSON.parse(view.config || '{}')
+    });
+  } catch (error) {
+    console.error('Error creating core base view:', error);
+    res.status(500).json({ error: 'Failed to create view' });
+  }
+});
+
+// PUT /api/bases/core/:id/views/:viewId - Update view for a core base
+router.put('/core/:id/views/:viewId', (req, res) => {
+  try {
+    const baseId = req.params.id;
+    const coreDef = coreBasesDb.getCoreBase(baseId);
+    
+    if (!coreDef) {
+      return res.status(404).json({ error: 'Core base not found' });
+    }
+    
+    const existing = basesDb.getViewById(req.params.viewId);
+    if (!existing || existing.base_id !== baseId || existing.user_id !== req.user.id) {
+      return res.status(404).json({ error: 'View not found' });
+    }
+    
+    const { name, config, position } = req.body;
+    const existingConfig = JSON.parse(existing.config || '{}');
+    
+    basesDb.updateView(
+      req.params.viewId,
+      name ?? existing.name,
+      config ?? existingConfig,
+      position ?? existing.position
+    );
+    
+    const view = basesDb.getViewById(req.params.viewId);
+    res.json({
+      ...view,
+      config: JSON.parse(view.config || '{}')
+    });
+  } catch (error) {
+    console.error('Error updating core base view:', error);
+    res.status(500).json({ error: 'Failed to update view' });
+  }
+});
+
+// DELETE /api/bases/core/:id/views/:viewId - Delete view for a core base
+router.delete('/core/:id/views/:viewId', (req, res) => {
+  try {
+    const baseId = req.params.id;
+    const coreDef = coreBasesDb.getCoreBase(baseId);
+    
+    if (!coreDef) {
+      return res.status(404).json({ error: 'Core base not found' });
+    }
+    
+    const existing = basesDb.getViewById(req.params.viewId);
+    if (!existing || existing.base_id !== baseId || existing.user_id !== req.user.id) {
+      return res.status(404).json({ error: 'View not found' });
+    }
+    
+    basesDb.deleteView(req.params.viewId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting core base view:', error);
+    res.status(500).json({ error: 'Failed to delete view' });
+  }
+});
+
+// ============================================
 // USER BASES ROUTES
 // ============================================
 router.get('/:id', (req, res) => {
