@@ -297,6 +297,7 @@ if (!peopleTable) {
       city TEXT DEFAULT '',
       state TEXT DEFAULT '',
       country TEXT DEFAULT '',
+      zip TEXT DEFAULT '',
       timezone TEXT DEFAULT '',
 
       -- Professional
@@ -461,6 +462,7 @@ if (!orgsTable) {
       city TEXT DEFAULT '',
       state TEXT DEFAULT '',
       country TEXT DEFAULT '',
+      zip TEXT DEFAULT '',
       parent_org_id TEXT REFERENCES organizations(id),
       founded_year INTEGER,
       employee_count INTEGER,
