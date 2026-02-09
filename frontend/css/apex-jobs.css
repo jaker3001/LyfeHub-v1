@@ -879,6 +879,79 @@
     }
 }
 
+/* Tablet portrait (768px-1024px) - Controls row wraps to 2 rows */
+@media (max-width: 1024px) and (min-width: 641px) {
+    .apex-view-controls {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+    }
+    
+    /* Ensure New Job button doesn't compress */
+    #new-job-btn {
+        min-width: max-content;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    /* Left group: button + view toggle stay together */
+    .apex-view-toggle {
+        flex-shrink: 0;
+    }
+    
+    /* Filters wrap to second row on tablet portrait */
+    .apex-view-filters {
+        flex: 1 1 100%;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        margin-top: 0.25rem;
+    }
+    
+    /* Filter dropdowns get reasonable sizing */
+    .apex-filter-select {
+        flex: 1 1 auto;
+        min-width: 120px;
+        max-width: 180px;
+    }
+    
+    /* Sync info stays compact */
+    .apex-sync-info {
+        flex-shrink: 0;
+    }
+}
+
+/* Narrower tablet portrait (~768-900px) - more compact filters */
+@media (max-width: 900px) and (min-width: 641px) {
+    .apex-view-controls {
+        padding: 1rem;
+    }
+    
+    .apex-view-filters {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: 0.25rem;
+    }
+    
+    .apex-filter-select {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+        min-width: 100px;
+        max-width: 150px;
+        flex-shrink: 0;
+    }
+    
+    .apex-view-btn span {
+        display: none;
+    }
+    
+    .apex-view-btn {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
 @media (max-width: 640px) {
     .apex-view-controls {
         flex-direction: column;
