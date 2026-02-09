@@ -297,6 +297,7 @@ if (!peopleTable) {
       city TEXT DEFAULT '',
       state TEXT DEFAULT '',
       country TEXT DEFAULT '',
+      zip TEXT DEFAULT '',
       timezone TEXT DEFAULT '',
 
       -- Professional
@@ -437,4 +438,54 @@ if (!apiKeysTable) {
   console.log('API keys table created');
 }
 
+module.exports = db;
+
+// ============================================
+// ORGANIZATIONS TABLE
+// ============================================
+const orgsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='organizations'").get();
+if (!orgsTable) {
+  console.log('Creating organizations table...');
+  db.exec(`
+    CREATE TABLE organizations (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),
+      name TEXT NOT NULL,
+      type TEXT DEFAULT '',
+      industry TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      website TEXT DEFAULT '',
+      linkedin TEXT DEFAULT '',
+      phone TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      city TEXT DEFAULT '',
+      state TEXT DEFAULT '',
+      country TEXT DEFAULT '',
+      zip TEXT DEFAULT '',
+      parent_org_id TEXT REFERENCES organizations(id),
+      founded_year INTEGER,
+      employee_count INTEGER,
+      notes TEXT DEFAULT '',
+      tags TEXT DEFAULT '[]',
+      important INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`CREATE INDEX idx_organizations_user_id ON organizations(user_id)`);
+  db.exec(`CREATE INDEX idx_organizations_name ON organizations(name)`);
+  db.exec(`CREATE INDEX idx_organizations_type ON organizations(type)`);
+  db.exec(`CREATE INDEX idx_organizations_industry ON organizations(industry)`);
+  console.log('Organizations table created');
+}
+
+// Add organization_id column to people if it doesn't exist (for org relation)
+try {
+  db.exec(`ALTER TABLE people ADD COLUMN organization_id TEXT REFERENCES organizations(id)`);
+  db.exec(`CREATE INDEX idx_people_organization_id ON people(organization_id)`);
+  console.log('Added organization_id column to people');
+} catch (e) {
+  // Column already exists, ignore
+}
 module.exports = db;

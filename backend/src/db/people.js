@@ -39,7 +39,7 @@ function createPerson(data, userId) {
     INSERT INTO people (
       id, user_id, name, nickname, photo_url, birthday, gender,
       email, email_secondary, phone_mobile, phone_work, phone_home,
-      address, city, state, country, timezone,
+      address, city, state, country, zip, timezone,
       company, job_title, industry,
       website, linkedin, twitter, instagram,
       relationship, how_we_met, tags, introduced_by,
@@ -50,21 +50,23 @@ function createPerson(data, userId) {
       date_met, how_relationship_evolved, past_conflicts,
       gift_ideas, favorite_things, allergies_dislikes,
       relationship_goals, how_i_can_support, how_they_support_me,
+      organization_id,
       created_at, updated_at
     ) VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?,
+      ?, ?, ?, ?,
+      ?, ?, ?, ?,
+      ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
-      ?, ?, ?,
-      ?, ?, ?, ?,
-      ?, ?, ?, ?,
-      ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?,
+      ?,
       ?, ?
     )
   `);
@@ -85,6 +87,7 @@ function createPerson(data, userId) {
     data.city || '',
     data.state || '',
     data.country || '',
+    data.zip || '',
     data.timezone || '',
     data.company || '',
     data.job_title || '',
@@ -128,6 +131,7 @@ function createPerson(data, userId) {
     data.relationship_goals || '',
     data.how_i_can_support || '',
     data.how_they_support_me || '',
+    data.organization_id || null,
     now, now
   );
 
@@ -159,6 +163,7 @@ function updatePerson(id, data, userId) {
       city = ?,
       state = ?,
       country = ?,
+      zip = ?,
       timezone = ?,
       company = ?,
       job_title = ?,
@@ -202,6 +207,7 @@ function updatePerson(id, data, userId) {
       relationship_goals = ?,
       how_i_can_support = ?,
       how_they_support_me = ?,
+      organization_id = ?,
       updated_at = ?
     WHERE id = ? AND user_id = ?
   `);
@@ -229,6 +235,7 @@ function updatePerson(id, data, userId) {
     val('city'),
     val('state'),
     val('country'),
+    val('zip'),
     val('timezone'),
     val('company'),
     val('job_title'),
@@ -272,6 +279,7 @@ function updatePerson(id, data, userId) {
     val('relationship_goals'),
     val('how_i_can_support'),
     val('how_they_support_me'),
+    data.organization_id !== undefined ? data.organization_id : existing.organization_id,
     now,
     id, userId
   );

@@ -5,6 +5,7 @@
 const db = require('./schema');
 const taskItemsDb = require('./taskItems');
 const peopleDb = require('./people');
+const organizationsDb = require('./organizations');
 
 // Core base definitions - these are defined in code, not in the database
 const CORE_BASES = {
@@ -140,6 +141,7 @@ Track notable people you admire - authors, thought leaders, etc. Note what you c
       { id: 'city', name: 'City', type: 'text', position: 11, width: 120 },
       { id: 'state', name: 'State', type: 'text', position: 12, width: 100 },
       { id: 'country', name: 'Country', type: 'text', position: 13, width: 120 },
+      { id: 'zip', name: 'Zip Code', type: 'text', position: 14, width: 100 },
       { id: 'timezone', name: 'Timezone', type: 'select', position: 14, width: 180, options: [
         { value: 'America/New_York', label: 'Eastern (US)' },
         { value: 'America/Chicago', label: 'Central (US)' },
@@ -295,7 +297,52 @@ Track notable people you admire - authors, thought leaders, etc. Note what you c
       // Relationship Goals
       { id: 'relationship_goals', name: 'Relationship Goals', type: 'text', position: 54, width: 250 },
       { id: 'how_i_can_support', name: 'How I Can Support', type: 'text', position: 55, width: 250 },
-      { id: 'how_they_support_me', name: 'How They Support Me', type: 'text', position: 56, width: 250 }
+      { id: 'how_they_support_me', name: 'How They Support Me', type: 'text', position: 56, width: 250 },
+      { id: 'organization', name: 'Organization', type: 'relation', position: 57, width: 200, options: { relatedBaseId: 'core-organizations', displayProperty: 'name', allowMultiple: false, reversePropertyId: 'people' }}
+    ]
+  },
+  'core-organizations': {
+    id: 'core-organizations',
+    name: 'Organizations',
+    description: 'Companies, agencies, and organizations',
+    icon: '🏢',
+    is_core: true,
+    table_name: 'organizations',
+    properties: [
+      { id: 'name', name: 'Name', type: 'text', position: 0, width: 200 },
+      { id: 'type', name: 'Type', type: 'select', position: 1, width: 140, options: [
+        { value: 'business', label: 'Business' },
+        { value: 'agency', label: 'Agency' },
+        { value: 'insurance', label: 'Insurance' },
+        { value: 'nonprofit', label: 'Nonprofit' },
+        { value: 'government', label: 'Government' },
+        { value: 'contractor', label: 'Contractor' },
+        { value: 'vendor', label: 'Vendor' },
+        { value: 'other', label: 'Other' }
+      ]},
+      { id: 'industry', name: 'Industry', type: 'text', position: 2, width: 150 },
+      { id: 'description', name: 'Description', type: 'text', position: 3, width: 300 },
+      { id: 'website', name: 'Website', type: 'url', position: 4, width: 200 },
+      { id: 'linkedin', name: 'LinkedIn', type: 'url', position: 5, width: 200 },
+      { id: 'phone', name: 'Phone', type: 'text', position: 6, width: 140 },
+      { id: 'email', name: 'Email', type: 'text', position: 7, width: 200 },
+      { id: 'address', name: 'Address', type: 'text', position: 8, width: 250 },
+      { id: 'city', name: 'City', type: 'text', position: 9, width: 120 },
+      { id: 'state', name: 'State', type: 'text', position: 10, width: 100 },
+      { id: 'country', name: 'Country', type: 'text', position: 11, width: 120 },
+      { id: 'zip', name: 'Zip Code', type: 'text', position: 14, width: 100 },
+      { id: 'founded_year', name: 'Founded', type: 'number', position: 12, width: 100 },
+      { id: 'employee_count', name: 'Employees', type: 'number', position: 13, width: 100 },
+      { id: 'notes', name: 'Notes', type: 'text', position: 14, width: 300 },
+      { id: 'tags', name: 'Tags', type: 'multi_select', position: 15, width: 200, options: [] },
+      { id: 'important', name: 'Important', type: 'checkbox', position: 16, width: 100 },
+      { id: 'people', name: 'People', type: 'relation', position: 17, width: 200, options: {
+        relatedBaseId: 'core-people',
+        displayProperty: 'name',
+        allowMultiple: true,
+        isReverse: true,
+        reversePropertyId: 'organization'
+      }}
     ]
   },
   'core-tasks': {
@@ -355,6 +402,9 @@ function getRecordCount(baseId, userId) {
   }
   if (baseId === 'core-people') {
     return peopleDb.getPeopleCount(userId);
+  }
+  if (baseId === 'core-organizations') {
+    return organizationsDb.getOrganizationCount(userId);
   }
   return 0;
 }
@@ -419,6 +469,7 @@ function getCoreBaseRecords(baseId, userId) {
         city: row.city || '',
         state: row.state || '',
         country: row.country || '',
+        zip: row.zip || '',
         timezone: row.timezone || '',
         company: row.company || '',
         job_title: row.job_title || '',
@@ -461,10 +512,46 @@ function getCoreBaseRecords(baseId, userId) {
         allergies_dislikes: row.allergies_dislikes || '',
         relationship_goals: row.relationship_goals || '',
         how_i_can_support: row.how_i_can_support || '',
-        how_they_support_me: row.how_they_support_me || ''
+        how_they_support_me: row.how_they_support_me || '',
+        organization: row.organization_id || null
       }
     }));
   }
+
+  if (baseId === 'core-organizations') {
+    const rows = organizationsDb.getAllOrganizations(userId);
+    
+    return rows.map((row, index) => ({
+      id: row.id,
+      base_id: baseId,
+      global_id: index + 1,
+      position: index,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      values: {
+        name: row.name || '',
+        type: row.type || '',
+        industry: row.industry || '',
+        description: row.description || '',
+        website: row.website || '',
+        linkedin: row.linkedin || '',
+        phone: row.phone || '',
+        email: row.email || '',
+        address: row.address || '',
+        city: row.city || '',
+        state: row.state || '',
+        country: row.country || '',
+        zip: row.zip || '',
+        founded_year: row.founded_year || null,
+        employee_count: row.employee_count || null,
+        notes: row.notes || '',
+        tags: safeJsonParse(row.tags, []),
+        important: !!row.important,
+        people: organizationsDb.getPeopleByOrganization(row.id, userId).map(p => p.id)
+      }
+    }));
+  }
+
 
   return [];
 }
@@ -530,6 +617,7 @@ function createCoreBaseRecord(baseId, values, userId) {
       city: values.city || '',
       state: values.state || '',
       country: values.country || '',
+      zip: values.zip || '',
       timezone: values.timezone || '',
       company: values.company || '',
       job_title: values.job_title || '',
@@ -572,7 +660,8 @@ function createCoreBaseRecord(baseId, values, userId) {
       allergies_dislikes: values.allergies_dislikes || '',
       relationship_goals: values.relationship_goals || '',
       how_i_can_support: values.how_i_can_support || '',
-      how_they_support_me: values.how_they_support_me || ''
+      how_they_support_me: values.how_they_support_me || '',
+      organization_id: values.organization || null
     }, userId);
 
     return {
@@ -586,7 +675,67 @@ function createCoreBaseRecord(baseId, values, userId) {
     };
   }
 
+  if (baseId === 'core-organizations') {
+    const org = organizationsDb.createOrganization({
+      name: values.name || 'Unnamed Organization',
+      type: values.type || '',
+      industry: values.industry || '',
+      description: values.description || '',
+      website: values.website || '',
+      linkedin: values.linkedin || '',
+      phone: values.phone || '',
+      email: values.email || '',
+      address: values.address || '',
+      city: values.city || '',
+      state: values.state || '',
+      country: values.country || '',
+      zip: values.zip || '',
+      founded_year: values.founded_year || null,
+      employee_count: values.employee_count || null,
+      notes: values.notes || '',
+      tags: values.tags || [],
+      important: values.important || false
+    }, userId);
+
+    return {
+      id: org.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: org.created_at,
+      updated_at: org.updated_at,
+      values: mapOrganizationToValues(org, userId)
+    };
+  }
+
   return null;
+}
+
+
+/**
+ * Map organization database row to values object
+ */
+function mapOrganizationToValues(org, userId) {
+  return {
+    name: org.name || '',
+    type: org.type || '',
+    industry: org.industry || '',
+    description: org.description || '',
+    website: org.website || '',
+    linkedin: org.linkedin || '',
+    phone: org.phone || '',
+    email: org.email || '',
+    address: org.address || '',
+    city: org.city || '',
+    state: org.state || '',
+    country: org.country || '',
+    founded_year: org.founded_year || null,
+    employee_count: org.employee_count || null,
+    notes: org.notes || '',
+    tags: safeJsonParse(org.tags, []),
+    important: !!org.important,
+    people: organizationsDb.getPeopleByOrganization(org.id, userId).map(p => p.id)
+  };
 }
 
 /**
@@ -608,6 +757,7 @@ function mapPersonToValues(person) {
     city: person.city || '',
     state: person.state || '',
     country: person.country || '',
+    zip: person.zip || '',
     timezone: person.timezone || '',
     company: person.company || '',
     job_title: person.job_title || '',
@@ -650,7 +800,8 @@ function mapPersonToValues(person) {
     allergies_dislikes: person.allergies_dislikes || '',
     relationship_goals: person.relationship_goals || '',
     how_i_can_support: person.how_i_can_support || '',
-    how_they_support_me: person.how_they_support_me || ''
+    how_they_support_me: person.how_they_support_me || '',
+    organization: person.organization_id || null
   };
 }
 
@@ -691,7 +842,7 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
   }
 
   if (baseId === 'core-people') {
-    const person = peopleDb.updatePerson(recordId, values, userId);
+    const updateData = { ...values }; if (values.organization !== undefined) { updateData.organization_id = values.organization; delete updateData.organization; } const person = peopleDb.updatePerson(recordId, updateData, userId);
 
     if (!person) return null;
 
@@ -703,6 +854,22 @@ function updateCoreBaseRecord(baseId, recordId, values, userId) {
       created_at: person.created_at,
       updated_at: person.updated_at,
       values: mapPersonToValues(person)
+    };
+  }
+
+  if (baseId === 'core-organizations') {
+    const org = organizationsDb.updateOrganization(recordId, values, userId);
+
+    if (!org) return null;
+
+    return {
+      id: org.id,
+      base_id: baseId,
+      global_id: 0,
+      position: 0,
+      created_at: org.created_at,
+      updated_at: org.updated_at,
+      values: mapOrganizationToValues(org, userId)
     };
   }
 
@@ -718,6 +885,10 @@ function deleteCoreBaseRecord(baseId, recordId, userId) {
   }
   if (baseId === 'core-people') {
     return peopleDb.deletePerson(recordId, userId);
+  }
+
+  if (baseId === 'core-organizations') {
+    return organizationsDb.deleteOrganization(recordId, userId);
   }
   return false;
 }
