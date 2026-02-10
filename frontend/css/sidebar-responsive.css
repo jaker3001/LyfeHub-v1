@@ -32,10 +32,10 @@
   display: none;
   position: fixed;
   left: 0;
-  top: 65%; /* Positioned for thumb reach */
+  top: 80%; /* Lower, better for thumb reach */
   z-index: calc(var(--sidebar-z-index) + 1);
-  width: 10px;
-  height: 50px;
+  width: 6px;
+  height: 30px;
   align-items: center;
   justify-content: center;
   cursor: pointer;
