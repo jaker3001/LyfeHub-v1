@@ -259,6 +259,11 @@
             link.classList.toggle('is-active', link.dataset.tab === tabId);
         });
         
+        // Update header title to show current section name
+        if (global.DynamicHeader && global.DynamicHeader.update) {
+            global.DynamicHeader.update();
+        }
+        
         // Close the drawer
         close();
     }
