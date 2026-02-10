@@ -263,6 +263,13 @@ const ICON_EMAIL = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="1
 
 const ICON_LOCATION = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
 
+// Phone type icons (14px, for use in contact cards)
+const ICON_PHONE_MOBILE = '<svg class="contact-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>';
+
+const ICON_PHONE_WORK = '<svg class="contact-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>';
+
+const ICON_PHONE_HOME = '<svg class="contact-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>';
+
 /**
  * Format phone number as (XXX) XXX-XXXX if 10 digits
  */
@@ -278,15 +285,13 @@ function formatPhoneNumber(phone) {
 /**
  * Render a clickable phone link
  * @param {string} phone - Phone number
- * @param {string} label - Optional label/icon (e.g., '📱', '🏢', '🏠')
+ * @param {string} icon - SVG icon HTML for phone type
  * @returns {string} HTML for clickable phone link
  */
-function renderClickablePhone(phone, label = '') {
+function renderClickablePhone(phone, icon) {
   if (!phone) return '';
   const formattedPhone = formatPhoneNumber(phone);
-  // Icons don't need colons, just show icon + number
-  const displayText = label ? `${label} ${formattedPhone}` : formattedPhone;
-  return `<a href="tel:${phone.replace(/\D/g, '')}" class="person-card-phone" onclick="event.stopPropagation()">${displayText}</a>`;
+  return `<a href="tel:${phone.replace(/\D/g, '')}" class="person-card-phone" onclick="event.stopPropagation()">${icon} ${formattedPhone}</a>`;
 }
 
 /**
@@ -331,10 +336,10 @@ function renderClickableAddress(person) {
  */
 function renderAllPhones(person) {
   const phones = [];
-  if (person.phone_mobile) phones.push(renderClickablePhone(person.phone_mobile, '📱'));
-  if (person.phone_work) phones.push(renderClickablePhone(person.phone_work, '🏢'));
-  if (person.phone_home) phones.push(renderClickablePhone(person.phone_home, '🏠'));
-  return phones.join('<br>');
+  if (person.phone_mobile) phones.push(renderClickablePhone(person.phone_mobile, ICON_PHONE_MOBILE));
+  if (person.phone_work) phones.push(renderClickablePhone(person.phone_work, ICON_PHONE_WORK));
+  if (person.phone_home) phones.push(renderClickablePhone(person.phone_home, ICON_PHONE_HOME));
+  return phones.join('');
 }
 
 /**
