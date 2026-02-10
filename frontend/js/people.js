@@ -324,9 +324,8 @@ function renderClickableAddress(person) {
   }
   
   const fullAddress = parts.join(', ');
-  const displayAddress = parts.slice(0, 2).join(', ') + (parts.length > 2 ? '...' : ''); // Truncate for display
   
-  return `<a href="https://maps.google.com/?q=${encodeURIComponent(fullAddress)}" target="_blank" class="person-card-address" onclick="event.stopPropagation()">${ICON_LOCATION} ${displayAddress}</a>`;
+  return `<a href="https://maps.google.com/?q=${encodeURIComponent(fullAddress)}" target="_blank" class="person-card-address" onclick="event.stopPropagation()">${ICON_LOCATION} ${fullAddress}</a>`;
 }
 
 /**
