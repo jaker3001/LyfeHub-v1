@@ -1752,11 +1752,7 @@ body {
 }
 
 @media (max-width: 640px) {
-    .header {
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1rem;
-    }
+    /* Header layout handled by header-mobile.css - don't override */
     
     .tabs {
         order: -1;
