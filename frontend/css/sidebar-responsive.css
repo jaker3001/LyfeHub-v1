@@ -34,8 +34,8 @@
   left: 0;
   bottom: 5px; /* At the very bottom */
   z-index: calc(var(--sidebar-z-index) + 1);
-  width: 18px;
-  height: 30px;
+  width: 4px;
+  height: 18px;
   align-items: center;
   justify-content: center;
   cursor: pointer;
