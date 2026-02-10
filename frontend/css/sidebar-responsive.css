@@ -24,37 +24,84 @@
 
 
 /* ==========================================================================
-   Sidebar Toggle Buttons
+   Pull Tab Indicator (Mobile Edge Swipe Hint)
    ========================================================================== */
 
-/* Mobile hamburger toggle - hidden by default, shown on mobile */
-.sidebar-toggle-btn {
+/* Pull tab - subtle indicator on left edge for swipe gesture */
+.sidebar-pull-tab {
   display: none;
   position: fixed;
-  top: 70px; /* Below main nav */
-  left: 12px;
+  left: 0;
+  top: 65%; /* Positioned for thumb reach */
   z-index: calc(var(--sidebar-z-index) + 1);
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: rgba(15, 15, 25, 0.9);
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
-  color: var(--text-primary, #fff);
-  cursor: pointer;
+  width: 10px;
+  height: 50px;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(10px);
-  transition: var(--sidebar-transition);
+  cursor: pointer;
+  touch-action: pan-y;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.sidebar-toggle-btn:hover {
-  background: rgba(30, 30, 50, 0.95);
-  border-color: var(--neon-cyan, #00f5d4);
+.sidebar-pull-tab.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
 }
 
-.sidebar-toggle-btn svg {
-  width: 20px;
-  height: 20px;
+/* Inner element with glass/neon styling */
+.pull-tab-inner {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 245, 212, 0.15) 0%,
+    rgba(0, 245, 212, 0.08) 100%
+  );
+  border: 1px solid rgba(0, 245, 212, 0.3);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  backdrop-filter: blur(8px);
+  box-shadow: 
+    0 0 10px rgba(0, 245, 212, 0.2),
+    inset 0 0 8px rgba(0, 245, 212, 0.05);
+  transition: all 0.2s ease;
+}
+
+/* Subtle glow line inside the tab */
+.pull-tab-inner::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 24px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 245, 212, 0.6) 50%,
+    transparent 100%
+  );
+  border-radius: 1px;
+}
+
+/* Hover/active state */
+.sidebar-pull-tab:hover .pull-tab-inner,
+.sidebar-pull-tab:active .pull-tab-inner {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 245, 212, 0.25) 0%,
+    rgba(0, 245, 212, 0.12) 100%
+  );
+  border-color: rgba(0, 245, 212, 0.5);
+  box-shadow: 
+    0 0 15px rgba(0, 245, 212, 0.35),
+    inset 0 0 10px rgba(0, 245, 212, 0.1);
+}
+
+.sidebar-pull-tab:active .pull-tab-inner {
+  transform: scaleX(1.2);
 }
 
 /* Tablet expand button - shown in collapsed state */
@@ -119,21 +166,19 @@
 
 
 /* ==========================================================================
-   Mobile (≤768px) - Hidden by default, slide-in overlay
+   Mobile (≤768px) - Hidden by default, edge swipe + pull tab to open
    ========================================================================== */
 
 @media (max-width: 768px) {
-  /* Show toggle button on mobile */
-  .sidebar-toggle-btn {
+  /* Show pull tab on mobile */
+  .sidebar-pull-tab {
     display: flex;
   }
 
   /* Position based on which sidebar's parent is active */
-  .bases-layout .sidebar-toggle-btn {
-    display: flex;
-  }
-  
-  .people-layout .sidebar-toggle-btn {
+  .bases-layout .sidebar-pull-tab,
+  .people-layout .sidebar-pull-tab,
+  .calendar-layout .sidebar-pull-tab {
     display: flex;
   }
 
@@ -556,7 +601,7 @@
   }
 
   /* Hide mobile/tablet controls on desktop */
-  .sidebar-toggle-btn,
+  .sidebar-pull-tab,
   .sidebar-expand-btn {
     display: none;
   }

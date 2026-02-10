@@ -6,7 +6,7 @@
  * Dependencies: MobileUtils (mobile-utils.js)
  * 
  * Behaviors:
- *   Mobile (≤768px)  - Hidden by default, toggle button to show/hide with backdrop
+ *   Mobile (≤768px)  - Hidden by default, edge swipe + pull tab to show
  *   Tablet (769-1024px) - Collapsed to icon rail, expand on hover or click
  *   Desktop (>1024px) - Full width, always visible
  */
@@ -18,21 +18,28 @@
         bases: {
             sidebarId: 'bases-sidebar',
             layoutClass: 'bases-layout',
-            toggleBtnId: 'bases-sidebar-toggle',
+            pullTabId: 'bases-sidebar-pull-tab',
             backdropId: 'bases-sidebar-backdrop'
         },
         people: {
             sidebarId: 'people-sidebar',
             layoutClass: 'people-layout',
-            toggleBtnId: 'people-sidebar-toggle',
+            pullTabId: 'people-sidebar-pull-tab',
             backdropId: 'people-sidebar-backdrop'
         },
         calendar: {
             sidebarId: 'calendar-sidebar',
             layoutClass: 'calendar-layout',
-            toggleBtnId: 'calendar-sidebar-toggle',
+            pullTabId: 'calendar-sidebar-pull-tab',
             backdropId: 'calendar-sidebar-backdrop'
         }
+    };
+
+    // Swipe gesture configuration
+    const SWIPE_CONFIG = {
+        edgeThreshold: 30,      // Distance from left edge to start swipe
+        minSwipeDistance: 50,   // Minimum distance to trigger open
+        closeSwipeDistance: 50  // Minimum distance to trigger close
     };
 
     // LocalStorage key for persisting collapsed state
@@ -43,6 +50,16 @@
         bases: { isOpen: false, isExpanded: false },
         people: { isOpen: false, isExpanded: false },
         calendar: { isOpen: false, isExpanded: false }
+    };
+
+    // Touch tracking for swipe gestures
+    let touchState = {
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        isEdgeSwipe: false,
+        isSidebarSwipe: false,
+        activeSidebarType: null
     };
 
     /**
@@ -80,31 +97,28 @@
     }
 
     /**
-     * Create and inject toggle button for mobile
+     * Create and inject pull tab indicator for mobile
      */
-    function createToggleButton(config) {
-        const existing = document.getElementById(config.toggleBtnId);
+    function createPullTab(config) {
+        const existing = document.getElementById(config.pullTabId);
         if (existing) return existing;
 
-        const btn = document.createElement('button');
-        btn.id = config.toggleBtnId;
-        btn.className = 'sidebar-toggle-btn';
-        btn.setAttribute('aria-label', 'Toggle sidebar');
-        btn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-        `;
+        const tab = document.createElement('div');
+        tab.id = config.pullTabId;
+        tab.className = 'sidebar-pull-tab';
+        tab.setAttribute('aria-label', 'Swipe to open sidebar');
+        tab.setAttribute('role', 'button');
+        
+        // Inner element for the glow effect
+        tab.innerHTML = '<div class="pull-tab-inner"></div>';
 
         // Insert into the layout container
         const layout = document.querySelector('.' + config.layoutClass);
         if (layout) {
-            layout.insertBefore(btn, layout.firstChild);
+            layout.appendChild(tab);
         }
 
-        return btn;
+        return tab;
     }
 
     /**
@@ -134,6 +148,7 @@
         const config = SIDEBAR_CONFIG[type];
         const layout = document.querySelector('.' + config.layoutClass);
         const backdrop = document.getElementById(config.backdropId);
+        const pullTab = document.getElementById(config.pullTabId);
 
         if (layout) {
             layout.classList.add('sidebar-open');
@@ -142,6 +157,11 @@
 
         if (backdrop) {
             backdrop.classList.add('visible');
+        }
+
+        // Hide pull tab when sidebar is open
+        if (pullTab) {
+            pullTab.classList.add('hidden');
         }
 
         // Prevent body scroll when sidebar is open
@@ -157,6 +177,7 @@
         const config = SIDEBAR_CONFIG[type];
         const layout = document.querySelector('.' + config.layoutClass);
         const backdrop = document.getElementById(config.backdropId);
+        const pullTab = document.getElementById(config.pullTabId);
 
         if (layout) {
             layout.classList.remove('sidebar-open');
@@ -165,6 +186,11 @@
 
         if (backdrop) {
             backdrop.classList.remove('visible');
+        }
+
+        // Show pull tab when sidebar is closed (on mobile)
+        if (pullTab && global.MobileUtils && MobileUtils.getBreakpoint() === 'mobile') {
+            pullTab.classList.remove('hidden');
         }
 
         // Restore body scroll
@@ -218,15 +244,21 @@
     function setupSidebarEvents(type) {
         const config = SIDEBAR_CONFIG[type];
 
-        // Create toggle button and backdrop
-        const toggleBtn = createToggleButton(config);
+        // Create pull tab and backdrop for mobile
+        const pullTab = createPullTab(config);
         const backdrop = createBackdrop(config);
 
-        // Toggle button click
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function(e) {
+        // Pull tab touch to open
+        if (pullTab) {
+            pullTab.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                openSidebar(type);
+            }, { passive: false });
+            
+            // Also handle click for accessibility
+            pullTab.addEventListener('click', function(e) {
                 e.stopPropagation();
-                toggleSidebar(type);
+                openSidebar(type);
             });
         }
 
@@ -252,6 +284,122 @@
                 e.stopPropagation();
             });
         }
+    }
+
+    /**
+     * Detect which sidebar type is active on the current page
+     */
+    function getActiveSidebarType() {
+        for (const type in SIDEBAR_CONFIG) {
+            const config = SIDEBAR_CONFIG[type];
+            if (document.querySelector('.' + config.layoutClass)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Set up global touch event listeners for edge swipe gestures
+     */
+    function setupSwipeGestures() {
+        // Only set up swipe gestures on mobile
+        if (!global.MobileUtils || MobileUtils.getBreakpoint() !== 'mobile') {
+            return;
+        }
+
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+
+    /**
+     * Handle touch start event
+     */
+    function handleTouchStart(e) {
+        // Only handle on mobile
+        if (!global.MobileUtils || MobileUtils.getBreakpoint() !== 'mobile') {
+            return;
+        }
+
+        const touch = e.touches[0];
+        touchState.startX = touch.clientX;
+        touchState.startY = touch.clientY;
+        touchState.currentX = touch.clientX;
+        touchState.isEdgeSwipe = false;
+        touchState.isSidebarSwipe = false;
+        touchState.activeSidebarType = getActiveSidebarType();
+
+        // Check if touch started near left edge (for opening)
+        if (touch.clientX <= SWIPE_CONFIG.edgeThreshold) {
+            touchState.isEdgeSwipe = true;
+        }
+
+        // Check if touch started on an open sidebar (for closing)
+        if (touchState.activeSidebarType && state[touchState.activeSidebarType].isOpen) {
+            const config = SIDEBAR_CONFIG[touchState.activeSidebarType];
+            const sidebar = document.getElementById(config.sidebarId);
+            if (sidebar && sidebar.contains(e.target)) {
+                touchState.isSidebarSwipe = true;
+            }
+        }
+    }
+
+    /**
+     * Handle touch move event
+     */
+    function handleTouchMove(e) {
+        if (!touchState.isEdgeSwipe && !touchState.isSidebarSwipe) {
+            return;
+        }
+
+        const touch = e.touches[0];
+        touchState.currentX = touch.clientX;
+
+        // Calculate horizontal movement
+        const deltaX = touchState.currentX - touchState.startX;
+        const deltaY = Math.abs(touch.clientY - touchState.startY);
+
+        // If vertical movement is greater than horizontal, abort swipe detection
+        if (deltaY > Math.abs(deltaX)) {
+            touchState.isEdgeSwipe = false;
+            touchState.isSidebarSwipe = false;
+            return;
+        }
+
+        // Prevent scrolling when swiping horizontally
+        if (Math.abs(deltaX) > 10) {
+            e.preventDefault();
+        }
+    }
+
+    /**
+     * Handle touch end event
+     */
+    function handleTouchEnd(e) {
+        if (!touchState.activeSidebarType) {
+            return;
+        }
+
+        const deltaX = touchState.currentX - touchState.startX;
+
+        // Edge swipe to open (swipe right from left edge)
+        if (touchState.isEdgeSwipe && deltaX >= SWIPE_CONFIG.minSwipeDistance) {
+            if (!state[touchState.activeSidebarType].isOpen) {
+                openSidebar(touchState.activeSidebarType);
+            }
+        }
+
+        // Sidebar swipe to close (swipe left on sidebar)
+        if (touchState.isSidebarSwipe && deltaX <= -SWIPE_CONFIG.closeSwipeDistance) {
+            if (state[touchState.activeSidebarType].isOpen) {
+                closeSidebar(touchState.activeSidebarType);
+            }
+        }
+
+        // Reset touch state
+        touchState.isEdgeSwipe = false;
+        touchState.isSidebarSwipe = false;
     }
 
     /**
@@ -296,20 +444,20 @@
             const config = SIDEBAR_CONFIG[type];
             const layout = document.querySelector('.' + config.layoutClass);
             const sidebar = document.getElementById(config.sidebarId);
-            const toggleBtn = document.getElementById(config.toggleBtnId);
+            const pullTab = document.getElementById(config.pullTabId);
 
             if (newBreakpoint === 'desktop') {
                 // Desktop: ensure sidebar is visible and not in mobile state
                 if (layout) layout.classList.remove('sidebar-open');
                 if (sidebar) sidebar.classList.remove('sidebar-expanded');
-                if (toggleBtn) toggleBtn.style.display = 'none';
+                if (pullTab) pullTab.style.display = 'none';
                 state[type].isOpen = false;
                 state[type].isExpanded = false;
                 document.body.style.overflow = '';
             } else if (newBreakpoint === 'tablet') {
                 // Tablet: handle based on orientation
                 if (layout) layout.classList.remove('sidebar-open');
-                if (toggleBtn) toggleBtn.style.display = 'none';
+                if (pullTab) pullTab.style.display = 'none';
                 state[type].isOpen = false;
                 document.body.style.overflow = '';
                 
@@ -322,14 +470,19 @@
                     state[type].isExpanded = false;
                 }
             } else if (newBreakpoint === 'mobile') {
-                // Mobile: hidden by default, show toggle
+                // Mobile: hidden by default, show pull tab
                 if (layout) layout.classList.remove('sidebar-open');
                 if (sidebar) sidebar.classList.remove('sidebar-expanded');
-                if (toggleBtn) toggleBtn.style.display = 'flex';
+                if (pullTab) pullTab.style.display = 'flex';
                 state[type].isOpen = false;
                 state[type].isExpanded = false;
             }
         });
+
+        // Re-setup swipe gestures when entering mobile mode
+        if (newBreakpoint === 'mobile' && oldBreakpoint !== 'mobile') {
+            setupSwipeGestures();
+        }
     }
 
     /**
@@ -371,6 +524,9 @@
         // Apply initial state based on current breakpoint
         const currentBreakpoint = MobileUtils.getBreakpoint();
         handleBreakpointChange(currentBreakpoint, null);
+
+        // Set up swipe gestures for mobile
+        setupSwipeGestures();
 
         console.log('[SidebarCollapse] Initialized | Breakpoint:', currentBreakpoint, '| Landscape:', isLandscape());
     }
