@@ -304,8 +304,18 @@ function renderClickableEmail(email) {
  * @returns {string} HTML for clickable address link
  */
 function renderClickableAddress(person) {
-  const parts = [person.address, person.city, person.state, person.country].filter(Boolean);
-  if (parts.length === 0) return '';
+  // Require at least street address + city or state
+  if (!person.address) return '';  // Must have street address
+  if (!person.city && !person.state) return '';  // Must have city or state
+  
+  // Build full address
+  const parts = [person.address];
+  if (person.city) parts.push(person.city);
+  if (person.state) parts.push(person.state);
+  // Only add country if not USA/US (most common case)
+  if (person.country && person.country !== 'USA' && person.country !== 'US') {
+    parts.push(person.country);
+  }
   
   const fullAddress = parts.join(', ');
   const displayAddress = parts.slice(0, 2).join(', ') + (parts.length > 2 ? '...' : ''); // Truncate for display
