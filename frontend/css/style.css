@@ -7702,8 +7702,8 @@ body.column-dragging .base-table {
 .person-card-emails {
     grid-column: 2;
     grid-row: 1;
-    overflow: hidden;
-    min-width: 0;  /* Critical for grid/flex truncation */
+    overflow: visible;  /* Allow content to show, not clip */
+    min-width: 0;  /* Keep for grid sizing */
 }
 
 .person-card-address-container {
@@ -7769,11 +7769,22 @@ body.column-dragging .base-table {
     text-transform: capitalize;
 }
 
+/* Email specific - allow wrapping instead of truncation */
+.person-card-email {
+    white-space: normal;
+    word-break: break-all;  /* Allows breaking long email addresses */
+    overflow: visible;
+    text-overflow: clip;
+}
+
 /* Address specific - may wrap on multiple lines */
 .person-card-address {
     white-space: normal;
+    word-break: break-word;  /* More natural breaking for addresses */
     text-align: center;
     line-height: 1.3;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 /* Touch device adjustments - 44px minimum touch target */
