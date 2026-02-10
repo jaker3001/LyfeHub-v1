@@ -278,14 +278,15 @@ function formatPhoneNumber(phone) {
 /**
  * Render a clickable phone link
  * @param {string} phone - Phone number
- * @param {string} label - Optional label (e.g., 'Mobile', 'Work', 'Home')
+ * @param {string} label - Optional label/icon (e.g., '📱', '🏢', '🏠')
  * @returns {string} HTML for clickable phone link
  */
 function renderClickablePhone(phone, label = '') {
   if (!phone) return '';
   const formattedPhone = formatPhoneNumber(phone);
-  const displayText = label ? `${label}: ${formattedPhone}` : formattedPhone;
-  return `<a href="tel:${phone.replace(/\D/g, '')}" class="person-card-phone" onclick="event.stopPropagation()">${ICON_PHONE} ${displayText}</a>`;
+  // Icons don't need colons, just show icon + number
+  const displayText = label ? `${label} ${formattedPhone}` : formattedPhone;
+  return `<a href="tel:${phone.replace(/\D/g, '')}" class="person-card-phone" onclick="event.stopPropagation()">${displayText}</a>`;
 }
 
 /**
@@ -330,9 +331,9 @@ function renderClickableAddress(person) {
  */
 function renderAllPhones(person) {
   const phones = [];
-  if (person.phone_mobile) phones.push(renderClickablePhone(person.phone_mobile, 'Mobile'));
-  if (person.phone_work) phones.push(renderClickablePhone(person.phone_work, 'Work'));
-  if (person.phone_home) phones.push(renderClickablePhone(person.phone_home, 'Home'));
+  if (person.phone_mobile) phones.push(renderClickablePhone(person.phone_mobile, '📱'));
+  if (person.phone_work) phones.push(renderClickablePhone(person.phone_work, '🏢'));
+  if (person.phone_home) phones.push(renderClickablePhone(person.phone_home, '🏠'));
   return phones.join('<br>');
 }
 
