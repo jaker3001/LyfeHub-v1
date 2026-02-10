@@ -391,28 +391,38 @@ function renderPersonCard(person) {
       <div class="person-card-name">${peopleEscapeHtml(person.name)}</div>
     `;
   } else if (peopleState.cardSize === 'medium') {
-    // Medium: Avatar + Name + all phones + all emails
+    // Medium: Avatar + Name + 2x2 grid (phones left, emails right)
     const phones = renderAllPhones(person);
     const emails = renderAllEmails(person);
+    const hasContactInfo = phones || emails;
     
     cardContent = `
       <div class="person-card-avatar">${initials}</div>
       <div class="person-card-name">${peopleEscapeHtml(person.name)}</div>
-      ${phones ? `<div class="person-card-phones">${phones}</div>` : ''}
-      ${emails ? `<div class="person-card-emails">${emails}</div>` : ''}
+      ${hasContactInfo ? `
+        <div class="person-card-contact-grid">
+          <div class="person-card-phones">${phones}</div>
+          <div class="person-card-emails">${emails}</div>
+        </div>
+      ` : ''}
     `;
   } else {
-    // Large: Avatar + Name + all phones + all emails + full address
+    // Large: Avatar + Name + 2x2 grid (phones left, emails right, address full width)
     const phones = renderAllPhones(person);
     const emails = renderAllEmails(person);
     const address = renderClickableAddress(person);
+    const hasContactInfo = phones || emails || address;
     
     cardContent = `
       <div class="person-card-avatar">${initials}</div>
       <div class="person-card-name">${peopleEscapeHtml(person.name)}</div>
-      ${phones ? `<div class="person-card-phones">${phones}</div>` : ''}
-      ${emails ? `<div class="person-card-emails">${emails}</div>` : ''}
-      ${address ? `<div class="person-card-address-container">${address}</div>` : ''}
+      ${hasContactInfo ? `
+        <div class="person-card-contact-grid">
+          <div class="person-card-phones">${phones}</div>
+          <div class="person-card-emails">${emails}</div>
+          ${address ? `<div class="person-card-address-container">${address}</div>` : ''}
+        </div>
+      ` : ''}
     `;
   }
 
