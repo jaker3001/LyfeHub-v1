@@ -252,6 +252,92 @@ function getInitials(name) {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
+// ============================================
+// Clickable Contact Info Helpers
+// ============================================
+
+// SVG Icons (inline, 14px)
+const ICON_PHONE = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`;
+
+const ICON_EMAIL = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+
+const ICON_LOCATION = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+
+/**
+ * Format phone number as (XXX) XXX-XXXX if 10 digits
+ */
+function formatPhoneNumber(phone) {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return phone; // Return as-is if not 10 digits
+}
+
+/**
+ * Render a clickable phone link
+ * @param {string} phone - Phone number
+ * @param {string} label - Optional label (e.g., 'Mobile', 'Work', 'Home')
+ * @returns {string} HTML for clickable phone link
+ */
+function renderClickablePhone(phone, label = '') {
+  if (!phone) return '';
+  const formattedPhone = formatPhoneNumber(phone);
+  const displayText = label ? `${label}: ${formattedPhone}` : formattedPhone;
+  return `<a href="tel:${phone.replace(/\D/g, '')}" class="person-card-phone" onclick="event.stopPropagation()">${ICON_PHONE} ${displayText}</a>`;
+}
+
+/**
+ * Render a clickable email link
+ * @param {string} email - Email address
+ * @returns {string} HTML for clickable email link
+ */
+function renderClickableEmail(email) {
+  if (!email) return '';
+  return `<a href="mailto:${email}" class="person-card-email" onclick="event.stopPropagation()">${ICON_EMAIL} ${email}</a>`;
+}
+
+/**
+ * Render a clickable address link (opens Google Maps)
+ * @param {object} person - Person object with address, city, state, country fields
+ * @returns {string} HTML for clickable address link
+ */
+function renderClickableAddress(person) {
+  const parts = [person.address, person.city, person.state, person.country].filter(Boolean);
+  if (parts.length === 0) return '';
+  
+  const fullAddress = parts.join(', ');
+  const displayAddress = parts.slice(0, 2).join(', ') + (parts.length > 2 ? '...' : ''); // Truncate for display
+  
+  return `<a href="https://maps.google.com/?q=${encodeURIComponent(fullAddress)}" target="_blank" class="person-card-address" onclick="event.stopPropagation()">${ICON_LOCATION} ${displayAddress}</a>`;
+}
+
+/**
+ * Render all non-empty phone numbers for a person
+ * @param {object} person - Person object with phone_mobile, phone_work, phone_home fields
+ * @returns {string} HTML for all phone links, each on its own line
+ */
+function renderAllPhones(person) {
+  const phones = [];
+  if (person.phone_mobile) phones.push(renderClickablePhone(person.phone_mobile, 'Mobile'));
+  if (person.phone_work) phones.push(renderClickablePhone(person.phone_work, 'Work'));
+  if (person.phone_home) phones.push(renderClickablePhone(person.phone_home, 'Home'));
+  return phones.join('<br>');
+}
+
+/**
+ * Render all non-empty email addresses for a person
+ * @param {object} person - Person object with email, email_secondary fields
+ * @returns {string} HTML for all email links, each on its own line
+ */
+function renderAllEmails(person) {
+  const emails = [];
+  if (person.email) emails.push(renderClickableEmail(person.email));
+  if (person.email_secondary) emails.push(renderClickableEmail(person.email_secondary));
+  return emails.join('<br>');
+}
+
 function renderPeopleList() {
   const container = document.getElementById('people-list');
   if (!container) return;
@@ -295,33 +381,38 @@ function renderPeopleList() {
 
 function renderPersonCard(person) {
   const initials = getInitials(person.name);
-  const relationship = person.relationship ? formatRelationship(person.relationship) : '';
-  const company = person.company || '';
-  const email = person.email || '';
-  const phone = person.phone_mobile || person.phone_work || person.phone_home || '';
 
   let cardContent = '';
 
   if (peopleState.cardSize === 'small') {
+    // Small: Avatar + Name only
     cardContent = `
       <div class="person-card-avatar">${initials}</div>
       <div class="person-card-name">${peopleEscapeHtml(person.name)}</div>
     `;
   } else if (peopleState.cardSize === 'medium') {
+    // Medium: Avatar + Name + all phones + all emails
+    const phones = renderAllPhones(person);
+    const emails = renderAllEmails(person);
+    
     cardContent = `
       <div class="person-card-avatar">${initials}</div>
       <div class="person-card-name">${peopleEscapeHtml(person.name)}</div>
-      ${relationship ? `<div class="person-card-relationship">${peopleEscapeHtml(relationship)}</div>` : ''}
-      ${company ? `<div class="person-card-company">${peopleEscapeHtml(company)}</div>` : ''}
+      ${phones ? `<div class="person-card-phones">${phones}</div>` : ''}
+      ${emails ? `<div class="person-card-emails">${emails}</div>` : ''}
     `;
   } else {
+    // Large: Avatar + Name + all phones + all emails + full address
+    const phones = renderAllPhones(person);
+    const emails = renderAllEmails(person);
+    const address = renderClickableAddress(person);
+    
     cardContent = `
       <div class="person-card-avatar">${initials}</div>
       <div class="person-card-name">${peopleEscapeHtml(person.name)}</div>
-      ${relationship ? `<div class="person-card-relationship">${peopleEscapeHtml(relationship)}</div>` : ''}
-      ${company ? `<div class="person-card-company">${peopleEscapeHtml(company)}</div>` : ''}
-      ${email ? `<div class="person-card-email">${peopleEscapeHtml(email)}</div>` : ''}
-      ${phone ? `<div class="person-card-phone">${peopleEscapeHtml(phone)}</div>` : ''}
+      ${phones ? `<div class="person-card-phones">${phones}</div>` : ''}
+      ${emails ? `<div class="person-card-emails">${emails}</div>` : ''}
+      ${address ? `<div class="person-card-address-container">${address}</div>` : ''}
     `;
   }
 
