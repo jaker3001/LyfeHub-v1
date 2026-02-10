@@ -18,6 +18,7 @@
 
     // Tab data for generating navigation
     const TABS = [
+        { id: 'apex', label: 'Apex', icon: 'home' },
         { id: 'projects', label: 'Projects', icon: 'layers' },
         { id: 'tasks', label: 'Tasks', icon: 'check-square' },
         { id: 'bases', label: 'Bases', icon: 'database' },
@@ -27,6 +28,10 @@
 
     // SVG icons (matching the header icons)
     const ICONS = {
+        home: `<svg class="drawer-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>`,
         layers: `<svg class="drawer-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="12 2 2 7 12 12 22 7 12 2"/>
             <polyline points="2 17 12 22 22 17"/>
@@ -108,7 +113,7 @@
      */
     function getActiveTab() {
         const activeTab = document.querySelector('.tab.active');
-        return activeTab ? activeTab.dataset.tab : 'projects';
+        return activeTab ? activeTab.dataset.tab : 'apex';
     }
 
     /**

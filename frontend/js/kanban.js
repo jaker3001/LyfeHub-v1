@@ -7,7 +7,7 @@ const dashboard = {
     refreshInterval: null,
     REFRESH_MS: 30000,
     currentView: 'kanban',
-    currentTab: 'projects',
+    currentTab: 'apex',
     filters: {
         status: 'all',
         priority: 'all'
@@ -106,6 +106,13 @@ const dashboard = {
         const addItemBtn = document.getElementById('add-item-btn');
         if (addItemBtn) {
             addItemBtn.style.display = tabName === 'tasks' ? 'none' : '';
+        }
+        
+        // Load Apex jobs when switching to Apex tab
+        if (tabName === 'apex' && typeof apexJobs !== 'undefined') {
+            if (!apexJobs.jobs || !apexJobs.jobs.length) {
+                apexJobs.loadJobs();
+            }
         }
         
         // Load tasks when switching to Tasks tab

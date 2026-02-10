@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/drawer.css">
     <link rel="stylesheet" href="css/header-mobile.css">
     <link rel="stylesheet" href="css/style.css?v=1770688306">
+    <link rel="stylesheet" href="css/apex-theme.css">
     <link rel="stylesheet" href="css/apex-jobs.css">
     <link rel="stylesheet" href="css/sidebar-responsive.css">
     <link rel="stylesheet" href="css/table-cards.css">
@@ -38,7 +39,8 @@
             <span id="header-title" class="header-logo-text">LyfeHub</span>
         </div>
         <nav class="tabs">
-            <button class="tab active" data-tab="projects">Projects</button>
+            <button class="tab active" data-tab="apex">Apex</button>
+            <button class="tab" data-tab="projects">Projects</button>
             <button class="tab" data-tab="tasks">Tasks</button>
             <button class="tab" data-tab="bases">Bases</button>
             <button class="tab" data-tab="people">People</button>
@@ -57,28 +59,7 @@
     </header>
 
     <!-- Projects Tab Content -->
-    <main class="tab-content active" data-tab="projects">
-        <!-- Sub-tabs: Dev Projects / Apex Jobs -->
-        <div class="view-controls">
-            <div class="projects-subtabs">
-                <button class="subtab-btn active" data-subtab="dev-projects" onclick="switchProjectSubtab('dev-projects')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                        <path d="M2 17l10 5 10-5"/>
-                        <path d="M2 12l10 5 10-5"/>
-                    </svg>
-                    Dev Projects
-                </button>
-                <button class="subtab-btn" data-subtab="apex-jobs" onclick="switchProjectSubtab('apex-jobs')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                        <polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                    Apex Jobs
-                </button>
-            </div>
-        </div>
-
+    <main class="tab-content" data-tab="projects">
         <!-- Dev Projects Content -->
         <div class="dev-projects-content" id="dev-projects-content">
             <!-- View Toggle -->
@@ -207,8 +188,10 @@
             <p id="card-empty" class="empty-message" style="display: none;">No projects found</p>
         </div>
         </div><!-- End dev-projects-content -->
+    </main>
 
-        <!-- Apex Jobs Content -->
+    <!-- Apex Tab Content -->
+    <main class="tab-content active" data-tab="apex">
         <div class="apex-content" id="apex-jobs-content">
             <!-- Apex View Controls -->
             <div class="apex-view-controls">
@@ -319,7 +302,6 @@
             </div>
         </div><!-- End apex-jobs-content -->
     </main>
-
 
     <!-- Tasks Tab Content -->
     <main class="tab-content" data-tab="tasks">
@@ -2045,34 +2027,6 @@
             <!-- Populated dynamically by jobDetailModals.js -->
         </div>
     </div>
-
-    <!-- Sub-tab switching script -->
-    <script>
-    function switchProjectSubtab(subtab) {
-        // Update subtab buttons
-        document.querySelectorAll('.subtab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.subtab === subtab);
-        });
-        
-        // Show/hide content
-        const devContent = document.getElementById('dev-projects-content');
-        const apexContent = document.getElementById('apex-jobs-content');
-        
-        if (subtab === 'dev-projects') {
-            devContent.classList.remove('hidden');
-            devContent.classList.add('active');
-            apexContent.classList.remove('active');
-        } else {
-            devContent.classList.add('hidden');
-            devContent.classList.remove('active');
-            apexContent.classList.add('active');
-            // Load Apex jobs when switching to that tab
-            if (window.apexJobs && !window.apexJobs.jobs.length) {
-                window.apexJobs.loadJobs();
-            }
-        }
-    }
-    </script>
 
     <script src="js/mobile-utils.js"></script>
     <script src="js/touch-actions.js"></script>

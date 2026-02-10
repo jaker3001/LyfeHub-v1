@@ -1,7 +1,7 @@
 /**
  * Table-to-Card Transformation Styles
  * =====================================
- * Transforms the Apex Jobs table into mobile-friendly cards.
+ * Transforms the Apex table into mobile-friendly cards.
  * Uses MobileUtils breakpoints for dynamic switching.
  * 
  * Breakpoints:

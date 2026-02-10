@@ -321,7 +321,7 @@ const kanbanMobile = {
 
 
 // ============================================================================
-// Apex Jobs Board - Similar Implementation
+// Apex Board - Similar Implementation
 // ============================================================================
 
 const apexKanbanMobile = {

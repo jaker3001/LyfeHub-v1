@@ -1,7 +1,7 @@
 /**
- * Table-to-Card Transformation for Apex Jobs
+ * Table-to-Card Transformation for Apex
  * ===========================================
- * Transforms the Apex Jobs list table into mobile-friendly cards on small screens.
+ * Transforms the Apex list table into mobile-friendly cards on small screens.
  * Uses MobileUtils.onBreakpointChange() for dynamic switching.
  * 
  * Breakpoints (aligned with responsive.css):

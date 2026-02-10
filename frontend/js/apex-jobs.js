@@ -1,5 +1,5 @@
 /**
- * Apex Jobs Module - Displays restoration jobs from Zoho
+ * Apex Module - Displays restoration jobs from Zoho
  * Read-only view with Kanban, List, and Card views
  */
 

@@ -380,21 +380,21 @@ const api = {
     // ========================================
 
     /**
-     * Apex Jobs: Get all jobs
+     * Apex: Get all jobs
      */
     async getApexJobs() {
         return this.request('/apex-jobs');
     },
 
     /**
-     * Apex Jobs: Get single job by ID
+     * Apex: Get single job by ID
      */
     async getApexJob(id) {
         return this.request(`/apex-jobs/${id}`);
     },
 
     /**
-     * Apex Jobs: Create new job
+     * Apex: Create new job
      */
     async createApexJob(data) {
         return this.request('/apex-jobs', {
@@ -404,7 +404,7 @@ const api = {
     },
 
     /**
-     * Apex Jobs: Update existing job
+     * Apex: Update existing job
      */
     async updateApexJob(id, data) {
         return this.request(`/apex-jobs/${id}`, {
@@ -414,7 +414,7 @@ const api = {
     },
 
     /**
-     * Apex Jobs: Update job status
+     * Apex: Update job status
      */
     async updateApexJobStatus(id, status) {
         return this.request(`/apex-jobs/${id}/status`, {
@@ -424,7 +424,7 @@ const api = {
     },
 
     /**
-     * Apex Jobs: Update a phase within a job
+     * Apex: Update a phase within a job
      */
     async updateApexJobPhase(jobId, phaseId, data) {
         return this.request(`/apex-jobs/${jobId}/phases/${phaseId}`, {
@@ -434,7 +434,7 @@ const api = {
     },
 
     /**
-     * Apex Jobs: Archive (soft delete) a job
+     * Apex: Archive (soft delete) a job
      */
     async archiveApexJob(id) {
         return this.request(`/apex-jobs/${id}`, {
