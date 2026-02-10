@@ -86,7 +86,8 @@ body {
 }
 
 .tab {
-    padding: 0.75rem 1.5rem;
+    height: 30px;
+    padding: 0 1.5rem;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -95,6 +96,8 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
 }
 
 .tab:hover {

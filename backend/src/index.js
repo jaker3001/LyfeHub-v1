@@ -69,7 +69,7 @@ app.get('/api/health', (req, res) => {
 
 // Serve static frontend files
 const frontendPath = path.join(__dirname, '../../frontend');
-app.use(express.static(frontendPath));
+app.use(express.static(frontendPath, { etag: false, lastModified: false, setHeaders: (res) => { res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate"); res.setHeader("Pragma", "no-cache"); res.setHeader("Expires", "0"); } }));
 
 // SPA fallback - serve index.html for all non-API routes
 app.get('*', (req, res) => {
