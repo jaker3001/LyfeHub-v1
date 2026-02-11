@@ -8088,4 +8088,133 @@ body.column-dragging .base-table {
 
 /* End JOB TYPE SELECTION SECTION */
 
+/* ===========================================
+   MULTI-CONTACT SUPPORT
+   Add/remove multiple contacts per section
+   =========================================== */
+
+/* Contact group container */
+.contact-group {
+    display: contents; /* Allows grid children to flow naturally */
+}
+
+.contact-group-primary {
+    display: contents;
+}
+
+/* Additional contacts container */
+.additional-contacts-container {
+    display: contents;
+}
+
+/* Additional contact groups */
+.contact-group-additional {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    grid-column: 1 / -1;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    position: relative;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.contact-group-additional:first-child {
+    margin-top: 0.75rem;
+}
+
+/* Contact group header */
+.contact-group-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.contact-group-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Remove contact button */
+.remove-contact-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-muted);
+}
+
+.remove-contact-btn:hover {
+    background: rgba(236, 72, 153, 0.15);
+    border-color: rgba(236, 72, 153, 0.5);
+    color: #ec4899;
+}
+
+.remove-contact-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Add contact button */
+.add-contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    width: 100%;
+    justify-content: center;
+}
+
+.add-contact-btn:hover {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: var(--neon-purple, #a855f7);
+    color: var(--neon-purple, #a855f7);
+}
+
+.add-contact-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Site contact required indicators - hide when Same is active */
+#primary-site-contact.same-active .site-required {
+    display: none;
+}
+
+/* Responsive: additional contacts on mobile */
+@media (max-width: 640px) {
+    .contact-group-additional {
+        grid-template-columns: 1fr;
+    }
+    
+    .contact-group-additional .job-field {
+        grid-column: 1;
+    }
+}
+
+/* End MULTI-CONTACT SUPPORT */
+
 /* End JOB FORM FIELDS */
