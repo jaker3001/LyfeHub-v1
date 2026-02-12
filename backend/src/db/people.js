@@ -51,6 +51,7 @@ function createPerson(data, userId) {
       gift_ideas, favorite_things, allergies_dislikes,
       relationship_goals, how_i_can_support, how_they_support_me,
       organization_id,
+      score, exchange_count, meeting_count, last_email_date, last_meeting_date, source, ai_notes,
       created_at, updated_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
@@ -67,6 +68,7 @@ function createPerson(data, userId) {
       ?, ?, ?,
       ?, ?, ?,
       ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?
     )
   `);
@@ -132,6 +134,14 @@ function createPerson(data, userId) {
     data.how_i_can_support || '',
     data.how_they_support_me || '',
     data.organization_id || null,
+    // CRM Enrichment fields
+    data.score || 0,
+    data.exchange_count || 0,
+    data.meeting_count || 0,
+    data.last_email_date || null,
+    data.last_meeting_date || null,
+    data.source || 'manual',
+    data.ai_notes || '',
     now, now
   );
 
@@ -208,6 +218,13 @@ function updatePerson(id, data, userId) {
       how_i_can_support = ?,
       how_they_support_me = ?,
       organization_id = ?,
+      score = ?,
+      exchange_count = ?,
+      meeting_count = ?,
+      last_email_date = ?,
+      last_meeting_date = ?,
+      source = ?,
+      ai_notes = ?,
       updated_at = ?
     WHERE id = ? AND user_id = ?
   `);
@@ -280,6 +297,14 @@ function updatePerson(id, data, userId) {
     val('how_i_can_support'),
     val('how_they_support_me'),
     data.organization_id !== undefined ? data.organization_id : existing.organization_id,
+    // CRM Enrichment fields
+    data.score !== undefined ? data.score : existing.score,
+    data.exchange_count !== undefined ? data.exchange_count : existing.exchange_count,
+    data.meeting_count !== undefined ? data.meeting_count : existing.meeting_count,
+    data.last_email_date !== undefined ? data.last_email_date : existing.last_email_date,
+    data.last_meeting_date !== undefined ? data.last_meeting_date : existing.last_meeting_date,
+    data.source !== undefined ? data.source : existing.source,
+    val('ai_notes'),
     now,
     id, userId
   );
@@ -322,6 +347,17 @@ function searchPeople(userId, query) {
   return stmt.all(userId, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
 }
 
+/**
+ * Find a person by email address
+ */
+function findByEmail(userId, email) {
+  const stmt = db.prepare(`
+    SELECT * FROM people
+    WHERE user_id = ? AND (LOWER(email) = LOWER(?) OR LOWER(email_secondary) = LOWER(?))
+  `);
+  return stmt.get(userId, email, email);
+}
+
 module.exports = {
   getAllPeople,
   getPersonById,
@@ -329,5 +365,6 @@ module.exports = {
   updatePerson,
   deletePerson,
   getPeopleCount,
-  searchPeople
+  searchPeople,
+  findByEmail
 };
